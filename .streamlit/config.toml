@@ -1,8 +1,14 @@
 [browser]
 gatherUsageStats = false
 
+[server]
+headless = true
+address = "localhost"
+
 [theme]
-primaryColor = "#E66A33"
-backgroundColor = "#0E1117"
-secondaryBackgroundColor = "#1B2230"
-textColor = "#FAFAFA"
+base = "light"
+primaryColor = "#0969DA"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F6F8FA"
+textColor = "#1F2328"
+font = "sans serif"
