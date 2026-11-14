@@ -1,0 +1,7 @@
+result_id,product,forecast_id,valid_time,point_estimate,lower,upper,interval_level,interval_method
+b89274fb3d310e4986f08ce038268173,forecast,FC_CR_PN_T2M_mock1,2025-01-01,27.20299,26.60299,27.80299,0.8,mock_fixed_width
+b89274fb3d310e4986f08ce038268173,forecast,FC_CR_PN_T2M_mock1,2025-02-01,27.95299,27.35299,28.55299,0.8,mock_fixed_width
+b89274fb3d310e4986f08ce038268173,forecast,FC_CR_PN_T2M_mock1,2025-03-01,28.502028,27.902028,29.102028,0.8,mock_fixed_width
+b89274fb3d310e4986f08ce038268173,forecast,FC_CR_PN_T2M_mock1,2025-04-01,28.70299,28.10299,29.30299,0.8,mock_fixed_width
+b89274fb3d310e4986f08ce038268173,forecast,FC_CR_PN_T2M_mock1,2025-05-01,28.502028,27.902028,29.102028,0.8,mock_fixed_width
+b89274fb3d310e4986f08ce038268173,forecast,FC_CR_PN_T2M_mock1,2025-06-01,27.95299,27.35299,28.55299,0.8,mock_fixed_width

@@ -1,0 +1,55 @@
+{
+  "schema_version": "2.1-proposal",
+  "result_id": "28829120ec51d0376b8b2606cc8f775a",
+  "product": "event",
+  "source_mode": "mock",
+  "synthetic": true,
+  "availability": {
+    "status": "partial",
+    "reason_code": "baseline_insufficient"
+  },
+  "generated_at": "2026-11-14T00:00:00Z",
+  "conventions": {
+    "encoding": "utf-8",
+    "delimiter": ",",
+    "decimal": ".",
+    "line_terminator": "\n",
+    "missing": "empty cell",
+    "nested": "compact JSON text",
+    "booleans": "true/false",
+    "row_keys": "every row carries result_id and product plus its join keys"
+  },
+  "tables_present": [
+    {
+      "table": "event_series.csv",
+      "rows": 12,
+      "columns": [
+        "result_id",
+        "product",
+        "zone_id",
+        "variable",
+        "time",
+        "value",
+        "unit",
+        "climatology",
+        "anomaly",
+        "baseline",
+        "baseline_valid_counts",
+        "synthetic"
+      ],
+      "join_keys": [
+        "result_id",
+        "zone_id",
+        "time"
+      ]
+    }
+  ],
+  "tables_absent": [],
+  "files": [
+    "event_series.csv",
+    "evidence.json",
+    "ficha.md",
+    "manifest.json",
+    "provenance.json"
+  ]
+}

@@ -1,0 +1,19 @@
+﻿{
+  "schema_version": "2.0",
+  "events": [
+    {
+      "event_id": "ENICHO_2023_2024",
+      "label": "El Niño 2023-2024",
+      "phase": "el_nino",
+      "start_ym": "2023-06",
+      "end_ym": "2024-05",
+      "duration_months": 12,
+      "neutral_ref_start_ym": "2018-06",
+      "neutral_ref_end_ym": "2019-05",
+      "climatology_base": "1981-2010",
+      "imn_bulletin_reference": "Boletín ENOS IMN — Ciclo 2023-2024",
+      "verification_status": "verified",
+      "notes": "Episodio cálido completo dentro del período histórico 1981-2024 con contraparte neutral emparejada de 12 meses."
+    }
+  ]
+}

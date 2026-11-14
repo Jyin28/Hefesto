@@ -1,0 +1,51 @@
+{
+  "schema_version": "2.1-proposal",
+  "result_id": "b89274fb3d310e4986f08ce038268173",
+  "product": "forecast",
+  "source_mode": "mock",
+  "synthetic": true,
+  "availability": {
+    "status": "available",
+    "reason_code": null
+  },
+  "generated_at": "2026-11-14T00:00:00Z",
+  "conventions": {
+    "encoding": "utf-8",
+    "delimiter": ",",
+    "decimal": ".",
+    "line_terminator": "\n",
+    "missing": "empty cell",
+    "nested": "compact JSON text",
+    "booleans": "true/false",
+    "row_keys": "every row carries result_id and product plus its join keys"
+  },
+  "tables_present": [
+    {
+      "table": "forecast.csv",
+      "rows": 6,
+      "columns": [
+        "result_id",
+        "product",
+        "forecast_id",
+        "valid_time",
+        "point_estimate",
+        "lower",
+        "upper",
+        "interval_level",
+        "interval_method"
+      ],
+      "join_keys": [
+        "result_id",
+        "valid_time"
+      ]
+    }
+  ],
+  "tables_absent": [],
+  "files": [
+    "evidence.json",
+    "ficha.md",
+    "forecast.csv",
+    "manifest.json",
+    "provenance.json"
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "schema_version": "2.1-proposal",
+  "result_id": "b2eb29aeab0aa9871bc6225e5a8b582a",
+  "product": "historical",
+  "source_mode": "mock",
+  "synthetic": true,
+  "availability": {
+    "status": "available",
+    "reason_code": null
+  },
+  "generated_at": "2026-11-14T00:00:00Z",
+  "conventions": {
+    "encoding": "utf-8",
+    "delimiter": ",",
+    "decimal": ".",
+    "line_terminator": "\n",
+    "missing": "empty cell",
+    "nested": "compact JSON text",
+    "booleans": "true/false",
+    "row_keys": "every row carries result_id and product plus its join keys"
+  },
+  "tables_present": [
+    {
+      "table": "series.csv",
+      "rows": 10,
+      "columns": [
+        "result_id",
+        "product",
+        "zone_id",
+        "variable",
+        "year",
+        "value",
+        "unit",
+        "months_valid",
+        "complete",
+        "synthetic"
+      ],
+      "join_keys": [
+        "result_id",
+        "zone_id",
+        "year"
+      ]
+    }
+  ],
+  "tables_absent": [],
+  "files": [
+    "evidence.json",
+    "ficha.md",
+    "manifest.json",
+    "provenance.json",
+    "series.csv"
+  ]
+}

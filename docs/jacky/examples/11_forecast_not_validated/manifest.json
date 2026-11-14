@@ -1,0 +1,36 @@
+{
+  "schema_version": "2.1-proposal",
+  "result_id": null,
+  "product": "forecast",
+  "source_mode": "mock",
+  "synthetic": true,
+  "availability": {
+    "status": "unavailable",
+    "reason_code": "forecast_not_validated"
+  },
+  "generated_at": "2026-11-14T00:00:00Z",
+  "conventions": {
+    "encoding": "utf-8",
+    "delimiter": ",",
+    "decimal": ".",
+    "line_terminator": "\n",
+    "missing": "empty cell",
+    "nested": "compact JSON text",
+    "booleans": "true/false",
+    "row_keys": "every row carries result_id and product plus its join keys"
+  },
+  "tables_present": [],
+  "tables_absent": [
+    {
+      "table": "forecast.csv",
+      "availability_status": "unavailable",
+      "reason_code": "forecast_not_validated",
+      "message": "El modelo existe pero aun no esta validado; no se presenta como prediccion."
+    }
+  ],
+  "files": [
+    "evidence.json",
+    "ficha.md",
+    "manifest.json"
+  ]
+}

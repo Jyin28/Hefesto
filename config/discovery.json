@@ -1,0 +1,55 @@
+{
+  "schema_version": "2.0",
+  "description": "Reglas deterministas de descubrimiento para estudiantes de colegio y universidad en Costa Rica. Cada tema cotidiano se mapea de forma fija a un preset y una variable de reanálisis.",
+  "language": "es-CR",
+  "reference_system": "WGS84",
+  "rules": [
+    {
+      "id": "rule_heat",
+      "topic": "heat",
+      "preset_id": "CR_HEAT",
+      "variable": "T2M",
+      "variable_label": "Temperatura del aire a 2 metros",
+      "unit": "°C",
+      "why_it_helps": "Sirve para estudiar cómo cambia el calor a escala regional a lo largo de los años, porque resume la temperatura del aire cerca de la superficie terrestre y permite comparar años y décadas con la misma medida.",
+      "not_measured": [
+        "Es temperatura del aire sobre tierra, NO temperatura superficial del mar.",
+        "No mide la sensación térmica ni la temperatura en un sitio puntual."
+      ],
+      "scale_note": "La escala del reanálisis (~0.5° x 0.625°, decenas de km) no mide fincas ni cantones específicos; describe un entorno regional."
+    },
+    {
+      "id": "rule_rain",
+      "topic": "rain",
+      "preset_id": "CR_RAIN",
+      "variable": "PRECTOTCORR",
+      "variable_label": "Precipitación total corregida",
+      "unit": "mm/yr",
+      "why_it_helps": "Sirve para evaluar la lluvia acumulada anual (mm/yr) en una región y comparar cómo varía de un año a otro y entre décadas.",
+      "not_measured": [
+        "NO mide caudal de ríos.",
+        "NO mide recarga de acuíferos.",
+        "NO mide disponibilidad de agua potable ni suministro en ASADAS."
+      ],
+      "scale_note": "Tiene escala regional de decenas de km (~0.5° x 0.625°); no representa una finca, un cantón ni una cuenca específica."
+    }
+  ],
+  "sectors": [
+    {
+      "sector_id": "CR_PN",
+      "name": "Sector Pacífico Norte",
+      "context": "Entorno regional de Guanacaste",
+      "crs": "WGS84",
+      "bbox_order": "[lon_min, lat_min, lon_max, lat_max]",
+      "bbox": [-86.0, 9.75, -85.0, 11.25]
+    },
+    {
+      "sector_id": "CR_CAR",
+      "name": "Sector Caribe",
+      "context": "Entorno regional de Limón",
+      "crs": "WGS84",
+      "bbox_order": "[lon_min, lat_min, lon_max, lat_max]",
+      "bbox": [-84.0, 9.5, -82.75, 10.75]
+    }
+  ]
+}

@@ -1,0 +1,280 @@
+{
+  "schema_version": "2.1-proposal",
+  "result_id": "807bd14bdec6b1ec9d23f902d44356d8",
+  "preset_id": null,
+  "hypothesis": "",
+  "query": {
+    "product": "historical",
+    "variable": "T2M",
+    "zone_ids": [
+      "CR_PN"
+    ],
+    "cell_ids": [],
+    "spatial_level": "zone",
+    "start_date": "1981-01-01",
+    "end_date": "2024-12-31",
+    "time_resolution": "annual",
+    "preset_id": null,
+    "event_id": null,
+    "baseline": null,
+    "analysis_scope_id": null,
+    "metric": "slope"
+  },
+  "query_effective": {
+    "product": "historical",
+    "variable": "T2M",
+    "zone_ids": [
+      "CR_PN"
+    ],
+    "cell_ids": [],
+    "spatial_level": "zone",
+    "start_date": "1981-01-01",
+    "end_date": "2024-12-31",
+    "time_resolution": "annual",
+    "preset_id": null,
+    "event_id": null,
+    "baseline": null,
+    "analysis_scope_id": null,
+    "metric": "slope"
+  },
+  "product": "historical",
+  "availability": {
+    "status": "available",
+    "reason_code": null,
+    "message": "Datos disponibles para la consulta.",
+    "missing_requirements": [],
+    "available_range": [
+      "1981-01-01",
+      "2024-12-31"
+    ],
+    "available_resolution": [
+      "monthly",
+      "annual"
+    ],
+    "checked_at": "2026-11-14T00:00:00Z",
+    "retryable": false
+  },
+  "source_mode": "mock",
+  "synthetic": true,
+  "presentable_as_real": false,
+  "summary": "Mapa de 5 celdas, metrica slope, anios 1981-2024, correccion fdr_by. Datos sinteticos de contrato (mock): no son evidencia cientifica.",
+  "results": {
+    "cells": [
+      {
+        "cell_id": "G_10.000_-85.625",
+        "lat": 10.0,
+        "lon": -85.625,
+        "footprint": [
+          -85.9375,
+          9.75,
+          -85.3125,
+          10.25
+        ],
+        "metric": "slope",
+        "value": 0.217942,
+        "unit": "degC/decade",
+        "p_value": 0.0008581835708761237,
+        "q_value": 0.02513592435173281,
+        "significant": true,
+        "level": "inferential",
+        "status": "ok",
+        "n_years": 44,
+        "synthetic": true,
+        "zone_ids": [
+          "CR_PN",
+          "MOCK_STALE"
+        ]
+      },
+      {
+        "cell_id": "G_10.500_-85.625",
+        "lat": 10.5,
+        "lon": -85.625,
+        "footprint": [
+          -85.9375,
+          10.25,
+          -85.3125,
+          10.75
+        ],
+        "metric": "slope",
+        "value": 0.262942,
+        "unit": "degC/decade",
+        "p_value": 0.01726850994890174,
+        "q_value": 0.25289458716834073,
+        "significant": false,
+        "level": "inferential",
+        "status": "ok",
+        "n_years": 44,
+        "synthetic": true,
+        "zone_ids": [
+          "CR_PN"
+        ]
+      },
+      {
+        "cell_id": "G_10.500_-85.000",
+        "lat": 10.5,
+        "lon": -85.0,
+        "footprint": [
+          -85.3125,
+          10.25,
+          -84.6875,
+          10.75
+        ],
+        "metric": "slope",
+        "value": 0.307942,
+        "unit": "degC/decade",
+        "p_value": 0.06404825118953583,
+        "q_value": 0.625317648187783,
+        "significant": false,
+        "level": "inferential",
+        "status": "ok",
+        "n_years": 44,
+        "synthetic": true,
+        "zone_ids": [
+          "CR_PN"
+        ]
+      },
+      {
+        "cell_id": "G_11.000_-85.625",
+        "lat": 11.0,
+        "lon": -85.625,
+        "footprint": [
+          -85.9375,
+          10.75,
+          -85.3125,
+          11.25
+        ],
+        "metric": "slope",
+        "value": 0.352942,
+        "unit": "degC/decade",
+        "p_value": 0.12973548750122924,
+        "q_value": 0.9499778107604889,
+        "significant": false,
+        "level": "inferential",
+        "status": "ok",
+        "n_years": 44,
+        "synthetic": true,
+        "zone_ids": [
+          "CR_PN",
+          "MOCK_PN_NORTH"
+        ]
+      },
+      {
+        "cell_id": "G_11.000_-85.000",
+        "lat": 11.0,
+        "lon": -85.0,
+        "footprint": [
+          -85.3125,
+          10.75,
+          -84.6875,
+          11.25
+        ],
+        "metric": "slope",
+        "value": 0.397942,
+        "unit": "degC/decade",
+        "p_value": 0.19982616410910883,
+        "q_value": 1.0,
+        "significant": false,
+        "level": "inferential",
+        "status": "ok",
+        "n_years": 44,
+        "synthetic": true,
+        "zone_ids": [
+          "CR_PN",
+          "MOCK_PN_NORTH"
+        ]
+      }
+    ],
+    "period": {
+      "start_year": 1981,
+      "end_year": 2024
+    },
+    "correction": {
+      "method": "fdr_by",
+      "family": {
+        "family_id": "cells|T2M|CR_PN+CR_CAR|1981-2024|v2",
+        "planned_tests": 10,
+        "valid_tests": 10,
+        "alpha": 0.05,
+        "method": "fdr_by",
+        "scope": "cells",
+        "regions": [
+          "CR_PN",
+          "CR_CAR"
+        ],
+        "variables": [
+          "T2M"
+        ],
+        "start_year": 1981,
+        "end_year": 2024
+      }
+    }
+  },
+  "warnings": [
+    "synthetic"
+  ],
+  "limitations": [
+    "Datos sinteticos de contrato; no son evidencia cientifica.",
+    "Celdas de decenas de km (0,5 x 0,625 grados); no es limite administrativo ni detalle de finca."
+  ],
+  "source_ids": [
+    "S1"
+  ],
+  "data_sha256": "84e7d53b54aa9fef5217c2edd68c7304924e1b61a1d6933c93feb54978f76eb2",
+  "mask_version": "mock",
+  "analysis_version": "2.0",
+  "generated_at": "2026-11-14T00:00:00Z",
+  "geographic_context": {
+    "zones": [
+      {
+        "zone_id": "CR_PN",
+        "label": "Sector Pacifico Norte (ventana didactica)",
+        "bbox": [
+          -85.9375,
+          9.75,
+          -84.6875,
+          11.25
+        ],
+        "crs": "EPSG:4326",
+        "zone_version": "mock-1",
+        "geometry_sha256": "7dac2113c5522db82ba4cb0ab320339f17ed1420b52789653864e55419306e40",
+        "mask_version": "mock",
+        "mask_sha256": "865694add3b166f69ae54c3817e31a9376a8e25ddcbefa7ce6db029703c5a8db",
+        "cell_ids": [
+          "G_10.000_-85.625",
+          "G_10.500_-85.625",
+          "G_10.500_-85.000",
+          "G_11.000_-85.625",
+          "G_11.000_-85.000"
+        ]
+      }
+    ],
+    "cell_ids": [
+      "G_10.000_-85.625",
+      "G_10.500_-85.625",
+      "G_10.500_-85.000",
+      "G_11.000_-85.625",
+      "G_11.000_-85.000"
+    ],
+    "grid_id": "MOCK_GRID",
+    "grid_version": "mock-1",
+    "native_resolution_deg": [
+      0.5,
+      0.625
+    ],
+    "geographic_scale": "Celdas de decenas de km (0,5 x 0,625 grados); no es limite administrativo ni detalle de finca.",
+    "scale_warning": "Una celda puede pertenecer a varias zonas; no sumar celdas compartidas dos veces."
+  },
+  "data_coverage": {
+    "expected_months": 528,
+    "valid_months": 528,
+    "complete_years": 44,
+    "missing_periods": [],
+    "available_range": [
+      "1981-01-01",
+      "2024-12-31"
+    ]
+  },
+  "forecast_metadata": null,
+  "distribution_metadata": null,
+  "service_coverage_metadata": null
+}

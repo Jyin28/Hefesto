@@ -1,0 +1,15 @@
+{
+  "provider": "MOCK (sintetico, no NASA)",
+  "source_ids": [
+    "S1"
+  ],
+  "retrieved_at": null,
+  "provider_version": null,
+  "synthetic": true,
+  "mask_version": "mock",
+  "data_sha256": "41e62f50e1d07bd1562792545c9f8e858820d77f523a0168375834395244daf2",
+  "git_commit": null,
+  "transformations": [
+    "generador sintetico determinista"
+  ]
+}

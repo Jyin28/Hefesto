@@ -11,7 +11,7 @@ Revisión de GitHub del 14 de noviembre de 2026.
 | Joshua | [PR #5 en main](https://github.com/Jyin28/Hefesto/pull/5), narrativa, glosario, afirmaciones, pitch, video y acuerdo de equipo. | Revisar las cifras y capturas finales, confirmar el aviso con la ASADA y grabar el video. |
 | Diego | QA y release según el acuerdo. No se encontró una rama, PR o commit atribuible a Diego entre los visibles en GitHub. | Cotejar HAC con statsmodels, validar la web en otro equipo y comprobar la URL pública en una ventana privada. Incorporar su matriz de QA si existe fuera de GitHub. |
 
-El remoto reportó main en 247ac7d. El merge del PR #7 está en 0840223 sobre feat/jacky-f1-contracts-complete. La rama local retoma la interfaz de Kevin desde el historial disponible y conserva su asistente con HEFESTO_USE_MOCK=1. Streamlit, React y la API de esta rama consumen el mismo cálculo real.
+La rama feat/integracion-equipo reúne los archivos de main en 247ac7d, los componentes y ejemplos de Jacky en 0840223 y los aportes de Samuel en f9a8a32. Conserva los Parquet, la máscara y la procedencia de NASA POWER del PR #3. Las hojas de cálculo, el inventario hídrico y el catálogo ENOS de la rama de Samuel quedan disponibles como insumos. El análisis publicado por la aplicación usa el catálogo documentado en data/web/enso.json. Se conserva el asistente de Kevin con HEFESTO_USE_MOCK=1. Streamlit, React y la API consumen el mismo cálculo real.
 
 ## Estado por entrega
 
