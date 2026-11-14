@@ -1,0 +1,34 @@
+{
+  "provider": "NASA POWER (MERRA-2 assimilation)",
+  "source_page": "https://power.larc.nasa.gov/docs/services/api/temporal/monthly/",
+  "request_urls": [
+    "https://power.larc.nasa.gov/api/temporal/monthly/regional?parameters=T2M&community=AG&longitude-min=-86.5&longitude-max=-82.5&latitude-min=8.5&latitude-max=11.5&start=1981&end=2024&format=JSON",
+    "https://power.larc.nasa.gov/api/temporal/monthly/regional?parameters=PRECTOTCORR&community=AG&longitude-min=-86.5&longitude-max=-82.5&latitude-min=8.5&latitude-max=11.5&start=1981&end=2024&format=JSON"
+  ],
+  "retrieved_at": "2026-11-14T17:13:44Z",
+  "provider_version": null,
+  "api_version": "v2.10.0",
+  "native_resolution_deg": [
+    0.5,
+    0.625
+  ],
+  "raw_files": [
+    {
+      "path": "C:/Users/5amz/Documents/TEC/Hefesto/Hefesto/data/raw/nasa_power_monthly_T2M_1981_2024.json",
+      "sha256": "2a07475eb5a628c5b251aa2015b5abd2ca9add7303ca08a14ead04a32a2e7d04"
+    },
+    {
+      "path": "C:/Users/5amz/Documents/TEC/Hefesto/Hefesto/data/raw/nasa_power_monthly_PRECTOTCORR_1981_2024.json",
+      "sha256": "6490a051292bea41c2f55f232cae46e7cba2ebab3e1e879d92e5f6648174a68c"
+    }
+  ],
+  "transformations": [
+    "Descarga regional minima [-86.5, 8.5, -82.5, 11.5] para cumplir umbral >=2x2 deg de API.",
+    "Filtrado estricto a celdas terrestres verificadas dentro de CR_PN y CR_CAR.",
+    "Exclusion de registros anuales (mes 13 / ANN) conservando solo meses 01..12.",
+    "Conversion de fill_value (-999.0) a NaN y normalizacion de unidades a degC y mm/day.",
+    "Deduplicacion por clave primaria (region_id, variable, lat, lon, time)."
+  ],
+  "mask_version": "cr-land-mask-v2.0",
+  "synthetic": false
+}
