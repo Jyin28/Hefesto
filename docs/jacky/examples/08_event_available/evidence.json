@@ -1,0 +1,275 @@
+{
+  "schema_version": "2.1-proposal",
+  "result_id": "82c8bb1da3b2d5557ca0217e9737f0a6",
+  "preset_id": null,
+  "hypothesis": "",
+  "query": {
+    "product": "event",
+    "variable": "PRECTOTCORR",
+    "zone_ids": [
+      "CR_PN"
+    ],
+    "cell_ids": [],
+    "spatial_level": "zone",
+    "start_date": "1997-06-01",
+    "end_date": "1998-05-31",
+    "time_resolution": "annual",
+    "preset_id": null,
+    "event_id": "EL_NINO_1997_98",
+    "baseline": null,
+    "analysis_scope_id": null,
+    "metric": null
+  },
+  "query_effective": {
+    "product": "event",
+    "variable": "PRECTOTCORR",
+    "zone_ids": [
+      "CR_PN"
+    ],
+    "cell_ids": [],
+    "spatial_level": "zone",
+    "start_date": "1997-06-01",
+    "end_date": "1998-05-31",
+    "time_resolution": "annual",
+    "preset_id": null,
+    "event_id": "EL_NINO_1997_98",
+    "baseline": "1981-2010",
+    "analysis_scope_id": null,
+    "metric": null
+  },
+  "product": "event",
+  "availability": {
+    "status": "available",
+    "reason_code": null,
+    "message": "Datos disponibles para la consulta.",
+    "missing_requirements": [],
+    "available_range": [
+      "1981-01-01",
+      "2024-12-31"
+    ],
+    "available_resolution": [
+      "monthly",
+      "annual"
+    ],
+    "checked_at": "2026-11-14T00:00:00Z",
+    "retryable": false
+  },
+  "source_mode": "mock",
+  "synthetic": true,
+  "presentable_as_real": false,
+  "summary": "Episodio EL_NINO_1997_98 1997-06-01..1998-05-31: 12 meses; anomalia disponible. Descriptivo. Datos sinteticos de contrato (mock): no son evidencia cientifica.",
+  "results": [
+    {
+      "zone_id": "CR_PN",
+      "variable": "PRECTOTCORR",
+      "time": "1997-06-01",
+      "value": 4.070745,
+      "unit": "mm/day",
+      "climatology": 6.126841,
+      "anomaly": -2.056096,
+      "baseline": "1981-2010",
+      "baseline_valid_counts": 30,
+      "synthetic": true
+    },
+    {
+      "zone_id": "CR_PN",
+      "variable": "PRECTOTCORR",
+      "time": "1997-07-01",
+      "value": 3.131342,
+      "unit": "mm/day",
+      "climatology": 4.712955,
+      "anomaly": -1.581613,
+      "baseline": "1981-2010",
+      "baseline_valid_counts": 30,
+      "synthetic": true
+    },
+    {
+      "zone_id": "CR_PN",
+      "variable": "PRECTOTCORR",
+      "time": "1997-08-01",
+      "value": 2.19194,
+      "unit": "mm/day",
+      "climatology": 3.299068,
+      "anomaly": -1.107128,
+      "baseline": "1981-2010",
+      "baseline_valid_counts": 30,
+      "synthetic": true
+    },
+    {
+      "zone_id": "CR_PN",
+      "variable": "PRECTOTCORR",
+      "time": "1997-09-01",
+      "value": 1.504249,
+      "unit": "mm/day",
+      "climatology": 2.264032,
+      "anomaly": -0.759783,
+      "baseline": "1981-2010",
+      "baseline_valid_counts": 30,
+      "synthetic": true
+    },
+    {
+      "zone_id": "CR_PN",
+      "variable": "PRECTOTCORR",
+      "time": "1997-10-01",
+      "value": 1.252537,
+      "unit": "mm/day",
+      "climatology": 1.885182,
+      "anomaly": -0.632645,
+      "baseline": "1981-2010",
+      "baseline_valid_counts": 30,
+      "synthetic": true
+    },
+    {
+      "zone_id": "CR_PN",
+      "variable": "PRECTOTCORR",
+      "time": "1997-11-01",
+      "value": 1.504249,
+      "unit": "mm/day",
+      "climatology": 2.264032,
+      "anomaly": -0.759783,
+      "baseline": "1981-2010",
+      "baseline_valid_counts": 30,
+      "synthetic": true
+    },
+    {
+      "zone_id": "CR_PN",
+      "variable": "PRECTOTCORR",
+      "time": "1997-12-01",
+      "value": 2.19194,
+      "unit": "mm/day",
+      "climatology": 3.299068,
+      "anomaly": -1.107128,
+      "baseline": "1981-2010",
+      "baseline_valid_counts": 30,
+      "synthetic": true
+    },
+    {
+      "zone_id": "CR_PN",
+      "variable": "PRECTOTCORR",
+      "time": "1998-01-01",
+      "value": 3.297328,
+      "unit": "mm/day",
+      "climatology": 4.710583,
+      "anomaly": -1.413255,
+      "baseline": "1981-2010",
+      "baseline_valid_counts": 30,
+      "synthetic": true
+    },
+    {
+      "zone_id": "CR_PN",
+      "variable": "PRECTOTCORR",
+      "time": "1998-02-01",
+      "value": 4.286526,
+      "unit": "mm/day",
+      "climatology": 6.123758,
+      "anomaly": -1.837232,
+      "baseline": "1981-2010",
+      "baseline_valid_counts": 30,
+      "synthetic": true
+    },
+    {
+      "zone_id": "CR_PN",
+      "variable": "PRECTOTCORR",
+      "time": "1998-03-01",
+      "value": 5.01067,
+      "unit": "mm/day",
+      "climatology": 7.158274,
+      "anomaly": -2.147604,
+      "baseline": "1981-2010",
+      "baseline_valid_counts": 30,
+      "synthetic": true
+    },
+    {
+      "zone_id": "CR_PN",
+      "variable": "PRECTOTCORR",
+      "time": "1998-04-01",
+      "value": 5.275725,
+      "unit": "mm/day",
+      "climatology": 7.536933,
+      "anomaly": -2.261208,
+      "baseline": "1981-2010",
+      "baseline_valid_counts": 30,
+      "synthetic": true
+    },
+    {
+      "zone_id": "CR_PN",
+      "variable": "PRECTOTCORR",
+      "time": "1998-05-01",
+      "value": 5.01067,
+      "unit": "mm/day",
+      "climatology": 7.158274,
+      "anomaly": -2.147604,
+      "baseline": "1981-2010",
+      "baseline_valid_counts": 30,
+      "synthetic": true
+    }
+  ],
+  "warnings": [
+    "synthetic"
+  ],
+  "limitations": [
+    "Datos sinteticos de contrato; no son evidencia cientifica.",
+    "Celdas de decenas de km (0,5 x 0,625 grados); no es limite administrativo ni detalle de finca."
+  ],
+  "source_ids": [
+    "S1"
+  ],
+  "data_sha256": "5d3778c9dd3c1e0d1eca50ca626948eb34b6a22720915b1c310a44f29bdbe328",
+  "mask_version": "mock",
+  "analysis_version": "2.0",
+  "generated_at": "2026-11-14T00:00:00Z",
+  "geographic_context": {
+    "zones": [
+      {
+        "zone_id": "CR_PN",
+        "label": "Sector Pacifico Norte (ventana didactica)",
+        "bbox": [
+          -85.9375,
+          9.75,
+          -84.6875,
+          11.25
+        ],
+        "crs": "EPSG:4326",
+        "zone_version": "mock-1",
+        "geometry_sha256": "7dac2113c5522db82ba4cb0ab320339f17ed1420b52789653864e55419306e40",
+        "mask_version": "mock",
+        "mask_sha256": "865694add3b166f69ae54c3817e31a9376a8e25ddcbefa7ce6db029703c5a8db",
+        "cell_ids": [
+          "G_10.000_-85.625",
+          "G_10.500_-85.625",
+          "G_10.500_-85.000",
+          "G_11.000_-85.625",
+          "G_11.000_-85.000"
+        ]
+      }
+    ],
+    "cell_ids": [
+      "G_10.000_-85.625",
+      "G_10.500_-85.625",
+      "G_10.500_-85.000",
+      "G_11.000_-85.625",
+      "G_11.000_-85.000"
+    ],
+    "grid_id": "MOCK_GRID",
+    "grid_version": "mock-1",
+    "native_resolution_deg": [
+      0.5,
+      0.625
+    ],
+    "geographic_scale": "Celdas de decenas de km (0,5 x 0,625 grados); no es limite administrativo ni detalle de finca.",
+    "scale_warning": "Una celda puede pertenecer a varias zonas; no sumar celdas compartidas dos veces."
+  },
+  "data_coverage": {
+    "expected_months": 12,
+    "valid_months": 12,
+    "complete_years": 0,
+    "missing_periods": [],
+    "available_range": [
+      "1981-01-01",
+      "2024-12-31"
+    ]
+  },
+  "forecast_metadata": null,
+  "distribution_metadata": null,
+  "service_coverage_metadata": null
+}

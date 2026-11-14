@@ -1,0 +1,7 @@
+result_id,product,zone_id,service_area_id,period,scheduled_volume,observed_volume,volume_unit,report_state,scheduled_record_id,observed_record_id
+103e0e3afda447242023ce6987c49ddd,water_distribution,CR_PN,SA_PN_01,2024-01,120000.0,114000.0,m3,reported,W_CR_PN_202401_s,W_CR_PN_202401_o
+103e0e3afda447242023ce6987c49ddd,water_distribution,CR_PN,SA_PN_01,2024-02,120000.0,115200.0,m3,reported,W_CR_PN_202402_s,W_CR_PN_202402_o
+103e0e3afda447242023ce6987c49ddd,water_distribution,CR_PN,SA_PN_01,2024-03,120000.0,117000.0,m3,reported,W_CR_PN_202403_s,W_CR_PN_202403_c
+103e0e3afda447242023ce6987c49ddd,water_distribution,CR_PN,SA_PN_01,2024-04,120000.0,0.0,m3,paused,W_CR_PN_202404_s,W_CR_PN_202404_o
+103e0e3afda447242023ce6987c49ddd,water_distribution,CR_PN,SA_PN_01,2024-05,120000.0,,m3,not_reported,W_CR_PN_202405_s,
+103e0e3afda447242023ce6987c49ddd,water_distribution,CR_PN,SA_PN_01,2024-06,120000.0,132000.0,m3,reported,W_CR_PN_202406_s,W_CR_PN_202406_o

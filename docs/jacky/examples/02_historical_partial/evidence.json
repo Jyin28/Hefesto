@@ -1,0 +1,432 @@
+{
+  "schema_version": "2.1-proposal",
+  "result_id": "7e5ffaee2becfec5d2effb94620ca21c",
+  "preset_id": null,
+  "hypothesis": "",
+  "query": {
+    "product": "historical",
+    "variable": "T2M",
+    "zone_ids": [
+      "MOCK_PARTIAL"
+    ],
+    "cell_ids": [],
+    "spatial_level": "zone",
+    "start_date": "1981-01-01",
+    "end_date": "2024-12-31",
+    "time_resolution": "annual",
+    "preset_id": null,
+    "event_id": null,
+    "baseline": null,
+    "analysis_scope_id": null,
+    "metric": null
+  },
+  "query_effective": {
+    "product": "historical",
+    "variable": "T2M",
+    "zone_ids": [
+      "MOCK_PARTIAL"
+    ],
+    "cell_ids": [],
+    "spatial_level": "zone",
+    "start_date": "1981-01-01",
+    "end_date": "2010-12-31",
+    "time_resolution": "annual",
+    "preset_id": null,
+    "event_id": null,
+    "baseline": null,
+    "analysis_scope_id": null,
+    "metric": null
+  },
+  "product": "historical",
+  "availability": {
+    "status": "partial",
+    "reason_code": "window_truncated",
+    "message": "Cobertura parcial: efectivo 1981-01-01..2010-12-31; faltan parte de la ventana.",
+    "missing_requirements": [
+      "data_in_window"
+    ],
+    "available_range": [
+      "1981-01-01",
+      "2010-12-31"
+    ],
+    "available_resolution": [
+      "monthly",
+      "annual"
+    ],
+    "checked_at": "2026-11-14T00:00:00Z",
+    "retryable": false
+  },
+  "source_mode": "mock",
+  "synthetic": true,
+  "presentable_as_real": false,
+  "summary": "Serie T2M annual 1981-01-01..2010-12-31: 30 registros. Cobertura parcial: Cobertura parcial: efectivo 1981-01-01..2010-12-31; faltan parte de la ventana. Datos sinteticos de contrato (mock): no son evidencia cientifica.",
+  "results": [
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 1981,
+      "value": 24.890884,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 1982,
+      "value": 24.860879,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 1983,
+      "value": 25.281551,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 1984,
+      "value": 25.018079,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 1985,
+      "value": 24.873339,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 1986,
+      "value": 25.313923,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 1987,
+      "value": 25.148614,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 1988,
+      "value": 24.902262,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 1989,
+      "value": 25.329254,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 1990,
+      "value": 25.276869,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 1991,
+      "value": 24.950123,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 1992,
+      "value": 25.331102,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 1993,
+      "value": 25.397408,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 1994,
+      "value": 25.017888,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 1995,
+      "value": 25.324101,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 1996,
+      "value": 25.505407,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 1997,
+      "value": 25.10494,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 1998,
+      "value": 25.313586,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 1999,
+      "value": 25.597044,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 2000,
+      "value": 25.209124,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 2001,
+      "value": 25.305175,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 2002,
+      "value": 25.669798,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 2003,
+      "value": 25.32692,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 2004,
+      "value": 25.304318,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 2005,
+      "value": 25.722654,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 2006,
+      "value": 25.453723,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 2007,
+      "value": 25.315862,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 2008,
+      "value": 25.75618,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 2009,
+      "value": 25.584213,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_PARTIAL",
+      "variable": "T2M",
+      "year": 2010,
+      "value": 25.343668,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    }
+  ],
+  "warnings": [
+    "synthetic"
+  ],
+  "limitations": [
+    "Datos sinteticos de contrato; no son evidencia cientifica.",
+    "Celdas de decenas de km (0,5 x 0,625 grados); no es limite administrativo ni detalle de finca."
+  ],
+  "source_ids": [
+    "S1"
+  ],
+  "data_sha256": "41e62f50e1d07bd1562792545c9f8e858820d77f523a0168375834395244daf2",
+  "mask_version": "mock",
+  "analysis_version": "2.0",
+  "generated_at": "2026-11-14T00:00:00Z",
+  "geographic_context": {
+    "zones": [
+      {
+        "zone_id": "MOCK_PARTIAL",
+        "label": "MOCK: zona con datos solo hasta 2010",
+        "bbox": [
+          -84.0625,
+          9.25,
+          -82.8125,
+          9.75
+        ],
+        "crs": "EPSG:4326",
+        "zone_version": "mock-1",
+        "geometry_sha256": "af700760cda0e221d82b73b305ee4ca8d1a969ef0fe605bf57e7d7f47e7076f7",
+        "mask_version": "mock",
+        "mask_sha256": "753568a3d4c008df0c53498b5821aad250addf1eb6ace056f720e0b6714e834b",
+        "cell_ids": [
+          "G_9.500_-83.750",
+          "G_9.500_-83.125"
+        ]
+      }
+    ],
+    "cell_ids": [
+      "G_9.500_-83.750",
+      "G_9.500_-83.125"
+    ],
+    "grid_id": "MOCK_GRID",
+    "grid_version": "mock-1",
+    "native_resolution_deg": [
+      0.5,
+      0.625
+    ],
+    "geographic_scale": "Celdas de decenas de km (0,5 x 0,625 grados); no es limite administrativo ni detalle de finca.",
+    "scale_warning": "Una celda puede pertenecer a varias zonas; no sumar celdas compartidas dos veces."
+  },
+  "data_coverage": {
+    "expected_months": 528,
+    "valid_months": 360,
+    "complete_years": 30,
+    "missing_periods": [
+      [
+        "2011-01-01",
+        "2024-12-31"
+      ]
+    ],
+    "available_range": [
+      "1981-01-01",
+      "2010-12-31"
+    ]
+  },
+  "forecast_metadata": null,
+  "distribution_metadata": null,
+  "service_coverage_metadata": null
+}

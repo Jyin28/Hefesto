@@ -1,0 +1,220 @@
+{
+  "schema_version": "2.1-proposal",
+  "result_id": "b89274fb3d310e4986f08ce038268173",
+  "preset_id": null,
+  "hypothesis": "",
+  "query": {
+    "product": "forecast",
+    "variable": "T2M",
+    "zone_ids": [
+      "CR_PN"
+    ],
+    "cell_ids": [],
+    "spatial_level": "zone",
+    "start_date": "2025-01-01",
+    "end_date": "2025-06-30",
+    "time_resolution": "annual",
+    "preset_id": null,
+    "event_id": null,
+    "baseline": null,
+    "analysis_scope_id": null,
+    "metric": null
+  },
+  "query_effective": {
+    "product": "forecast",
+    "variable": "T2M",
+    "zone_ids": [
+      "CR_PN"
+    ],
+    "cell_ids": [],
+    "spatial_level": "zone",
+    "start_date": "2025-01-01",
+    "end_date": "2025-06-30",
+    "time_resolution": "annual",
+    "preset_id": null,
+    "event_id": null,
+    "baseline": null,
+    "analysis_scope_id": null,
+    "metric": null,
+    "forecast_id": "FC_CR_PN_T2M_mock1"
+  },
+  "product": "forecast",
+  "availability": {
+    "status": "available",
+    "reason_code": null,
+    "message": "Pronostico disponible y validado.",
+    "missing_requirements": [],
+    "available_range": [
+      "2025-01-01",
+      "2025-06-30"
+    ],
+    "available_resolution": [
+      "monthly"
+    ],
+    "checked_at": "2026-11-14T00:00:00Z",
+    "retryable": false
+  },
+  "source_mode": "mock",
+  "synthetic": true,
+  "presentable_as_real": false,
+  "summary": "Pronostico T2M zona CR_PN: 6 puntos 2025-01-01..2025-06-30; validacion validated. Datos sinteticos de contrato (mock): no son evidencia cientifica.",
+  "results": [
+    {
+      "valid_time": "2025-01-01",
+      "point_estimate": 27.20299,
+      "lower": 26.60299,
+      "upper": 27.80299,
+      "interval_level": 0.8,
+      "interval_method": "mock_fixed_width"
+    },
+    {
+      "valid_time": "2025-02-01",
+      "point_estimate": 27.95299,
+      "lower": 27.35299,
+      "upper": 28.55299,
+      "interval_level": 0.8,
+      "interval_method": "mock_fixed_width"
+    },
+    {
+      "valid_time": "2025-03-01",
+      "point_estimate": 28.502028,
+      "lower": 27.902028,
+      "upper": 29.102028,
+      "interval_level": 0.8,
+      "interval_method": "mock_fixed_width"
+    },
+    {
+      "valid_time": "2025-04-01",
+      "point_estimate": 28.70299,
+      "lower": 28.10299,
+      "upper": 29.30299,
+      "interval_level": 0.8,
+      "interval_method": "mock_fixed_width"
+    },
+    {
+      "valid_time": "2025-05-01",
+      "point_estimate": 28.502028,
+      "lower": 27.902028,
+      "upper": 29.102028,
+      "interval_level": 0.8,
+      "interval_method": "mock_fixed_width"
+    },
+    {
+      "valid_time": "2025-06-01",
+      "point_estimate": 27.95299,
+      "lower": 27.35299,
+      "upper": 28.55299,
+      "interval_level": 0.8,
+      "interval_method": "mock_fixed_width"
+    }
+  ],
+  "warnings": [
+    "synthetic"
+  ],
+  "limitations": [
+    "Datos sinteticos de contrato; no son evidencia cientifica.",
+    "Celdas de decenas de km (0,5 x 0,625 grados); no es limite administrativo ni detalle de finca."
+  ],
+  "source_ids": [
+    "S1"
+  ],
+  "data_sha256": "652aff1544af752e9f3e62ab45209f84f9a0ca379fa3ac8d6d8ca6371d6ffd65",
+  "mask_version": "mock",
+  "analysis_version": "2.0",
+  "generated_at": "2026-11-14T00:00:00Z",
+  "geographic_context": {
+    "zones": [
+      {
+        "zone_id": "CR_PN",
+        "label": "Sector Pacifico Norte (ventana didactica)",
+        "bbox": [
+          -85.9375,
+          9.75,
+          -84.6875,
+          11.25
+        ],
+        "crs": "EPSG:4326",
+        "zone_version": "mock-1",
+        "geometry_sha256": "7dac2113c5522db82ba4cb0ab320339f17ed1420b52789653864e55419306e40",
+        "mask_version": "mock",
+        "mask_sha256": "865694add3b166f69ae54c3817e31a9376a8e25ddcbefa7ce6db029703c5a8db",
+        "cell_ids": [
+          "G_10.000_-85.625",
+          "G_10.500_-85.625",
+          "G_10.500_-85.000",
+          "G_11.000_-85.625",
+          "G_11.000_-85.000"
+        ]
+      }
+    ],
+    "cell_ids": [
+      "G_10.000_-85.625",
+      "G_10.500_-85.625",
+      "G_10.500_-85.000",
+      "G_11.000_-85.625",
+      "G_11.000_-85.000"
+    ],
+    "grid_id": "MOCK_GRID",
+    "grid_version": "mock-1",
+    "native_resolution_deg": [
+      0.5,
+      0.625
+    ],
+    "geographic_scale": "Celdas de decenas de km (0,5 x 0,625 grados); no es limite administrativo ni detalle de finca.",
+    "scale_warning": "Una celda puede pertenecer a varias zonas; no sumar celdas compartidas dos veces."
+  },
+  "data_coverage": {
+    "expected_months": 6,
+    "valid_months": 6,
+    "complete_years": 0,
+    "missing_periods": [],
+    "available_range": [
+      "2025-01-01",
+      "2025-06-30"
+    ]
+  },
+  "forecast_metadata": {
+    "forecast_id": "FC_CR_PN_T2M_mock1",
+    "model_id": "MOCK_FIXTURE",
+    "model_version": "mock-1",
+    "target_variable": "T2M",
+    "target_definition": "Temperatura media mensual del aire a 2 m",
+    "unit": "degC",
+    "zone_id": "CR_PN",
+    "effective_scale": "Celdas de decenas de km (0,5 x 0,625 grados); no es limite administrativo ni detalle de finca.",
+    "issued_at": "2025-01-01T00:00:00Z",
+    "data_cutoff": "2024-12-31",
+    "training_start": "1981-01-01",
+    "training_end": "2024-12-31",
+    "forecast_start": "2025-01-01",
+    "forecast_end": "2025-06-30",
+    "horizon": "6 months",
+    "frequency": "monthly",
+    "timezone": "America/Costa_Rica",
+    "valid_until": "2030-12-31",
+    "input_source_ids": [
+      "S1"
+    ],
+    "input_hashes": [
+      "26d46c5d08efdae0f53a3a41e38aa0351efdcfcb14b775e26f490d6bc828d699"
+    ],
+    "config_hash": "8122121284edd2953b350c153035c7270a4277d5159af3a9d38660ed5c4b9bd3",
+    "code_version": "2.0",
+    "synthetic": true,
+    "generation_mode": "imported",
+    "validation_status": "validated",
+    "validation_method": "rolling_origin_mock",
+    "evaluation_period": "2015-01..2024-12",
+    "sample_count": 120,
+    "benchmark": "climatologia mensual 1981-2010",
+    "metric_name": "MAE",
+    "metric_value": 0.4,
+    "metric_unit": "degC",
+    "limitations": [
+      "Puntos sinteticos de un generador, no la salida de un modelo.",
+      "No es un pronostico meteorologico ni de suministro."
+    ]
+  },
+  "distribution_metadata": null,
+  "service_coverage_metadata": null
+}

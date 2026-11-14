@@ -1,0 +1,63 @@
+{
+  "schema_version": "2.1-proposal",
+  "result_id": "807bd14bdec6b1ec9d23f902d44356d8",
+  "product": "historical",
+  "source_mode": "mock",
+  "synthetic": true,
+  "availability": {
+    "status": "available",
+    "reason_code": null
+  },
+  "generated_at": "2026-11-14T00:00:00Z",
+  "conventions": {
+    "encoding": "utf-8",
+    "delimiter": ",",
+    "decimal": ".",
+    "line_terminator": "\n",
+    "missing": "empty cell",
+    "nested": "compact JSON text",
+    "booleans": "true/false",
+    "row_keys": "every row carries result_id and product plus its join keys"
+  },
+  "tables_present": [
+    {
+      "table": "cells.csv",
+      "rows": 5,
+      "columns": [
+        "result_id",
+        "product",
+        "cell_id",
+        "lat",
+        "lon",
+        "footprint",
+        "metric",
+        "value",
+        "unit",
+        "p_value",
+        "q_value",
+        "significant",
+        "level",
+        "status",
+        "n_years",
+        "synthetic",
+        "zone_ids",
+        "period_start_year",
+        "period_end_year",
+        "family_id",
+        "correction_method"
+      ],
+      "join_keys": [
+        "result_id",
+        "cell_id"
+      ]
+    }
+  ],
+  "tables_absent": [],
+  "files": [
+    "cells.csv",
+    "evidence.json",
+    "ficha.md",
+    "manifest.json",
+    "provenance.json"
+  ]
+}
