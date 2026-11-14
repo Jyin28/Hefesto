@@ -6,15 +6,25 @@ a real OLS+HAC fit. Real service (src/service.py) is not implemented yet and mus
 never silently fall back to this module.
 
 F1 scope: list_variables, list_regions, get_coverage, get_annual_series,
-get_trend, get_comparison. Pending (F2, raise NotImplementedError):
-get_cell_trends, get_event_view, build_provenance, build_evidence_card.
+get_trend, get_comparison, get_cell_trends, build_provenance, build_evidence_card,
+plus fit_mock_trend for edge cases. Pending (raises NotImplementedError): get_event_view (P1).
 No I/O at import.
 """
 from __future__ import annotations
 
 import math
+from datetime import datetime, timezone
 
 from .contracts import (
+    ANALYSIS_VERSION,
+    PRESET_IDS,
+    STATS_CONFIG,
+    CellTrends,
+    FamilyMetadata,
+    QueryParams,
+    canonical_json,
+    compute_result_id,
+    sha256_hex,
     ANNUAL_UNITS,
     COVERAGE_END_YEAR,
     COVERAGE_START_YEAR,
@@ -129,31 +139,60 @@ def _normal_two_sided_p(z: float) -> float:
     return math.erfc(abs(z) / math.sqrt(2.0))
 
 
-def _raw_trend(variable: str, region_id: str, start_year: int, end_year: int) -> TrendResult:
-    n = end_year - start_year + 1
+MIN_COVERAGE = 0.8  # plan s3 item 1: >=80 % of candidate land weight
+
+
+def fit_mock_trend(rows, region_id, variable, start_year, end_year, coverage_fraction=1.0):
+    """MOCK fit over (year, value|None) rows. Covers plan s3 items 1, 5, 6, 13.
+
+    Years are never compressed: gaps keep the real year axis, make the slope descriptive and
+    set inferential fields to null with warning temporal_gaps. Inference fields are placeholders.
+    """
     unit = SLOPE_UNITS[variable]
-    base_warnings = ["synthetic"]
+    w = ["synthetic"]
+    valid = sorted((y, v) for y, v in rows if v is not None)
+    n = len(valid)
+    if coverage_fraction < MIN_COVERAGE:
+        return TrendResult(region_id, variable, start_year, end_year, None, None, n, "none",
+                           "insufficient_data", None, unit, None, None, None, None, None, None, None,
+                           None, None, "sin ajuste (cobertura insuficiente)", coverage_fraction,
+                           tuple(w + ["coverage_failure"]))
     if n < 10:
         return TrendResult(region_id, variable, start_year, end_year, None, None, n, "none",
                            "insufficient_data", None, unit, None, None, None, None, None, None, None,
-                           None, None, "sin ajuste (n<10)", 1.0, tuple(base_warnings + ["short_record"]))
-    rows = get_annual_series(variable, region_id, start_year, end_year)
-    years = [r["year"] for r in rows]
-    b = _ols_slope(years, [r["value"] for r in rows])
+                           None, None, "sin ajuste (n<10)", coverage_fraction, tuple(w + ["short_record"]))
+    years = [y for y, _ in valid]
+    vals = [v for _, v in valid]
+    b = _ols_slope(years, vals)
     slope_dec = round(10.0 * b, 6)
     total = round(b * (years[-1] - years[0]), 6)
-    if n < 30:
+    gaps = years[-1] - years[0] + 1 != n
+    if gaps:
+        w.append("temporal_gaps")
+    if max(vals) == min(vals):
+        w.append("degenerate_series")
+        return TrendResult(region_id, variable, start_year, end_year, years[0], years[-1], n, "descriptive",
+                           "ok", slope_dec, unit, total, None, None, None, None, None, None, None, None,
+                           MOCK_METHOD_DESCRIPTIVE, coverage_fraction, tuple(w))
+    if n < 30 or gaps:
+        if n < 30:
+            w.append("short_record")
         return TrendResult(region_id, variable, start_year, end_year, years[0], years[-1], n,
                            "descriptive", "ok", slope_dec, unit, total, None, None, None, None, None, None,
-                           None, None, MOCK_METHOD_DESCRIPTIVE, 1.0, tuple(base_warnings + ["short_record"]))
-    factor = _PARAMS[(region_id, variable)][3]
+                           None, None, MOCK_METHOD_DESCRIPTIVE, coverage_fraction, tuple(w))
+    factor = _PARAMS.get((region_id, variable), (0, 0, 0, 0.5))[3]
     se = round(max(abs(slope_dec) * factor, 1e-9), 6)
     p = _normal_two_sided_p(slope_dec / se)
     return TrendResult(region_id, variable, start_year, end_year, years[0], years[-1], n,
                        "inferential", "ok", slope_dec, unit, total,
                        round(slope_dec - 1.96 * se, 6), round(slope_dec + 1.96 * se, 6), se,
-                       p, None, None, None, 3, MOCK_METHOD_INFERENTIAL, 1.0,
-                       tuple(base_warnings + ["mock_inference_placeholder"]))
+                       p, None, None, None, 3, MOCK_METHOD_INFERENTIAL, coverage_fraction,
+                       tuple(w + ["mock_inference_placeholder"]))
+
+
+def _raw_trend(variable, region_id, start_year, end_year):
+    rows = [(r["year"], r["value"]) for r in get_annual_series(variable, region_id, start_year, end_year)]
+    return fit_mock_trend(rows, region_id, variable, start_year, end_year)
 
 
 def _by_adjust(pvals: list[float]) -> list[float]:
@@ -224,20 +263,138 @@ def get_comparison(variable: str, start_year: int, end_year: int,
     }
 
 
-_PENDING = "{} pendiente (F2): el mock aun no lo implementa."
+_PENDING = "{} pendiente: el mock aun no lo implementa."
+
+# Mock cell centres. Keep equal to src/regions.py VERIFIED_LAND_CELLS (checked by a test);
+# not imported here so the mock stays stdlib-only.
+_MOCK_CELLS = {
+    "CR_PN": ((10.0, -85.625), (10.5, -85.625), (10.5, -85.0), (11.0, -85.625), (11.0, -85.0)),
+    "CR_CAR": ((9.5, -83.75), (9.5, -83.125), (10.0, -83.75), (10.0, -83.125), (10.5, -83.75)),
+}
 
 
-def get_cell_trends(variable, region_id, start_year, end_year):
-    raise NotImplementedError(_PENDING.format("get_cell_trends"))
+def _cell_rows(variable, region_id, idx, start_year, end_year):
+    # deterministic per-cell tilt on top of the regional synthetic series
+    tilt = 0.15 * (idx - 2) * abs(_PARAMS[(region_id, variable)][1])
+    return [(y, _synthetic_value(region_id, variable, y) + tilt * (y - COVERAGE_START_YEAR))
+            for y in range(start_year, end_year + 1)]
+
+
+def cell_family_id(variable: str, start_year: int, end_year: int) -> str:
+    return f"cells|{variable}|CR_PN+CR_CAR|{start_year}-{end_year}|v2"
+
+
+def get_cell_trends(variable: str, region_id: str, start_year: int, end_year: int) -> tuple:
+    """(list[CellTrends] for region_id, family metadata dict). BY family = cells of BOTH sectors."""
+    validate_query(variable, region_id, start_year, end_year)
+    unit = SLOPE_UNITS[variable]
+    raw = []  # (region, lat, lon, TrendResult)
+    for rid in REGION_IDS:
+        for i, (lat, lon) in enumerate(_MOCK_CELLS[rid]):
+            t = fit_mock_trend(_cell_rows(variable, rid, i, start_year, end_year), rid, variable,
+                               start_year, end_year)
+            if t.p_value is not None:  # cell se widens with idx so q varies; still a placeholder
+                se = max(t.se_hac * (1.0 + 0.4 * i), 1e-9)
+                t = TrendResult(**{**t.__dict__, "se_hac": se,
+                                   "p_value": _normal_two_sided_p(t.slope_per_decade / se)})
+            raw.append((rid, lat, lon, t))
+    valid = [i for i, r in enumerate(raw) if r[3].p_value is not None]
+    q = dict(zip(valid, _by_adjust([raw[i][3].p_value for i in valid])))
+    out = []
+    for i, (rid, lat, lon, t) in enumerate(raw):
+        if rid != region_id:
+            continue
+        qv = q.get(i)
+        out.append(CellTrends(rid, variable, lat, lon, start_year, end_year, t.slope_per_decade, unit,
+                              t.p_value, qv, None if qv is None else qv < FAMILY_ALPHA, t.n_years,
+                              t.level, t.status))
+    meta = FamilyMetadata(cell_family_id(variable, start_year, end_year), len(raw), len(valid),
+                          FAMILY_ALPHA, "fdr_by", "cells", REGION_IDS, (variable,), start_year, end_year)
+    return out, to_jsonable(meta)
 
 
 def get_event_view(variable):
     raise NotImplementedError(_PENDING.format("get_event_view (P1)"))
 
 
-def build_provenance(query):
-    raise NotImplementedError(_PENDING.format("build_provenance"))
+def _check_query(query: QueryParams) -> None:
+    validate_query(query.variable, None, query.start_year, query.end_year)
+    for r in query.regions:
+        validate_query(query.variable, r, query.start_year, query.end_year)
+    if query.preset_id not in PRESET_IDS:
+        raise ValueError(f"preset_id invalido: {query.preset_id!r}. Validos: {', '.join(PRESET_IDS)}.")
 
 
-def build_evidence_card(query, hypothesis: str = ""):
-    raise NotImplementedError(_PENDING.format("build_evidence_card"))
+def _data_sha256(query: QueryParams) -> str:
+    rows = [get_annual_series(query.variable, r, query.start_year, query.end_year) for r in query.regions]
+    return sha256_hex(canonical_json(rows))
+
+
+def _query_dict(query: QueryParams) -> dict:
+    return {**query.__dict__, "regions": list(query.regions)}
+
+
+def build_provenance(query: QueryParams) -> dict:
+    _check_query(query)
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "provider": "MOCK (sintetico, no NASA)",
+        "source_page": None,
+        "request_urls": [],
+        "retrieved_at": None,
+        "provider_version": None,
+        "api_version": None,
+        "native_resolution_deg": [0.5, 0.625],
+        "raw_files": [],
+        "transformations": ["generador sintetico determinista", "anualizacion simulada"],
+        "mask_version": MASK_VERSION,
+        "synthetic": SYNTHETIC,
+        "query": _query_dict(query),
+        "git_commit": None,
+        "data_sha256": _data_sha256(query),
+        "aggregation": "mock: sin agregacion real",
+        "hac": {k: STATS_CONFIG[k] for k in ("hac_lags", "hac_sensitivity", "kernel", "use_t", "use_correction")},
+        "correction_families": [family_id(query.start_year, query.end_year)],
+        "limitations": ["Datos sinteticos de contrato; no son evidencia cientifica.",
+                        "se/p/IC en nivel inferential son marcadores, no HAC real."],
+    }
+
+
+def _summary(results: list) -> str:
+    parts = []
+    for r in results:
+        if r["slope_per_decade"] is None:
+            parts.append(f"{r['region_id']}: sin pendiente calculable ({r['status']}).")
+        elif r["level"] == "inferential":
+            parts.append(f"{r['region_id']}: pendiente {r['slope_per_decade']:.3f} {r['slope_unit']}; "
+                         "significancia evaluada con la familia ajustada (valores de ejemplo).")
+        else:
+            parts.append(f"{r['region_id']}: pendiente descriptiva {r['slope_per_decade']:.3f} "
+                         f"{r['slope_unit']}; no se evalua significancia por duracion insuficiente.")
+    return " ".join(parts)
+
+
+def build_evidence_card(query: QueryParams, hypothesis: str = "") -> dict:
+    """Evidence card v2 (plan 4.7). Same TrendResults as get_comparison; hypothesis never alters them."""
+    _check_query(query)
+    comp = get_comparison(query.variable, query.start_year, query.end_year, query.regions)
+    data_sha = _data_sha256(query)
+    qd = _query_dict(query)
+    warnings = sorted({w for r in comp["results"] for w in r["warnings"]} | {"coarse_resolution"})
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "result_id": compute_result_id(qd, data_sha, MASK_VERSION),
+        "preset_id": query.preset_id,
+        "hypothesis": hypothesis,
+        "query": qd,
+        "synthetic": SYNTHETIC,
+        "summary": _summary(comp["results"]),
+        "results": comp["results"],
+        "family_metadata": comp["family_metadata"],
+        "warnings": warnings,
+        "source_ids": ["S1", "S2"],
+        "data_sha256": data_sha,
+        "mask_version": MASK_VERSION,
+        "analysis_version": ANALYSIS_VERSION,
+        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
