@@ -1,0 +1,11 @@
+{
+  "provider": "NASA POWER (MERRA-2)",
+  "api_version": "v2.10.0",
+  "retrieved_at": "2026-11-14T17:13:44Z",
+  "regions": [
+    "CR_PN",
+    "CR_CAR"
+  ],
+  "mask_version": "cr-land-mask-v2.0",
+  "synthetic": false
+}
