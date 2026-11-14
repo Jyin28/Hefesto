@@ -25,6 +25,9 @@ type Copy = {
   recommendationsTitle: string
   recommendations: string[]
   recommendationsNote: string
+  confidenceRule: string
+  aiNote: string
+  forecastNote: string
 }
 
 const basico: Copy = {
@@ -66,6 +69,9 @@ const basico: Copy = {
     'Seguí los avisos oficiales de tu ASADA o del AyA antes de compartir mensajes de redes.',
   ],
   recommendationsNote: 'Son consejos generales. No sustituyen un comunicado oficial.',
+  confidenceRule: 'La confianza sube si hay pocos años faltantes y casi todos los cuadros tienen datos. Sin estaciones locales que los comprueben, no pasa de «media».',
+  aiNote: 'Texto armado automáticamente con las cifras de este panel. No usa un modelo de lenguaje y no reemplaza a una persona experta.',
+  forecastNote: 'Es una línea que sigue la tendencia de los años elegidos hacia adelante. No es un pronóstico del tiempo ni está validada.',
 }
 
 const tecnico: Copy = {
@@ -107,6 +113,9 @@ const tecnico: Copy = {
     'Reportar al operador cualquier discrepancia entre el aviso y el servicio observado.',
   ],
   recommendationsNote: 'Orientación general. La decisión operativa corresponde al operador y a las comisiones.',
+  confidenceRule: 'Regla: alta si continuidad ≥ 90 % y cuadros con datos ≥ 75 %; media si ≥ 70 % y ≥ 40 %; baja en otro caso. Sin estaciones locales vinculadas el máximo es «media».',
+  aiNote: 'Redacción por plantillas sobre las cifras de este panel (sin modelo de lenguaje). Revisión por una persona experta pendiente.',
+  forecastNote: 'Extrapolación lineal (OLS) del rango elegido frente a la media 1981–2010. No es un pronóstico validado; el pronóstico local depende de datos de estaciones del IMN.',
 }
 
 export const copy: Record<Level, Copy> = { basico, tecnico }

@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
+import { confidence as confidenceOf, continuity as continuityOf, defaultThresholds, ensoMean, project, spatialCoverage,
+  stationsLinked, statsFor, synthesis } from './analysis'
+import type { Thresholds } from './analysis'
+import { ChartTile, QualityTile, StatTiles, SynthesisTile, Tile } from './Bento'
+import { ForecastTile } from './Forecast'
+import type { ForecastRow } from './Forecast'
 import { Header } from './Header'
-import { Map } from './Map'
+import { buildGrid, Map } from './Map'
 import { FloatingSearch, ZoneCard } from './MapOverlay'
 import { AdminModal, RequestModal } from './Modals'
 import type { InfoRequest } from './Modals'
@@ -55,6 +61,8 @@ function App() {
   const [modal, setModal] = useState<'admin' | 'request' | null>(null)
   const [requests, setRequests] = useState<InfoRequest[]>(loadRequests)
   const [toast, setToast] = useState('')
+  const [collapsed, setCollapsed] = useState(false)
+  const [thresholds, setThresholds] = useState<Thresholds>(defaultThresholds)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -112,9 +120,7 @@ function App() {
     ? cell ? snapshot?.cells?.[region]?.[cell]?.[variable] : snapshot?.climate[region][variable]
     : undefined
   const rangeApprox = !matchingRemote && rangeCustom && !!snapshotClimate
-  const climate = matchingRemote ?? (snapshotClimate && rangeApprox
-    ? { ...snapshotClimate, series: snapshotClimate.series.filter(point => point.year >= appliedRange[0] && point.year <= appliedRange[1]) }
-    : snapshotClimate)
+  const climate = matchingRemote ?? snapshotClimate
 
   useEffect(() => {
     if (!region || (section !== 'temp' && section !== 'precip')) return
@@ -169,29 +175,94 @@ function App() {
   const zoneName = cell ? `Celda ${cell}` : canton?.name ?? 'Costa Rica'
   const regionName = regions.find(item => item.id === region)?.name
 
+  // Tarjetas bento: usan el snapshot de la celda o del sector y el rango del slider (sin esperar a la API).
+  const pick = (name: Variable) => region ? (cell ? snapshot?.cells?.[region]?.[cell]?.[name] : snapshot?.climate[region]?.[name]) : undefined
+  const climateBy: Record<Variable, Climate | undefined> = { T2M: pick('T2M'), PRECTOTCORR: pick('PRECTOTCORR') }
+  const primary = climateBy[variable]
+  const continuity = primary ? continuityOf(primary.series, range) : { valid: 0, total: range[1] - range[0] + 1, pct: 0 }
+  const coverage = spatialCoverage(primary?.cells ?? [])
+  const stations = stationsLinked(primary)
+  const confidence = confidenceOf(continuity.pct, coverage.pct, stations.count, !!primary)
+  const gridStats = useMemo(() => {
+    const features = buildGrid(snapshot, 'PRECTOTCORR', boundaries).data.features
+    return { withData: features.filter(item => item.properties.has === 1).length, total: features.length }
+  }, [snapshot, boundaries])
+  const projections = {
+    T2M: climateBy.T2M ? project(climateBy.T2M.series, 'T2M', range) : undefined,
+    PRECTOTCORR: climateBy.PRECTOTCORR ? project(climateBy.PRECTOTCORR.series, 'PRECTOTCORR', range) : undefined,
+  }
+  const forecastVariables: Variable[] = section === 'temp' ? ['T2M'] : section === 'precip' ? ['PRECTOTCORR'] : ['PRECTOTCORR', 'T2M']
+  const forecastRows = forecastVariables.flatMap((name): ForecastRow[] => {
+    const projection = projections[name]
+    return projection ? [{ variable: name, projection, localStatus: climateBy[name]?.forecast.status }] : []
+  })
+  const episode = climateBy.PRECTOTCORR?.enso.episode
+  const paragraphs = synthesis({
+    level, zone: zoneName, regionName, range,
+    precip: statsFor(climateBy.PRECTOTCORR, range), temp: statsFor(climateBy.T2M, range),
+    enso: episode ? { start: episode.start, end: episode.end, precip: ensoMean(climateBy.PRECTOTCORR), temp: ensoMean(climateBy.T2M) } : undefined,
+    confidence, continuityPct: continuity.pct, coveragePct: coverage.pct, stations: stations.count,
+  })
+  const noData = <Tile title={copy[level].variableTitle[variable]}>
+    <p className="empty">Esta zona todavía no tiene datos NASA POWER asociados. Usá «Pedir información de esta zona» en la tarjeta del mapa.</p>
+  </Tile>
+  const quality = <QualityTile level={level} hasData={!!primary} regionName={regionName} coverage={coverage} grid={gridStats}
+    continuity={continuity} range={range} stations={stations} confidence={confidence} />
+  const forecast = <ForecastTile level={level} zoneName={zoneName} rows={forecastRows} thresholds={thresholds} setThresholds={setThresholds} />
+
   return <div className="app">
     <Header level={level} setLevel={setLevel} mapMode={mapMode} setMapMode={setMapMode} openAdmin={() => setModal('admin')} />
     <div className="body">
       <Sidebar level={level} section={section} setSection={setSection} />
-      <div className="stage">
+      <div className={collapsed ? 'stage collapsed' : 'stage'}>
         <section className="map-wrap" aria-label="Mapa">
           <Map boundaries={boundaries} snapshot={snapshot} mode={mapMode} variable={variable} level={level} selected={selected}
             selectedCell={cell} alerts={alerts} focus={focus} select={select} selectCell={selectCell} />
           <FloatingSearch choices={choices} operators={catalog.operators} loading={loading} select={select} />
           <ZoneCard level={level} name={zoneName} province={canton?.province} nasa={!!region} range={range} setRange={setRange}
             requestCount={requests.length} openRequest={() => setModal('request')} />
+          <button className="drawer-toggle glass" aria-expanded={!collapsed} aria-controls="ficha"
+            aria-label={collapsed ? 'Mostrar el panel de información' : 'Ocultar el panel de información'}
+            title={collapsed ? 'Mostrar el panel' : 'Ocultar el panel'} onClick={() => setCollapsed(value => !value)}>
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              {collapsed ? <path d="M20 12H4M10 6l-6 6 6 6" /> : <path d="M4 12h16M14 6l6 6-6 6" />}
+            </svg>
+          </button>
         </section>
-        <aside className="drawer glass" id="ficha" aria-label="Panel de información" aria-live="polite">
+        <aside className="drawer glass" id="ficha" aria-label="Panel de información" inert={collapsed}>
           <div className="drawer-title"><small>{cell ? regionName : canton?.province || 'Costa Rica'}</small><h2>{zoneName}</h2></div>
-          {section === 'general' && <GeneralPanel level={level} snapshot={snapshot} region={region} canton={canton} cell={cell}
-            alert={alert} notices={notices} loading={loading} />}
-          {(section === 'temp' || section === 'precip') && <ClimatePanel variable={variable} level={level} climate={climate}
-            remote={matchingRemote} queryKey={queryKey} region={region} cell={cell} setCell={setCell}
-            setRegion={setRegionOverride} years={years} setYears={setYears} setAppliedYears={setAppliedYears}
-            requestError={requestError} setRequestError={setRequestError} loading={loading} catalog={catalog}
-            selected={selected} rangeApprox={rangeApprox} />}
-          {section === 'avisos' && <NoticesPanel level={level} loading={loading} notices={notices} operators={operators}
-            catalog={catalog} selected={selected} alert={alert} highlight={params.get('aviso')} highlightCanton={params.get('canton')} />}
+          <div className="bento">
+            {section === 'general' && <>
+              {climateBy.T2M && <ChartTile variable="T2M" level={level} series={climateBy.T2M.series} range={range} />}
+              {climateBy.PRECTOTCORR && <ChartTile variable="PRECTOTCORR" level={level} series={climateBy.PRECTOTCORR.series} range={range} />}
+              {!primary && noData}
+              <GeneralPanel level={level} climateBy={climateBy} region={region} canton={canton} cell={cell}
+                alert={alert} notices={notices} loading={loading} />
+              {quality}
+              <SynthesisTile level={level} paragraphs={paragraphs} />
+              {forecast}
+            </>}
+            {(section === 'temp' || section === 'precip') && <>
+              {primary ? <>
+                {(() => { const result = projections[variable]; return <ChartTile variable={variable} level={level} series={primary.series} range={range}
+                  projection={result?.ok ? result.points : undefined} caption={`${regionName ?? ''} · ${cell ? `Celda ${cell}` : 'Promedio del sector'}`} /> })()}
+                <StatTiles variable={variable} level={level} series={primary.series} range={range} />
+              </> : noData}
+              {quality}
+              <SynthesisTile level={level} paragraphs={paragraphs} />
+              {forecast}
+              <ClimatePanel variable={variable} level={level} climate={climate}
+                remote={matchingRemote} queryKey={queryKey} region={region} cell={cell} setCell={setCell}
+                setRegion={setRegionOverride} years={years} setYears={setYears} setAppliedYears={setAppliedYears}
+                requestError={requestError} setRequestError={setRequestError} loading={loading} catalog={catalog}
+                selected={selected} rangeApprox={rangeApprox} />
+            </>}
+            {section === 'avisos' && <>
+              <NoticesPanel level={level} loading={loading} notices={notices} operators={operators}
+                catalog={catalog} selected={selected} alert={alert} highlight={params.get('aviso')} highlightCanton={params.get('canton')} />
+              {forecast}
+            </>}
+          </div>
           <p className="muted">{copy[level].mapTip[mapMode]}</p>
         </aside>
       </div>

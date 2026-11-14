@@ -1,33 +1,33 @@
-import { Chart } from './Chart'
+import { ensoMean } from './analysis'
+import { Tile } from './Bento'
 import { ClimateDetails, WaterDetails } from './ClimateDetails'
 import { copy } from './copy'
 import type { Alert, Level } from './copy'
 import { regions } from './data'
-import type { Canton, Climate, Local, Notice, Region, Snapshot, Variable } from './data'
+import type { Canton, Climate, Local, Notice, Region, Variable } from './data'
 
 const format = new Intl.NumberFormat('es-CR', { maximumFractionDigits: 2 })
 const dateFormat = new Intl.DateTimeFormat('es-CR', { dateStyle: 'medium', timeZone: 'America/Costa_Rica' })
 
-export function GeneralPanel({ level, snapshot, region, canton, cell, alert, notices, loading }: {
-  level: Level; snapshot?: Snapshot; region?: Region; canton?: Canton; cell: string
+export function GeneralPanel({ level, climateBy, region, canton, cell, alert, notices, loading }: {
+  level: Level; climateBy: Record<Variable, Climate | undefined>; region?: Region; canton?: Canton; cell: string
   alert: Alert; notices: Notice[]; loading: boolean
 }) {
   const text = copy[level]
-  const enso = snapshot?.climate[region ?? 'CR_PN']?.PRECTOTCORR.enso
-  const anomalies = enso?.months.map(month => month.anomaly).filter((value): value is number => value != null) ?? []
-  const mean = anomalies.length ? anomalies.reduce((sum, value) => sum + value, 0) / anomalies.length : null
+  const enso = climateBy.PRECTOTCORR?.enso
+  // La anomalía del episodio está en las unidades de cada variable (mm/mes y °C), no es un índice del océano.
+  const rain = ensoMean(climateBy.PRECTOTCORR)
+  const heat = ensoMean(climateBy.T2M)
   const regionName = regions.find(item => item.id === region)?.name
   return <>
-    <section className="card" aria-label="El Niño">
-      <h3 title={text.tipAnomaly}>{text.ensoTitle}</h3>
+    <Tile title={text.ensoTitle} tip={text.tipAnomaly}>
       {enso?.episode ? <>
-        <p>{text.ensoBody(enso.episode.start, enso.episode.end, enso.unit ?? '')}</p>
-        {mean !== null && level === 'tecnico' && <p className="muted" title={text.tipAnomaly}>Anomalía mensual media del episodio · {format.format(mean)} {enso.unit}</p>}
-        {mean !== null && level === 'basico' && <p className="muted" title={text.tipAnomaly}>En promedio, los meses de ese período fueron {mean >= 0 ? 'más cálidos' : 'más fríos'} que lo normal en el Pacífico.</p>}
+        <p>{text.ensoBody(enso.episode.start, enso.episode.end, 'mm/mes y °C')}</p>
+        {level === 'tecnico' && <p className="muted">Anomalía mensual media del episodio · {rain != null && `PRECTOTCORR ${format.format(rain)} mm/mes`}{rain != null && heat != null && ' · '}{heat != null && `T2M ${format.format(heat)} °C`}</p>}
+        {level === 'basico' && (rain != null || heat != null) && <p className="muted">En esos meses, en promedio{rain != null && <>, llovió {format.format(Math.abs(rain))} mm al mes {rain < 0 ? 'menos' : 'más'} de lo habitual</>}{rain != null && heat != null && ' y'}{heat != null && <> la temperatura estuvo {format.format(Math.abs(heat))} °C {heat < 0 ? 'por debajo' : 'por encima'} de lo habitual</>}. Es una comparación, no prueba que El Niño sea la causa.</p>}
       </> : <p className="empty">{loading ? 'Cargando…' : text.ensoUnknown}</p>}
-    </section>
-    <section className="card" aria-label="Resumen de la zona">
-      <h3>{cell ? `Celda ${cell}` : canton?.name ?? 'Costa Rica'}</h3>
+    </Tile>
+    <Tile title={cell ? `Celda ${cell}` : canton?.name ?? 'Costa Rica'} span={2}>
       <div className="chips">
         <span className={`chip ${alert}`}>{text.alertLabel[alert]}</span>
         {regionName ? <span className="chip nasa">Datos NASA POWER · {regionName}</span> : <span className="chip imn">Información pendiente</span>}
@@ -36,7 +36,7 @@ export function GeneralPanel({ level, snapshot, region, canton, cell, alert, not
         ? `${notices.length} ${notices.length === 1 ? 'comunicado asociado' : 'comunicados asociados'} a este cantón.`
         : 'Todavía no hay comunicados verificados para este cantón.'}</p>
       {!regionName && <p className="muted">Usá «Pedir información de esta zona» si tu comisión necesita estos datos.</p>}
-    </section>
+    </Tile>
   </>
 }
 
@@ -56,7 +56,7 @@ export function ClimatePanel({ variable, level, climate, remote, queryKey, regio
     collapsed.forEach(item => { item.open = true })
     try { window.print() } finally { collapsed.forEach(item => { item.open = false }) }
   }
-  return <>
+  return <Tile title={level === 'tecnico' ? 'Detalle estadístico, ventanas A/B y descargas' : 'Más detalle y descargas'}>
     <div className="climate-controls">
       <label>Zona climática <select value={region ?? ''} onChange={event => { setRegion((event.target.value || undefined) as Region | undefined); setCell('') }}>
         <option value="" disabled>Elegir zona</option>
@@ -82,8 +82,7 @@ export function ClimatePanel({ variable, level, climate, remote, queryKey, regio
     {climate ? <>
       <div><h3>{text.variableTitle[variable]}</h3>
         <p className="muted">{chosenRegion?.name} · {cell ? `Celda ${cell}` : 'Promedio del sector'}</p></div>
-      {rangeApprox && <p className="muted">Sin conexión con la API: la serie se recorta en el navegador y la tendencia sigue calculada sobre 1981–2024.</p>}
-      <Chart data={climate} unit={unit} />
+      {rangeApprox && <p className="muted">Sin conexión con la API: la tendencia oficial y la comparación siguen calculadas sobre 1981–2024. El gráfico sí usa el rango elegido.</p>}
       {climate.comparison && <div className="periods" aria-label={text.windows}>
         {[climate.comparison.window_a, climate.comparison.window_b].map((window, index) => <div className="card" key={index}>
           <small>{level === 'tecnico' ? ['A', 'B'][index] + ' · ' : ''}{window.start_year}–{window.end_year} · {window.n_years} años</small>
@@ -109,7 +108,7 @@ export function ClimatePanel({ variable, level, climate, remote, queryKey, regio
       </div>
     </> : <p className="empty">{region ? (loading ? 'Cargando la serie climática…' : 'Serie regional no disponible.')
       : 'Esta zona todavía no tiene datos de NASA POWER asociados. Podés elegir un sector arriba o pedir la información.'}</p>}
-  </>
+  </Tile>
 }
 
 export function NoticesPanel({ level, loading, notices, operators, catalog, selected, alert, highlight, highlightCanton }: {
@@ -118,8 +117,7 @@ export function NoticesPanel({ level, loading, notices, operators, catalog, sele
 }) {
   const text = copy[level]
   return <>
-    <div className="chips"><span className={`chip ${alert}`}>{text.alertLabel[alert]}</span></div>
-    <h3>{level === 'tecnico' ? 'Comunicados activos' : 'Avisos publicados'}</h3>
+    <Tile title={level === 'tecnico' ? 'Comunicados activos' : 'Avisos publicados'} badge={<span className={`chip ${alert}`}>{text.alertLabel[alert]}</span>}>
     {notices.length ? notices.map(notice => {
       const url = new URL(window.location.href)
       url.search = new URLSearchParams({ canton: selected, vista: 'avisos', aviso: notice.id }).toString()
@@ -132,14 +130,15 @@ export function NoticesPanel({ level, loading, notices, operators, catalog, sele
         <div className="notice-links"><a href={notice.sourceUrl}>Ver comunicado</a><a href={`https://wa.me/?text=${encodeURIComponent(url.href)}`}>Compartir por WhatsApp</a></div>
       </article>
     }) : <p className="empty">{loading ? 'Cargando avisos…' : 'Todavía no hay comunicados verificados en la página para este cantón.'}</p>}
-    <section className="card" aria-label={text.recommendationsTitle}>
-      <h3>{text.recommendationsTitle}</h3>
+    </Tile>
+    <Tile title={text.recommendationsTitle}>
       <ul className="tips">{text.recommendations.map(item => <li key={item}>{item}</li>)}</ul>
-      <p className="muted" style={{ marginTop: 6 }}>{text.recommendationsNote}</p>
-    </section>
-    <h3>ASADAS y operadores</h3>
-    {operators.length ? operators.map(operator => <p key={operator.name}><strong>{operator.name}</strong><br />{operator.communities.join(', ')}{operator.phone && <> · <a href={`tel:${operator.phone}`}>{operator.phone}</a></>}{operator.sourceId && catalog.sources?.[operator.sourceId] && <> · <a href={catalog.sources[operator.sourceId].url}>Fuente</a></>}</p>)
-      : <p className="muted">Directorio local pendiente de verificación.</p>}
-    <WaterDetails local={catalog} canton={selected} />
+      <p className="muted">{text.recommendationsNote}</p>
+    </Tile>
+    <Tile title="ASADAS y operadores">
+      {operators.length ? operators.map(operator => <p key={operator.name}><strong>{operator.name}</strong><br />{operator.communities.join(', ')}{operator.phone && <> · <a href={`tel:${operator.phone}`}>{operator.phone}</a></>}{operator.sourceId && catalog.sources?.[operator.sourceId] && <> · <a href={catalog.sources[operator.sourceId].url}>Fuente</a></>}</p>)
+        : <p className="muted">Directorio local pendiente de verificación.</p>}
+      <WaterDetails local={catalog} canton={selected} />
+    </Tile>
   </>
 }

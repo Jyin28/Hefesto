@@ -41,7 +41,7 @@ export type Cell = {
 }
 export type Climate = {
   bbox: [number, number, number, number]; source: string; sourceUrl: string
-  series: { year: number; value: number | null }[]
+  series: { year: number; value: number | null; complete?: boolean; months_valid?: number }[]
   comparison: { window_a: WindowStats; window_b: WindowStats; mean_diff_b_minus_a: number | null;
     slope_diff_b_minus_a: number | null } | null
   trend: { slope_per_decade: number | null; n_years: number; significant: boolean | null;

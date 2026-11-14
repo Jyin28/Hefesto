@@ -30,7 +30,7 @@ function bboxOf(geometry: Geometry): [number, number, number, number] | undefine
 }
 
 /** Celdas con datos del snapshot y, alrededor, la malla vacía de NASA POWER (0,5° × 0,625°) sobre el territorio. */
-function buildGrid(snapshot: Snapshot | undefined, variable: Variable, boundaries: Boundaries | undefined) {
+export function buildGrid(snapshot: Snapshot | undefined, variable: Variable, boundaries: Boundaries | undefined) {
   const features: Feature<Polygon, GridProps>[] = []
   const taken = new Set<string>()
   const key = (lat: number, lon: number) => `${Math.round((lat + 90) / LAT_STEP)}_${Math.round((lon + 180) / LON_STEP)}`
@@ -128,7 +128,10 @@ export function Map({ boundaries, snapshot, mode, variable, level, selected, sel
       instance.fitBounds([[CR_BOUNDS[0], CR_BOUNDS[1]], [CR_BOUNDS[2], CR_BOUNDS[3]]], { padding: 24, duration: 0 })
       setReady(true)
     })
-    return () => { popup.remove(); instance.remove(); map.current = null }
+    // El panel lateral se colapsa y cambia el ancho del contenedor: el mapa debe redibujarse.
+    const observer = new ResizeObserver(() => instance.resize())
+    observer.observe(container.current)
+    return () => { observer.disconnect(); popup.remove(); instance.remove(); map.current = null }
   }, [])
 
   useEffect(() => {
