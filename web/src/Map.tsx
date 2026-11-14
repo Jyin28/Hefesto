@@ -2,8 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Map as MapLibreMap, NavigationControl, Popup } from 'maplibre-gl'
 import type { ExpressionSpecification, GeoJSONSource } from 'maplibre-gl'
 import type { Feature, FeatureCollection, Geometry, Polygon, Position } from 'geojson'
+import { ALERT_LABEL } from './analysis'
+import type { AlertLevel } from './analysis'
 import { copy } from './copy'
 import type { Alert, Level, MapMode } from './copy'
+import { affectationLabel } from './store'
 import type { Boundaries, Region, Snapshot, Variable } from './data'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
@@ -13,6 +16,10 @@ const LON_STEP = 0.625
 const CR_BOUNDS: [number, number, number, number] = [-86.05, 8.0, -82.5, 11.35]
 const SKY = '#38BDF8'
 const AMBER = '#f59e0b'
+const NOTICE_ACTIVE = '#38BDF8'
+const NOTICE_EXPIRED = '#bfdbfe'
+const LEVEL_COLOR: Record<AlertLevel, string> = { verde: '#10B981', amarillo: '#FACC15', naranja: '#F97316', rojo: '#EF4444' }
+export type CantonAffectation = { level: AlertLevel; type: string }
 
 type GridProps = { id: string; region: string; has: number; slope: number; significant: number }
 
@@ -63,9 +70,10 @@ export function buildGrid(snapshot: Snapshot | undefined, variable: Variable, bo
   return { data: { type: 'FeatureCollection', features } as FeatureCollection<Polygon, GridProps>, extent: extent || 1 }
 }
 
-export function Map({ boundaries, snapshot, mode, variable, level, selected, selectedCell, alerts, focus, select, selectCell }: {
+export function Map({ boundaries, snapshot, mode, variable, level, selected, selectedCell, alerts, affectations, focus, select, selectCell }: {
   boundaries?: Boundaries; snapshot?: Snapshot; mode: MapMode; variable: Variable; level: Level
-  selected: string; selectedCell: string; alerts: Record<string, Alert>; focus: { code: string; tick: number }
+  selected: string; selectedCell: string; alerts: Record<string, Alert>; affectations: Record<string, CantonAffectation>
+  focus: { code: string; tick: number }
   select: (code: string) => void; selectCell: (region: Region, id: string) => void
 }) {
   const container = useRef<HTMLDivElement>(null)
@@ -73,8 +81,8 @@ export function Map({ boundaries, snapshot, mode, variable, level, selected, sel
   const [ready, setReady] = useState(false)
   const [failed, setFailed] = useState(false)
   const grid = useMemo(() => buildGrid(snapshot, variable, boundaries), [snapshot, variable, boundaries])
-  const latest = useRef({ select, selectCell, mode, level, alerts, variable })
-  latest.current = { select, selectCell, mode, level, alerts, variable }
+  const latest = useRef({ select, selectCell, mode, level, alerts, affectations, variable })
+  latest.current = { select, selectCell, mode, level, alerts, affectations, variable }
 
   useEffect(() => {
     if (!container.current) return
@@ -111,7 +119,7 @@ export function Map({ boundaries, snapshot, mode, variable, level, selected, sel
         if (code) latest.current.select(String(code))
       })
       instance.on('mousemove', event => {
-        const { mode: current, level: lvl, alerts: states, variable: variableNow } = latest.current
+        const { mode: current, level: lvl, alerts: states, affectations: affected, variable: variableNow } = latest.current
         const cell = current === 'grid' ? instance.queryRenderedFeatures(event.point, { layers: ['grid-fill'] })[0] : undefined
         const canton = instance.queryRenderedFeatures(event.point, { layers: ['cantons'] })[0]
         let text = ''
@@ -119,7 +127,13 @@ export function Map({ boundaries, snapshot, mode, variable, level, selected, sel
           const slope = Number(cell.properties.slope).toLocaleString('es-CR', { maximumFractionDigits: 2 })
           text = `Celda ${cell.properties.id} · ${slope} ${copy[lvl].unit[variableNow]}/década`
         } else if (cell) text = 'Celda sin descarga'
-        else if (canton?.properties) text = `${canton.properties.name} · ${copy[lvl].alertLabel[states[String(canton.properties.code)] ?? 'none']}`
+        else if (canton?.properties) {
+          const code = String(canton.properties.code)
+          const affectation = current === 'cantones' ? affected[code] : undefined
+          text = affectation
+            ? `${canton.properties.name} · ${affectationLabel(affectation.type)} · nivel ${ALERT_LABEL[affectation.level]}`
+            : `${canton.properties.name} · ${copy[lvl].alertLabel[states[code] ?? 'none']}`
+        }
         instance.getCanvas().style.cursor = text ? 'pointer' : ''
         if (text) popup.setLngLat(event.lngLat).setText(text).addTo(instance)
         else popup.remove()
@@ -147,10 +161,12 @@ export function Map({ boundaries, snapshot, mode, variable, level, selected, sel
     if (!ready || !instance) return
     const isGrid = mode === 'grid'
     for (const layer of ['grid-fill', 'grid-line', 'grid-selected']) instance.setLayoutProperty(layer, 'visibility', isGrid ? 'visible' : 'none')
-    const byAlert = ['match', ['get', 'code'],
-      ...Object.entries(alerts).filter(([, state]) => state !== 'none').flatMap(([code, state]) => [code, state === 'active' ? AMBER : SKY]),
-      '#e2eef5'] as unknown as ExpressionSpecification
-    const hasAlerts = Object.values(alerts).some(state => state !== 'none')
+    // Una afectación registrada por las comisiones (semáforo) manda sobre el estado del aviso.
+    const colors = new globalThis.Map<string, string>()
+    for (const [code, state] of Object.entries(alerts)) if (state !== 'none') colors.set(code, state === 'active' ? NOTICE_ACTIVE : NOTICE_EXPIRED)
+    for (const [code, item] of Object.entries(affectations)) colors.set(code, LEVEL_COLOR[item.level])
+    const byAlert = ['match', ['get', 'code'], ...[...colors].flatMap(([code, color]) => [code, color]), '#e2eef5'] as unknown as ExpressionSpecification
+    const hasAlerts = colors.size > 0
     instance.setPaintProperty('cantons', 'fill-color', isGrid ? '#ffffff' : hasAlerts ? byAlert : '#e2eef5')
     instance.setPaintProperty('cantons', 'fill-opacity', isGrid ? 0.4 : 0.9)
     instance.setPaintProperty('canton-lines', 'line-color', isGrid ? '#7aa7c2' : '#ffffff')
@@ -162,7 +178,7 @@ export function Map({ boundaries, snapshot, mode, variable, level, selected, sel
       ['interpolate', ['linear'], ['get', 'slope'], -grid.extent, low, 0, '#f8fafc', grid.extent, high], 'rgba(255,255,255,0)'])
     instance.setPaintProperty('grid-fill', 'fill-opacity', ['case', ['==', ['get', 'has'], 1], 0.8, 0])
     instance.setPaintProperty('grid-line', 'line-opacity', ['case', ['==', ['get', 'has'], 1], 0.55, 0.3])
-  }, [ready, mode, alerts, selected, selectedCell, variable, grid])
+  }, [ready, mode, alerts, affectations, selected, selectedCell, variable, grid])
 
   useEffect(() => {
     const instance = map.current
@@ -185,9 +201,13 @@ export function Map({ boundaries, snapshot, mode, variable, level, selected, sel
         <div className="legend-scale"><span>−{extent}</span><span>0</span><span>+{extent}</span></div>
         <span>Cuadros sin color: sin descarga de NASA POWER.</span>
       </> : <>
-        <strong>Avisos por cantón</strong>
+        <strong>Afectaciones registradas</strong>
+        {(Object.keys(LEVEL_COLOR) as AlertLevel[]).map(item => <div className="legend-row" key={item}>
+          <span className="swatch" style={{ background: LEVEL_COLOR[item] }} />Nivel {ALERT_LABEL[item]}
+        </div>)}
+        <strong>Avisos publicados</strong>
         {(['active', 'expired', 'none'] as const).map(state => <div className="legend-row" key={state}>
-          <span className="swatch" style={{ background: state === 'active' ? AMBER : state === 'expired' ? SKY : '#e2eef5' }} />{copy[level].alertLabel[state]}
+          <span className="swatch" style={{ background: state === 'active' ? NOTICE_ACTIVE : state === 'expired' ? NOTICE_EXPIRED : '#e2eef5' }} />{copy[level].alertLabel[state]}
         </div>)}
       </>}
     </div>}

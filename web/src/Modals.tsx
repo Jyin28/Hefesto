@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
+import { demoAccounts, login } from './auth'
+import type { Session } from './auth'
 
 export type InfoRequest = {
   id: string; zone: string; name: string; organization: string; email: string
@@ -36,33 +38,38 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
   </div>
 }
 
-export function AdminModal({ onClose }: { onClose: () => void }) {
+export function AdminModal({ onClose, onLogin }: { onClose: () => void; onLogin: (session: Session) => void }) {
   const [error, setError] = useState('')
-  const [done, setDone] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [demo, setDemo] = useState(0)
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const data = new FormData(event.currentTarget)
-    if (!String(data.get('user') ?? '').trim() || !String(data.get('password') ?? '')) {
-      setError('Completá usuario y contraseña.')
-      return
-    }
+    if (!email.trim() || !password) { setError('Completá usuario y contraseña.'); return }
+    const session = login(email, password)
+    if (!session) { setError('Usuario o contraseña incorrectos.'); return }
+    onLogin(session)
+  }
+  function fillDemo() {
+    const account = demoAccounts[demo % demoAccounts.length]
+    setEmail(account.email)
+    setPassword(account.password)
     setError('')
-    setDone(true)
+    setDemo(value => value + 1)
   }
   return <Modal title="Acceso Comisiones / Admin" onClose={onClose}>
-    {done ? <>
-      <p className="empty" role="status">Acceso para comisiones en preparación. Todavía no se guarda ni se verifica ninguna credencial. Podés seguir consultando el mapa sin iniciar sesión.</p>
-      <div className="modal-actions"><button className="pill pill-primary" onClick={onClose}>Volver al mapa</button></div>
-    </> : <form onSubmit={submit}>
+    <form onSubmit={submit}>
       <p className="muted">La consulta pública no requiere cuenta. Este acceso es solo para comisiones y administración.</p>
-      <label>Usuario<input type="text" name="user" autoComplete="username" /></label>
-      <label>Contraseña<input type="password" name="password" autoComplete="current-password" /></label>
+      <label>Usuario<input type="text" name="user" autoComplete="username" value={email} onChange={event => setEmail(event.target.value)} /></label>
+      <label>Contraseña<input type="password" name="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} /></label>
       {error && <p className="error" role="alert">{error}</p>}
+      <button type="button" className="pill pill-ghost" onClick={fillDemo}>Autocompletar credenciales demo</button>
+      <p className="muted">Demostración: las cuentas viven en un archivo JSON del frontend, así que no ofrecen seguridad real. Cada clic prueba la siguiente cuenta demo.</p>
       <div className="modal-actions">
         <button type="button" className="pill" onClick={onClose}>Cancelar</button>
         <button type="submit" className="pill pill-primary">Ingresar</button>
       </div>
-    </form>}
+    </form>
   </Modal>
 }
 

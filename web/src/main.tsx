@@ -1,17 +1,25 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { confidence as confidenceOf, continuity as continuityOf, defaultThresholds, ensoMean, project, spatialCoverage,
+import { AdminPanel } from './AdminPanel'
+import { confidence as confidenceOf, continuity as continuityOf, defaultThresholds, ensoMean, localStat, project, spatialCoverage,
   stationsLinked, statsFor, synthesis } from './analysis'
 import type { Thresholds } from './analysis'
+import { logout as endSession, restoreSession } from './auth'
+import type { Session } from './auth'
 import { ChartTile, QualityTile, StatTiles, SynthesisTile, Tile } from './Bento'
+import type { Affectation } from './data/cantonData'
 import { ForecastTile } from './Forecast'
 import type { ForecastRow } from './Forecast'
 import { Header } from './Header'
+import { normalizeText } from './localData'
 import { buildGrid, Map } from './Map'
+import type { CantonAffectation } from './Map'
 import { FloatingSearch, ZoneCard } from './MapOverlay'
 import { AdminModal, RequestModal } from './Modals'
 import type { InfoRequest } from './Modals'
-import { ClimatePanel, GeneralPanel, NoticesPanel } from './Panels'
+import { ClimatePanel, GeneralPanel, LocalRecordsTile, NoticesPanel, worstOf } from './Panels'
+import type { AffectationOverview } from './Panels'
+import { affectationLabel, useCantonData } from './store'
 import { MAX_YEAR, MIN_YEAR } from './RangeSlider'
 import { Sidebar } from './Sidebar'
 import { copy } from './copy'
@@ -24,7 +32,7 @@ const params = new URLSearchParams(window.location.search)
 const emptyLocal: Local = { cantons: {}, notices: [], operators: [] }
 const defaultYears = [1981, 2002, 2003, 2024]
 const STORAGE_KEY = 'hefesto.solicitudes'
-const sections: Section[] = ['general', 'temp', 'precip', 'avisos']
+const sections: Section[] = ['general', 'temp', 'precip', 'avisos', 'admin']
 
 function initialSection(): Section {
   const view = params.get('vista')
@@ -47,7 +55,11 @@ function App() {
   const [remote, setRemote] = useState<{ key: string; data: Climate }>()
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(params.get('canton') || '503')
-  const [section, setSectionState] = useState<Section>(initialSection)
+  const [session, setSession] = useState<Session | null>(restoreSession)
+  const [requestedSection, setSectionState] = useState<Section>(initialSection)
+  // Sin sesión de administrador, la sección Admin nunca se muestra, aunque llegue por la URL.
+  const section: Section = requestedSection === 'admin' && !session ? 'general' : requestedSection
+  const data = useCantonData()
   const [level, setLevel] = useState<Level>('basico')
   const [mapMode, setMapMode] = useState<MapMode>('grid')
   const [regionOverride, setRegionOverride] = useState<Region>()
@@ -154,6 +166,27 @@ function App() {
     updateUrl(url => { url.searchParams.set('canton', code); url.searchParams.delete('aviso') })
   }
 
+  function onLogin(next: Session) {
+    setSession(next)
+    setModal(null)
+    setToast(`Modo administrador activo: ${next.name}. Seguís en el mapa; la sección Admin está en la barra lateral.`)
+  }
+
+  function onLogout() {
+    endSession()
+    setSession(null)
+    if (requestedSection === 'admin') setSection('general')
+    setToast('Sesión de administrador cerrada.')
+  }
+
+  /** Acepta el código de tres dígitos o el nombre del cantón (sin tildes ni mayúsculas). */
+  function resolveCanton(raw: string) {
+    const wanted = normalizeText(raw)
+    if (/^\d{3}$/.test(wanted) && choices.has(wanted)) return wanted
+    for (const [code, info] of choices) if (normalizeText(info.name) === wanted) return code
+    return null
+  }
+
   function selectCell(cellRegion: Region, id: string) {
     setRegionOverride(cellRegion)
     setCell(id)
@@ -181,7 +214,25 @@ function App() {
   const primary = climateBy[variable]
   const continuity = primary ? continuityOf(primary.series, range) : { valid: 0, total: range[1] - range[0] + 1, pct: 0 }
   const coverage = spatialCoverage(primary?.cells ?? [])
-  const stations = stationsLinked(primary)
+  // Datos que cargan las comisiones (localStorage): afectaciones y registros locales.
+  const cantonAffectations = useMemo(() => data.affectations.filter(item => item.cantonCode === selected), [data.affectations, selected])
+  const cantonRecords = useMemo(() => data.records.filter(item => item.cantonCode === selected), [data.records, selected])
+  const mapAffectations = useMemo(() => {
+    const byCanton = new globalThis.Map<string, Affectation[]>()
+    for (const item of data.affectations) byCanton.set(item.cantonCode, [...(byCanton.get(item.cantonCode) ?? []), item])
+    const result: Record<string, CantonAffectation> = {}
+    const rows: AffectationOverview[] = []
+    for (const [code, items] of byCanton) {
+      const worst = worstOf(items)!
+      result[code] = { level: worst.level, type: worst.type }
+      rows.push({ code, name: choices.get(code)?.name ?? code, level: worst.level, type: worst.type, count: items.length })
+    }
+    const order = ['rojo', 'naranja', 'amarillo', 'verde']
+    rows.sort((a, b) => order.indexOf(a.level) - order.indexOf(b.level) || a.name.localeCompare(b.name, 'es-CR'))
+    return { byCanton: result, overview: rows }
+  }, [data.affectations, choices])
+  const localStations = [...new Set(cantonRecords.map(item => item.station || 'Fuente local sin nombre'))]
+  const stations = stationsLinked(primary, localStations)
   const confidence = confidenceOf(continuity.pct, coverage.pct, stations.count, !!primary)
   const gridStats = useMemo(() => {
     const features = buildGrid(snapshot, 'PRECTOTCORR', boundaries).data.features
@@ -202,6 +253,9 @@ function App() {
     precip: statsFor(climateBy.PRECTOTCORR, range), temp: statsFor(climateBy.T2M, range),
     enso: episode ? { start: episode.start, end: episode.end, precip: ensoMean(climateBy.PRECTOTCORR), temp: ensoMean(climateBy.T2M) } : undefined,
     confidence, continuityPct: continuity.pct, coveragePct: coverage.pct, stations: stations.count,
+    affectations: [...cantonAffectations].sort((a, b) => ['rojo', 'naranja', 'amarillo', 'verde'].indexOf(a.level) - ['rojo', 'naranja', 'amarillo', 'verde'].indexOf(b.level))
+      .map(item => ({ typeLabel: affectationLabel(item.type), level: item.level, notes: item.notes, by: item.organization || item.createdBy })),
+    local: { temp: localStat(cantonRecords.filter(item => item.variable === 'T2M')), precip: localStat(cantonRecords.filter(item => item.variable === 'PRECTOTCORR')) },
   })
   const noData = <Tile title={copy[level].variableTitle[variable]}>
     <p className="empty">Esta zona todavía no tiene datos NASA POWER asociados. Usá «Pedir información de esta zona» en la tarjeta del mapa.</p>
@@ -211,13 +265,14 @@ function App() {
   const forecast = <ForecastTile level={level} zoneName={zoneName} rows={forecastRows} thresholds={thresholds} setThresholds={setThresholds} />
 
   return <div className="app">
-    <Header level={level} setLevel={setLevel} mapMode={mapMode} setMapMode={setMapMode} openAdmin={() => setModal('admin')} />
+    <Header level={level} setLevel={setLevel} mapMode={mapMode} setMapMode={setMapMode} openAdmin={() => setModal('admin')}
+      session={session} logout={onLogout} />
     <div className="body">
-      <Sidebar level={level} section={section} setSection={setSection} />
+      <Sidebar level={level} section={section} setSection={setSection} admin={!!session} />
       <div className={collapsed ? 'stage collapsed' : 'stage'}>
         <section className="map-wrap" aria-label="Mapa">
           <Map boundaries={boundaries} snapshot={snapshot} mode={mapMode} variable={variable} level={level} selected={selected}
-            selectedCell={cell} alerts={alerts} focus={focus} select={select} selectCell={selectCell} />
+            selectedCell={cell} alerts={alerts} affectations={mapAffectations.byCanton} focus={focus} select={select} selectCell={selectCell} />
           <FloatingSearch choices={choices} operators={catalog.operators} loading={loading} select={select} />
           <ZoneCard level={level} name={zoneName} province={canton?.province} nasa={!!region} range={range} setRange={setRange}
             requestCount={requests.length} openRequest={() => setModal('request')} />
@@ -237,7 +292,8 @@ function App() {
               {climateBy.PRECTOTCORR && <ChartTile variable="PRECTOTCORR" level={level} series={climateBy.PRECTOTCORR.series} range={range} />}
               {!primary && noData}
               <GeneralPanel level={level} climateBy={climateBy} region={region} canton={canton} cell={cell}
-                alert={alert} notices={notices} loading={loading} />
+                alert={alert} notices={notices} loading={loading} worst={worstOf(cantonAffectations)} />
+              <LocalRecordsTile level={level} records={cantonRecords} />
               {quality}
               <SynthesisTile level={level} paragraphs={paragraphs} />
               {forecast}
@@ -248,6 +304,7 @@ function App() {
                   projection={result?.ok ? result.points : undefined} caption={`${regionName ?? ''} · ${cell ? `Celda ${cell}` : 'Promedio del sector'}`} /> })()}
                 <StatTiles variable={variable} level={level} series={primary.series} range={range} />
               </> : noData}
+              <LocalRecordsTile level={level} records={cantonRecords} variable={variable} />
               {quality}
               <SynthesisTile level={level} paragraphs={paragraphs} />
               {forecast}
@@ -259,15 +316,18 @@ function App() {
             </>}
             {section === 'avisos' && <>
               <NoticesPanel level={level} loading={loading} notices={notices} operators={operators}
-                catalog={catalog} selected={selected} alert={alert} highlight={params.get('aviso')} highlightCanton={params.get('canton')} />
+                catalog={catalog} selected={selected} alert={alert} highlight={params.get('aviso')} highlightCanton={params.get('canton')}
+                affectations={cantonAffectations} overview={mapAffectations.overview} select={select} />
               {forecast}
             </>}
+            {section === 'admin' && session && <AdminPanel session={session} choices={choices} data={data} defaultCanton={selected}
+              resolveCanton={resolveCanton} notify={setToast} />}
           </div>
           <p className="muted">{copy[level].mapTip[mapMode]}</p>
         </aside>
       </div>
     </div>
-    {modal === 'admin' && <AdminModal onClose={() => setModal(null)} />}
+    {modal === 'admin' && !session && <AdminModal onClose={() => setModal(null)} onLogin={onLogin} />}
     {modal === 'request' && <RequestModal zone={zoneName} onClose={() => setModal(null)} onSubmit={submitRequest} />}
     {toast && <div className="toast glass" role="status">{toast}</div>}
   </div>

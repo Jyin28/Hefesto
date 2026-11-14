@@ -61,12 +61,27 @@ export function confidence(continuityPct: number, coveragePct: number, stations:
   return level
 }
 
-export function stationsLinked(climate?: Climate) {
+/** Estaciones o fuentes locales: la del pronóstico experimental más las cargadas por comisiones (sin validar). */
+export function stationsLinked(climate?: Climate, localStations: string[] = []) {
   const status = climate?.forecast.status
-  if (!climate) return { count: 0, note: 'Sin zona con datos' }
-  if (status === 'local_data_pending') return { count: 0, note: 'Datos de estaciones del IMN pendientes' }
-  if (status === 'station_data_invalid') return { count: 0, note: 'Datos de estación inválidos' }
-  return { count: 1, note: 'Estación local usada en el pronóstico experimental' }
+  const base = !climate ? { count: 0, note: 'Sin zona con datos' }
+    : status === 'local_data_pending' ? { count: 0, note: 'Datos de estaciones del IMN pendientes' }
+    : status === 'station_data_invalid' ? { count: 0, note: 'Datos de estación inválidos' }
+    : { count: 1, note: 'Estación local usada en el pronóstico experimental' }
+  if (!localStations.length) return base
+  return {
+    count: base.count + localStations.length,
+    note: `${base.note}. ${localStations.length} ${localStations.length === 1 ? 'fuente local cargada' : 'fuentes locales cargadas'} por comisiones, todavía sin validar contra NASA.`,
+  }
+}
+
+export type LocalStat = { n: number; mean: number; from: string; to: string }
+
+/** Resumen de registros locales de una variable (promedio simple y rango de fechas). */
+export function localStat(records: { value: number; date: string }[]): LocalStat | undefined {
+  if (!records.length) return undefined
+  const dates = records.map(record => record.date).sort()
+  return { n: records.length, mean: records.reduce((sum, record) => sum + record.value, 0) / records.length, from: dates[0], to: dates[dates.length - 1] }
 }
 
 export type Outcome = { year: number; value: number; deviation: number }
@@ -128,6 +143,10 @@ export type SynthesisInput = {
   precip?: VarStats; temp?: VarStats
   enso?: { start: string; end: string; precip: number | null; temp: number | null }
   confidence: Confidence; continuityPct: number; coveragePct: number; stations: number
+  /** Afectaciones registradas por comisiones para el cantón (de mayor a menor nivel). */
+  affectations?: { typeLabel: string; level: AlertLevel; notes: string; by: string }[]
+  /** Registros locales cargados por comisiones, por variable. */
+  local?: { temp?: LocalStat; precip?: LocalStat }
 }
 
 const CONFIDENCE_LABEL: Record<Confidence, string> = { 'sin-datos': 'sin datos', baja: 'baja', media: 'media', alta: 'alta' }
@@ -137,10 +156,24 @@ export const confidenceLabel = (value: Confidence) => CONFIDENCE_LABEL[value]
 export function synthesis(input: SynthesisInput): string[] {
   const { level, zone, range, precip, temp, enso } = input
   const basic = level === 'basico'
+  const extras: string[] = []
+  for (const item of (input.affectations ?? []).slice(0, 3)) {
+    const level_ = ALERT_LABEL[item.level]
+    extras.push(basic
+      ? `Una comisión registró en ${zone} una afectación por ${item.typeLabel.toLowerCase()} con nivel de advertencia ${level_}.${item.notes ? ` Nota técnica: «${item.notes}».` : ''}`
+      : `Afectación registrada en ${zone}: ${item.typeLabel}, nivel ${level_}${item.by ? ` (${item.by})` : ''}.${item.notes ? ` Notas: «${item.notes}».` : ''} Registro local, sin verificación independiente.`)
+  }
+  for (const [name, unit, stat, digits] of [['temperatura', '°C', input.local?.temp, 1], ['lluvia', 'mm', input.local?.precip, 0]] as const) {
+    if (!stat) continue
+    const span = stat.from === stat.to ? stat.from : `${stat.from} a ${stat.to}`
+    extras.push(basic
+      ? `Además hay ${stat.n} ${stat.n === 1 ? 'registro local' : 'registros locales'} de ${name} cargados por comisiones (promedio ${fmt(stat.mean, digits)} ${unit}, ${span}). Todavía no se comparan con los datos de NASA.`
+      : `Registros locales ${name === 'lluvia' ? 'PRECTOTCORR' : 'T2M'}: n = ${stat.n}, media ${fmt(stat.mean, digits)} ${unit}, ${span}; sin conciliar con la serie MERRA-2.`)
+  }
   if (!precip && !temp) {
     return [basic
       ? `Para ${zone} todavía no hay datos de NASA POWER asociados, así que no se puede explicar cómo cambió el clima ahí. Podés pedir la información con el botón de la tarjeta del mapa.`
-      : `${zone}: sin datos NASA POWER asociados (cantón sin sector climático ni celda seleccionada). No se genera síntesis; solicitar la información a las comisiones.`]
+      : `${zone}: sin datos NASA POWER asociados (cantón sin sector climático ni celda seleccionada). No se genera síntesis de serie; solicitar la información a las comisiones.`, ...extras]
   }
   const paragraphs: string[] = []
   const years = `${range[0]} y ${range[1]}`
@@ -181,5 +214,5 @@ export function synthesis(input: SynthesisInput): string[] {
     }
     paragraphs.push(`Calidad: continuidad ${fmt(input.continuityPct * 100, 0)} %, celdas con datos ${fmt(input.coveragePct * 100, 0)} %, estaciones vinculadas ${input.stations}; confianza ${CONFIDENCE_LABEL[input.confidence]}. Reanálisis MERRA-2: la precipitación requiere cautela y no equivale a estaciones locales.`)
   }
-  return paragraphs
+  return [...paragraphs, ...extras]
 }

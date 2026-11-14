@@ -1,0 +1,8 @@
+{
+  "_aviso": "SOLO DEMOSTRACION. Este archivo se incluye en el codigo que descarga cualquier visitante, asi que no protege nada. Para produccion hace falta autenticacion en un servidor.",
+  "admins": [
+    { "email": "admin@cne.go.cr", "password": "hefesto2026", "name": "Administración CNE", "organization": "Comisión Nacional (demo)" },
+    { "email": "imn@cr.go", "password": "elnino2026", "name": "Meteorología IMN", "organization": "IMN (demo)" },
+    { "email": "comision@demo.cr", "password": "demo2026", "name": "Comisión Regional", "organization": "Comisión Regional (demo)" }
+  ]
+}

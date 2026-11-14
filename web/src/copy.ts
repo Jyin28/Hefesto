@@ -1,5 +1,5 @@
 export type Level = 'basico' | 'tecnico'
-export type Section = 'general' | 'temp' | 'precip' | 'avisos'
+export type Section = 'general' | 'temp' | 'precip' | 'avisos' | 'admin'
 export type MapMode = 'grid' | 'cantones'
 export type Alert = 'active' | 'expired' | 'none'
 
@@ -37,6 +37,7 @@ const basico: Copy = {
     temp: 'Cómo ha cambiado el calor en la zona.',
     precip: 'Cómo ha cambiado la lluvia en la zona.',
     avisos: 'Avisos publicados y consejos para tu cantón.',
+    admin: 'Registrar afectaciones y cargar datos locales (solo comisiones).',
   },
   mapTip: {
     grid: 'Cada cuadro es un pedazo de Costa Rica de unos 55 km por 70 km donde NASA mide el clima desde el espacio.',
@@ -81,6 +82,7 @@ const tecnico: Copy = {
     temp: 'T2M (MERRA-2 vía NASA POWER): serie anual, ventanas A/B y tendencia.',
     precip: 'PRECTOTCORR (NASA POWER): serie anual, ventanas A/B y tendencia.',
     avisos: 'Comunicados activos, estado por cantón y medidas preventivas.',
+    admin: 'Afectaciones por cantón e importación de registros locales (solo comisiones).',
   },
   mapTip: {
     grid: 'Malla MERRA-2 de NASA POWER: 0,5° de latitud × 0,625° de longitud. Color = pendiente de largo plazo por celda.',

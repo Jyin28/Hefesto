@@ -1,17 +1,26 @@
-import { ensoMean } from './analysis'
+import { ALERT_LABEL, ensoMean, fmt, localStat } from './analysis'
+import type { AlertLevel } from './analysis'
 import { Tile } from './Bento'
 import { ClimateDetails, WaterDetails } from './ClimateDetails'
 import { copy } from './copy'
 import type { Alert, Level } from './copy'
 import { regions } from './data'
 import type { Canton, Climate, Local, Notice, Region, Variable } from './data'
+import type { Affectation, LocalRecord } from './data/cantonData'
+import { AlertPill } from './Forecast'
+import { affectationLabel } from './store'
+
+export type AffectationOverview = { code: string; name: string; level: AlertLevel; type: string; count: number }
+const LEVEL_RANK: Record<AlertLevel, number> = { verde: 0, amarillo: 1, naranja: 2, rojo: 3 }
+export const worstOf = (items: Affectation[]) => items.reduce<Affectation | undefined>((worst, item) =>
+  !worst || LEVEL_RANK[item.level] > LEVEL_RANK[worst.level] ? item : worst, undefined)
 
 const format = new Intl.NumberFormat('es-CR', { maximumFractionDigits: 2 })
 const dateFormat = new Intl.DateTimeFormat('es-CR', { dateStyle: 'medium', timeZone: 'America/Costa_Rica' })
 
-export function GeneralPanel({ level, climateBy, region, canton, cell, alert, notices, loading }: {
+export function GeneralPanel({ level, climateBy, region, canton, cell, alert, notices, loading, worst }: {
   level: Level; climateBy: Record<Variable, Climate | undefined>; region?: Region; canton?: Canton; cell: string
-  alert: Alert; notices: Notice[]; loading: boolean
+  alert: Alert; notices: Notice[]; loading: boolean; worst?: Affectation
 }) {
   const text = copy[level]
   const enso = climateBy.PRECTOTCORR?.enso
@@ -30,6 +39,8 @@ export function GeneralPanel({ level, climateBy, region, canton, cell, alert, no
     <Tile title={cell ? `Celda ${cell}` : canton?.name ?? 'Costa Rica'} span={2}>
       <div className="chips">
         <span className={`chip ${alert}`}>{text.alertLabel[alert]}</span>
+        {worst && <AlertPill level={worst.level} />}
+        {worst && <span className="chip">{affectationLabel(worst.type)}</span>}
         {regionName ? <span className="chip nasa">Datos NASA POWER · {regionName}</span> : <span className="chip imn">Información pendiente</span>}
       </div>
       <p className="muted" style={{ marginTop: 8 }}>{notices.length
@@ -111,12 +122,49 @@ export function ClimatePanel({ variable, level, climate, remote, queryKey, regio
   </Tile>
 }
 
-export function NoticesPanel({ level, loading, notices, operators, catalog, selected, alert, highlight, highlightCanton }: {
+const dayFormat = new Intl.DateTimeFormat('es-CR', { dateStyle: 'medium', timeZone: 'America/Costa_Rica' })
+
+/** Registros locales cargados por comisiones para el cantón seleccionado. */
+export function LocalRecordsTile({ level, records, variable }: { level: Level; records: LocalRecord[]; variable?: Variable }) {
+  const shown = variable ? records.filter(item => item.variable === variable) : records
+  if (!shown.length) return null
+  const stats = (['T2M', 'PRECTOTCORR'] as Variable[]).flatMap(name => {
+    const stat = localStat(shown.filter(item => item.variable === name))
+    return stat ? [{ name, stat }] : []
+  })
+  const latest = [...shown].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5)
+  return <Tile title="Registros locales de comisiones" badge={<span className="chip imn">Registro local · sin validar</span>}>
+    {stats.map(({ name, stat }) => <p key={name}>
+      <strong>{name === 'T2M' ? (level === 'tecnico' ? 'T2M' : 'Temperatura') : (level === 'tecnico' ? 'PRECTOTCORR' : 'Lluvia')}</strong> · {stat.n} {stat.n === 1 ? 'registro' : 'registros'}
+      · promedio {fmt(stat.mean, name === 'T2M' ? 1 : 0)} {name === 'T2M' ? '°C' : 'mm'} · {stat.from === stat.to ? stat.from : `${stat.from} a ${stat.to}`}</p>)}
+    <table><thead><tr><th>Fecha</th><th>Variable</th><th>Valor</th><th>Fuente</th></tr></thead>
+      <tbody>{latest.map(item => <tr key={item.id}><td>{item.date}</td><td>{item.variable === 'T2M' ? 'Temperatura' : 'Precipitación'}</td>
+        <td>{fmt(item.value, 1)} {item.unit}</td><td>{item.station || 'Sin estación'}</td></tr>)}</tbody></table>
+    <p className="muted">Cargados en este navegador por una comisión (demostración). No se han comparado con la serie de NASA POWER.</p>
+  </Tile>
+}
+
+export function NoticesPanel({ level, loading, notices, operators, catalog, selected, alert, highlight, highlightCanton, affectations, overview, select }: {
   level: Level; loading: boolean; notices: Notice[]; operators: Local['operators']; catalog: Local
   selected: string; alert: Alert; highlight: string | null; highlightCanton: string | null
+  affectations: Affectation[]; overview: AffectationOverview[]; select: (code: string) => void
 }) {
   const text = copy[level]
   return <>
+    <Tile title="Afectaciones registradas por comisiones" badge={<span className="chip imn">Registro local (demo)</span>}>
+      {affectations.length ? affectations.map(item => <article className="card notice" key={item.id}>
+        <div className="chips"><AlertPill level={item.level} /><span className="chip">{affectationLabel(item.type)}</span></div>
+        {item.notes ? <p>{item.notes}</p> : <p className="muted">Sin notas técnicas.</p>}
+        <p className="source">{item.organization || item.createdBy}{item.createdAt ? ` · ${dayFormat.format(new Date(item.createdAt))}` : ''}</p>
+      </article>) : <p className="empty">No hay afectaciones registradas para este cantón.</p>}
+      {overview.length > 0 && <>
+        <h4>{level === 'tecnico' ? 'Estado de alerta por cantón' : 'Cantones con afectaciones'}</h4>
+        <div className="overview">{overview.map(item => <button key={item.code} className={item.code === selected ? 'overview-row on' : 'overview-row'} onClick={() => select(item.code)}>
+          <span>{item.name}<small> · {affectationLabel(item.type)}{item.count > 1 ? ` (+${item.count - 1})` : ''}</small></span>
+          <AlertPill level={item.level} /></button>)}</div>
+      </>}
+      <p className="muted">{ALERT_LABEL.verde}, {ALERT_LABEL.amarillo}, {ALERT_LABEL.naranja} y {ALERT_LABEL.rojo} son niveles de advertencia definidos por la comisión que registra.</p>
+    </Tile>
     <Tile title={level === 'tecnico' ? 'Comunicados activos' : 'Avisos publicados'} badge={<span className={`chip ${alert}`}>{text.alertLabel[alert]}</span>}>
     {notices.length ? notices.map(notice => {
       const url = new URL(window.location.href)
