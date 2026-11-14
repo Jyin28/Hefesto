@@ -6,7 +6,8 @@ address = "localhost"
 gatherUsageStats = false
 
 [theme]
-primaryColor = "#E66A33"
-backgroundColor = "#0E1117"
-secondaryBackgroundColor = "#1B2230"
-textColor = "#FAFAFA"
+base = "light"
+primaryColor = "#0EA5E9"
+backgroundColor = "#F0F9FF"
+secondaryBackgroundColor = "#E0F2FE"
+textColor = "#0c4a6e"

@@ -11,7 +11,7 @@ import os
 
 import streamlit as st
 
-from src import contracts, views
+from src import contracts, theme, views
 from src.contracts import QueryParams
 from src.export import build_export_bundle
 
@@ -41,6 +41,9 @@ def init_state() -> None:
                 "hypothesis": "", "card": None, "bundle": None}
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
+    # Streamlit borra las claves de widgets que no se dibujan en esta etapa; reasignarlas las conserva
+    for key in ("topic", "region", "years", "hypothesis"):
+        st.session_state[key] = st.session_state[key]
 
 
 def go_to(stage: str) -> None:
@@ -88,6 +91,21 @@ def questions_step() -> None:
     st.button("Continuar →", type="primary", on_click=go_to, args=("confirmation",))
 
 
+def run_investigation(topic: str, region: str, start: int, end: int) -> dict | None:
+    rec = contracts.recommend_variable(topic)["recommendation"]
+    query = QueryParams(rec["variable"], (region, other_region(region)), start, end, PRESETS[topic])
+    try:
+        card = service.build_evidence_card(query, sanitize_hypothesis(st.session_state["hypothesis"]))
+    except ValueError as error:
+        st.error(str(error))
+        return None
+    if USE_MOCK:
+        card["series"] = [row for r in query.regions for row in service.get_annual_series(rec["variable"], r, start, end)]
+        card["provenance"] = service.build_provenance(query)
+        card["diagnostics"] = {}
+    return card
+
+
 def confirmation_step() -> None:
     topic, region = st.session_state["topic"], st.session_state["region"]
     start, end = st.session_state["years"]
@@ -109,16 +127,10 @@ def confirmation_step() -> None:
     left, right = st.columns(2)
     left.button("← Cambiar", on_click=go_to, args=("questions",), width="stretch")
     if right.button("🔎 Investigar", type="primary", width="stretch"):
-        query = QueryParams(rec["variable"], (region, other_region(region)), start, end, PRESETS[topic])
-        try:
-            card = service.build_evidence_card(query, sanitize_hypothesis(st.session_state["hypothesis"]))
-        except ValueError as error:
-            st.error(str(error))
+        card = run_investigation(topic, region, start, end)
+        if card is None:
             return
-        if USE_MOCK:  # el mock no incluye series/procedencia en la ficha: se completan desde sus funciones
-            card["series"] = [row for r in query.regions for row in service.get_annual_series(rec["variable"], r, start, end)]
-            card["provenance"] = service.build_provenance(query)
-            card["diagnostics"] = {}
+        st.session_state["years_results"] = (start, end)
         st.session_state["card"] = card
         st.session_state["bundle"] = build_export_bundle(card)
         st.session_state["stage"] = "results"
@@ -132,6 +144,15 @@ def results_step() -> None:
         st.rerun()
         return
     q = card["query"]
+    cov = service.get_coverage()
+    new_years = st.slider("Período", cov["start_year"], cov["end_year"], (q["start_year"], q["end_year"]),
+                          key="years_results")
+    if tuple(new_years) != (q["start_year"], q["end_year"]):
+        new_card = run_investigation(st.session_state["topic"], st.session_state["region"], *new_years)
+        if new_card is not None:
+            st.session_state.update(card=new_card, bundle=build_export_bundle(new_card), years=tuple(new_years))
+            st.rerun()
+        return
     st.header(f"Resultados · {views.VAR_NAMES[q['variable']]} · {q['start_year']}–{q['end_year']}")
     if card["hypothesis"]:
         st.write(f"**Tu hipótesis:** {card['hypothesis']}")
@@ -161,6 +182,7 @@ def results_step() -> None:
 
 def main() -> None:
     st.set_page_config(page_title="Hefesto · Detective Tico", page_icon="🔥", layout="wide")
+    theme.apply_theme()
     init_state()
     st.title("Hefesto · Detective Tico")
     banner()

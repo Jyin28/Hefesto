@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 SECTOR_NAMES = {"CR_PN": "Pacífico Norte", "CR_CAR": "Caribe"}
-SECTOR_COLORS = {"CR_PN": "#d1495b", "CR_CAR": "#2e86ab"}
+SECTOR_COLORS = {"CR_PN": "#0EA5E9", "CR_CAR": "#10B981"}
 VAR_NAMES = {"T2M": "Temperatura del aire a 2 m", "PRECTOTCORR": "Precipitación corregida"}
 CELL_HALF = (0.25, 0.3125)  # medio ancho nativo (lat, lon)
 WARNING_TEXT = {
