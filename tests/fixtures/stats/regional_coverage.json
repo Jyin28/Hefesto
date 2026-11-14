@@ -1,0 +1,49 @@
+{
+  "case_id": "regional_coverage",
+  "synthetic": true,
+  "status": "ver_scenarios",
+  "status_note": "Dos escenarios: ambas celdas presentes (promedio valido) y la segunda celda ausente (promedio ausente).",
+  "unit": "degC",
+  "input": {
+    "variable": "T2M",
+    "scenario_both_cells_present": [
+      {
+        "cell_id": "cr_pn_cell_01",
+        "region_id": "CR_PN",
+        "weight": 1.0,
+        "value": 10.0
+      },
+      {
+        "cell_id": "cr_pn_cell_02",
+        "region_id": "CR_PN",
+        "weight": 3.0,
+        "value": 14.0
+      }
+    ],
+    "scenario_second_cell_missing": [
+      {
+        "cell_id": "cr_pn_cell_01",
+        "region_id": "CR_PN",
+        "weight": 1.0,
+        "value": 10.0
+      },
+      {
+        "cell_id": "cr_pn_cell_02",
+        "region_id": "CR_PN",
+        "weight": 3.0,
+        "value": null
+      }
+    ]
+  },
+  "expected": {
+    "both_cells_present": {
+      "weighted_mean": 13.0,
+      "coverage": 1.0
+    },
+    "second_cell_missing": {
+      "weighted_mean": null,
+      "coverage": 0.25,
+      "mean_is_absent_below_threshold": true
+    }
+  }
+}

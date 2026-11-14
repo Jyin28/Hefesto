@@ -1,0 +1,56 @@
+{
+  "case_id": "by_correction",
+  "synthetic": true,
+  "status": "familia_regional_v2",
+  "status_note": "Cuatro pruebas regionales de la misma ventana: dos variables por dos regiones. Todos los p son evaluables.",
+  "unit": "p_value",
+  "input": {
+    "family_id": "regions|T2M+PRECTOTCORR|CR_PN+CR_CAR|1990-2019|v2",
+    "entries": [
+      {
+        "key": "T2M:CR_PN",
+        "region_id": "CR_PN",
+        "variable": "T2M",
+        "p": 0.001
+      },
+      {
+        "key": "T2M:CR_CAR",
+        "region_id": "CR_CAR",
+        "variable": "T2M",
+        "p": 0.04
+      },
+      {
+        "key": "PRECTOTCORR:CR_PN",
+        "region_id": "CR_PN",
+        "variable": "PRECTOTCORR",
+        "p": 0.02
+      },
+      {
+        "key": "PRECTOTCORR:CR_CAR",
+        "region_id": "CR_CAR",
+        "variable": "PRECTOTCORR",
+        "p": 0.2
+      }
+    ]
+  },
+  "expected": {
+    "q_by_key": {
+      "T2M:CR_PN": 0.008333333333333335,
+      "T2M:CR_CAR": 0.11111111111111112,
+      "PRECTOTCORR:CR_PN": 0.08333333333333334,
+      "PRECTOTCORR:CR_CAR": 0.41666666666666674
+    },
+    "q_in_original_order": [
+      0.008333333333333335,
+      0.11111111111111112,
+      0.08333333333333334,
+      0.41666666666666674
+    ],
+    "permutation_invariant": true
+  },
+  "independent_reference": {
+    "method": "fdr_by manual: q_i = min(1, min_{j>=i}[m*H_m*p_j/j]), H_m = suma(1/k, k=1..m)",
+    "m": 4,
+    "H_m": 2.0833333333333335
+  }
+}
