@@ -1,0 +1,12 @@
+claim_id,texto,result_id/source_id,revisor,estado
+CLM-01,"Los datos provienen de NASA POWER mensual (sistema de reanálisis MERRA-2), período 1981-2024: 44 años completos y 528 meses. Son estimaciones de un modelo atmosférico con asimilación de observaciones, no mediciones directas de estaciones meteorológicas ni de satélites puntuales.",DATA_SOURCES.md;S1,Samuel,VERIFICADO
+CLM-02,"La cuadrícula nativa es de 0.5° x 0.625° (~55 km x 69 km por celda). Hay 5 celdas terrestres elegibles en CR_PN y 5 en CR_CAR; no representan límites de provincias, cantones ni fincas.",DATA_SOURCES.md;S2,Samuel,VERIFICADO
+CLM-03,"PRECTOTCORR mide precipitación acumulada (mm/año); no mide caudal de ríos, recarga de acuíferos ni disponibilidad de agua potable.",DATA_SOURCES.md;S1,Samuel,VERIFICADO
+CLM-04,"Con 30 o más años consecutivos se usa OLS con errores estándar HAC (kernel Bartlett, L=3; sensibilidad L=1 y L=5) y corrección Benjamini-Yekutieli (alpha=0.05) sobre la familia de 2 variables x 2 sectores.",S3;S4,Emanuel,VERIFICADO
+CLM-05,Un artículo de la UCR explica que El Niño y La Niña influyen de forma distinta en las vertientes del Pacífico y del Caribe; ENOS es variabilidad interanual y no prueba causalidad ni garantiza tendencias opuestas en 1981-2024.,S5,Samuel,VERIFICADO
+CLM-06,"Pendientes OLS por década, Pacífico Norte y Caribe: -0.036486 y 0.143999 degC/decade. NASA POWER, 1981–2024.",dt-42f2b905ac702b07|dt-a3e0ff6d10ffd833,Emanuel,CALCULADO_PENDIENTE_REVISION
+CLM-07,"IC individuales HAC al 95 % en degC/decade: [-0.143447, 0.0704749] y [0.0810535, 0.206944]. NASA POWER, 1981–2024.",dt-42f2b905ac702b07|dt-a3e0ff6d10ffd833,Emanuel,CALCULADO_PENDIENTE_REVISION
+CLM-08,"p ajustado BY, Pacífico Norte y Caribe: 1 y 0.000101589. NASA POWER, 1981–2024.",dt-42f2b905ac702b07|dt-a3e0ff6d10ffd833,Emanuel,CALCULADO_PENDIENTE_REVISION
+CLM-09,"Pendientes OLS por década, Pacífico Norte y Caribe: 401.61 y 592.137 mm/yr/decade. NASA POWER, 1981–2024.",dt-d3f42d19b2b669c2|dt-57dbbde29b02851d,Emanuel,CALCULADO_PENDIENTE_REVISION
+CLM-10,"IC individuales HAC al 95 % en mm/yr/decade: [255.25, 547.97] y [366.365, 817.909]. NASA POWER, 1981–2024.",dt-d3f42d19b2b669c2|dt-57dbbde29b02851d,Emanuel,CALCULADO_PENDIENTE_REVISION
+CLM-11,"p ajustado BY, Pacífico Norte y Caribe: 1.52646e-05 y 1.70599e-05. NASA POWER, 1981–2024.",dt-d3f42d19b2b669c2|dt-57dbbde29b02851d,Emanuel,CALCULADO_PENDIENTE_REVISION

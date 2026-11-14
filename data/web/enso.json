@@ -1,0 +1,26 @@
+{
+  "episodes": [
+    {
+      "start": "2023-07",
+      "end": "2024-04",
+      "sources": [
+        "https://www.imn.ac.cr/documents/10179/552310/JULIO",
+        "https://www.imn.ac.cr/documents/10179/569095/%23172%28mayo%29"
+      ],
+      "note": "Ventana de impacto nacional documentado por el IMN."
+    }
+  ],
+  "neutral_periods": [
+    {
+      "start": "2013-07",
+      "end": "2014-04",
+      "sources": [
+        "https://www.imn.ac.cr/documents/10179/14637/JULIO",
+        "https://www.imn.ac.cr/web/imn/43",
+        "https://www.imn.ac.cr/documents/10179/14639/ENERO",
+        "https://www.imn.ac.cr/documents/10179/28158/%23%2065",
+        "https://www.imn.ac.cr/documents/10179/14639/ABRIL"
+      ]
+    }
+  ]
+}
