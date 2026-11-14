@@ -5,3 +5,6 @@ __pycache__/
 .pytest_cache/
 .env
 .streamlit/secrets.toml
+dist/
+web/node_modules/
+web/dist/

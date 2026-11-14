@@ -75,7 +75,7 @@ class ComputeWindowStatsGapsTest(unittest.TestCase):
         self.assertEqual(stats.end_year, 2011)
         self.assertEqual(stats.n_years, 11)
         self.assertNotIn(years[5], stats.years_used)
-        self.assertIn("gaps_in_window", stats.warnings)
+        self.assertIn("temporal_gaps", stats.warnings)
         # con 11 anios validos si hay pendiente descriptiva
         self.assertEqual(stats.level, "descriptive")
         self.assertEqual(stats.status, "ok")
@@ -357,7 +357,7 @@ class LongTermTrendThresholdTest(unittest.TestCase):
         self.assertEqual(trend.level, "descriptive")
         self.assertIsNotNone(trend.slope_per_decade)
         self.assertIsNone(trend.se_hac)
-        self.assertIn("gaps_in_window", trend.warnings)
+        self.assertIn("temporal_gaps", trend.warnings)
         self.assertEqual(result.sensitivity, ())
 
     def test_constant_series_30_years_is_descriptive_not_inferential(self):
@@ -372,7 +372,7 @@ class LongTermTrendThresholdTest(unittest.TestCase):
         self.assertAlmostEqual(trend.slope_per_decade, 0.0)
         self.assertIsNone(trend.se_hac)
         self.assertIsNone(trend.p_value)
-        self.assertIn("degenerate_fit", trend.warnings)
+        self.assertIn("degenerate_series", trend.warnings)
 
     def test_exact_line_30_years_is_descriptive_not_inferential(self):
         fx = load_fixture("linear_trend_increase")
@@ -384,7 +384,7 @@ class LongTermTrendThresholdTest(unittest.TestCase):
         self.assertEqual(trend.level, "descriptive")
         self.assertAlmostEqual(trend.slope_per_decade, fx["expected"]["slope_per_decade"], places=6)
         self.assertIsNone(trend.se_hac)
-        self.assertIn("degenerate_fit", trend.warnings)
+        self.assertIn("degenerate_series", trend.warnings)
 
     def test_nine_years_is_insufficient_data(self):
         years = list(range(1990, 1999))

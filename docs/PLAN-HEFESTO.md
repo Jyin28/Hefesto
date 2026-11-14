@@ -1,3 +1,5 @@
+> **Reemplazado** por [PLAN_HEFESTO_V2.md](PLAN_HEFESTO_V2.md) (alcance vigente del MVP: sin pronóstico, agua/ASADAS ni cantones).
+
 # Hefesto · Plan del MVP Detective Tico
 
 **NASA Space Apps · 14 de noviembre de 2026 · Alcance del MVP**

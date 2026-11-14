@@ -46,7 +46,7 @@ from src.contracts import (
 # --------------------------------------------------------------------------- #
 # Politica de cobertura - PROVISIONAL, ver docstring del modulo.
 # --------------------------------------------------------------------------- #
-COVERAGE_THRESHOLD = 1.0
+COVERAGE_THRESHOLD = 0.8  # plan v2 seccion 3.1: >=80 % del peso terrestre candidato
 
 # Faltante conocido de limpieza previa (ver src/ingest.py): si llega hasta aqui
 # es que la ingesta no filtro el fill_value. Se trata como dato sospechoso, no
@@ -331,22 +331,36 @@ def build_regional_monthly(
     out: list[dict[str, Any]] = []
     for region_id in regions:
         cells = cells_by_region.get(region_id, [])
+        total_weight = sum(w for _, _, w in cells)
         for variable in variables:
+            # Mascara elegible FIJA por consulta (plan v2 s.3.1): una celda es elegible solo si
+            # tiene valor en todos los meses de la ventana; los pesos no cambian mes a mes.
+            eligible = [
+                (lat, lon, w) for lat, lon, w in cells
+                if all(
+                    value_index.get((region_id, variable, lat, lon, y, m)) is not None
+                    for y in range(start_year, end_year + 1) for m in range(1, 13)
+                )
+            ]
+            eligible_weight = sum(w for _, _, w in eligible)
+            fraction = eligible_weight / total_weight if total_weight > 0 else 0.0
+            usable = bool(eligible) and fraction >= coverage_threshold
             for year in range(start_year, end_year + 1):
                 for month in range(1, 13):
-                    values = [value_index.get((region_id, variable, lat, lon, year, month)) for lat, lon, _ in cells]
-                    weights = [w for _, _, w in cells]
-                    mean, coverage = weighted_mean(values, weights, threshold=coverage_threshold)
+                    value = None
+                    if usable:
+                        value = sum(w * value_index[(region_id, variable, lat, lon, year, month)]
+                                    for lat, lon, w in eligible) / eligible_weight
                     out.append(
                         {
                             "region_id": region_id,
                             "variable": variable,
                             "year": year,
                             "month": month,
-                            "value": mean,
+                            "value": value,
                             "unit": MONTHLY_UNITS[variable],
-                            "coverage_fraction": coverage,
-                            "n_cells_valid": sum(1 for v in values if v is not None),
+                            "coverage_fraction": fraction,
+                            "n_cells_valid": len(eligible),
                             "n_cells_total": len(cells),
                         }
                     )
@@ -395,6 +409,8 @@ def build_regional_annual(
                         value = sum(days_in_month(year, m) * rec["value"] for m, rec in valid)
                 else:
                     warnings.append("incomplete_year")
+                    if months and all(rec is not None for rec in months) and                             months[0]["coverage_fraction"] < COVERAGE_THRESHOLD:
+                        warnings.append("coverage_failure")
 
                 have_all_months = all(rec is not None for rec in months)
                 mean_monthly_coverage = (

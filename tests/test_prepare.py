@@ -55,8 +55,20 @@ class WeightedMeanCoverageTest(unittest.TestCase):
         self.assertTrue(expected["mean_is_absent_below_threshold"])
 
 
+def _cell_year(lat, lon, variable, value, year=2000, unit="degC", months=range(1, 13)):
+    return [
+        {"region_id": "CR_PN", "variable": variable, "lat": lat, "lon": lon, "year": year, "month": m,
+         "value": value, "unit": unit, "synthetic": True}
+        for m in months
+    ]
+
+
 class BuildRegionalMonthlyTest(unittest.TestCase):
-    """Dos celdas sinteticas de CR_PN con pesos 1/4 y 3/4 (normalizados), un mes."""
+    """Dos celdas sinteticas de CR_PN con pesos 1/4 y 3/4 (normalizados), un anio.
+
+    Mascara elegible fija por consulta (plan v2 s.3.1): una celda sin todos los meses de la
+    ventana queda fuera; si el peso elegible es <80 %, no hay valor regional.
+    """
 
     def setUp(self):
         self.mask_rows = [
@@ -64,48 +76,52 @@ class BuildRegionalMonthlyTest(unittest.TestCase):
             {"region_id": "CR_PN", "lat": 10.5, "lon": -85.625, "weight": 0.75, "mask_version": "test"},
         ]
 
-    def test_full_coverage_gives_weighted_value(self):
-        cell_rows = [
-            {"region_id": "CR_PN", "variable": "T2M", "lat": 10.0, "lon": -85.625, "year": 2000, "month": 1,
-             "value": 10.0, "unit": "degC", "synthetic": True},
-            {"region_id": "CR_PN", "variable": "T2M", "lat": 10.5, "lon": -85.625, "year": 2000, "month": 1,
-             "value": 14.0, "unit": "degC", "synthetic": True},
-        ]
-        rows = prepare.build_regional_monthly(
-            cell_rows, self.mask_rows, regions=("CR_PN",), variables=("T2M",),
+    def _build(self, cell_rows, variable="T2M"):
+        return prepare.build_regional_monthly(
+            cell_rows, self.mask_rows, regions=("CR_PN",), variables=(variable,),
             start_year=2000, end_year=2000,
         )
+
+    def test_full_coverage_gives_weighted_value(self):
+        rows = self._build(_cell_year(10.0, -85.625, "T2M", 10.0) + _cell_year(10.5, -85.625, "T2M", 14.0))
         jan = next(r for r in rows if r["month"] == 1)
         self.assertAlmostEqual(jan["value"], 0.25 * 10.0 + 0.75 * 14.0)
         self.assertEqual(jan["coverage_fraction"], 1.0)
         self.assertEqual(jan["n_cells_valid"], 2)
 
-    def test_missing_cell_makes_value_absent_not_fatal(self):
-        cell_rows = [
-            {"region_id": "CR_PN", "variable": "T2M", "lat": 10.0, "lon": -85.625, "year": 2000, "month": 1,
-             "value": 10.0, "unit": "degC", "synthetic": True},
-            # celda (10.5, -85.625) sin fila -> ausente, no lanza
-        ]
-        rows = prepare.build_regional_monthly(
-            cell_rows, self.mask_rows, regions=("CR_PN",), variables=("T2M",),
-            start_year=2000, end_year=2000,
-        )
+    def test_missing_cell_below_threshold_makes_value_absent_not_fatal(self):
+        rows = self._build(_cell_year(10.0, -85.625, "T2M", 10.0))  # falta la celda de peso 0.75
         jan = next(r for r in rows if r["month"] == 1)
         self.assertIsNone(jan["value"])
         self.assertEqual(jan["coverage_fraction"], 0.25)
         self.assertEqual(jan["n_cells_valid"], 1)
 
+    def test_missing_cell_above_threshold_keeps_fixed_mask(self):
+        # La celda de peso 0.25 pierde un mes: se excluye de TODOS los meses (mascara fija);
+        # queda 0.75 de peso elegible (<0.8): ausente. Con peso 0.1 sobreviviria.
+        cells = _cell_year(10.0, -85.625, "T2M", 10.0, months=range(1, 12)) + _cell_year(10.5, -85.625, "T2M", 14.0)
+        self.mask_rows[0]["weight"], self.mask_rows[1]["weight"] = 0.1, 0.9
+        rows = self._build(cells)
+        for r in rows:
+            self.assertAlmostEqual(r["value"], 14.0)  # pesos renormalizados, iguales todos los meses
+            self.assertAlmostEqual(r["coverage_fraction"], 0.9)
+            self.assertEqual(r["n_cells_valid"], 1)
+
+    def test_five_cells_four_eligible_passes_three_fails(self):
+        mask = [{"region_id": "CR_PN", "lat": 10.0 + i, "lon": -85.0, "weight": 0.2, "mask_version": "t"}
+                for i in range(5)]
+        full = lambda n: sum((_cell_year(10.0 + i, -85.0, "T2M", 20.0 + i) for i in range(n)), [])
+        for n, expect_value in ((4, True), (3, False)):
+            rows = prepare.build_regional_monthly(full(n), mask, regions=("CR_PN",), variables=("T2M",),
+                                                  start_year=2000, end_year=2000)
+            jan = next(r for r in rows if r["month"] == 1)
+            self.assertEqual(jan["value"] is not None, expect_value, n)
+            self.assertAlmostEqual(jan["coverage_fraction"], n * 0.2)
+
     def test_zero_value_is_not_treated_as_missing(self):
-        cell_rows = [
-            {"region_id": "CR_PN", "variable": "PRECTOTCORR", "lat": 10.0, "lon": -85.625, "year": 2000, "month": 2,
-             "value": 0.0, "unit": "mm/day", "synthetic": True},
-            {"region_id": "CR_PN", "variable": "PRECTOTCORR", "lat": 10.5, "lon": -85.625, "year": 2000, "month": 2,
-             "value": 0.0, "unit": "mm/day", "synthetic": True},
-        ]
-        rows = prepare.build_regional_monthly(
-            cell_rows, self.mask_rows, regions=("CR_PN",), variables=("PRECTOTCORR",),
-            start_year=2000, end_year=2000,
-        )
+        rows = self._build(
+            _cell_year(10.0, -85.625, "PRECTOTCORR", 0.0, unit="mm/day")
+            + _cell_year(10.5, -85.625, "PRECTOTCORR", 0.0, unit="mm/day"), variable="PRECTOTCORR")
         feb = next(r for r in rows if r["month"] == 2)
         self.assertEqual(feb["value"], 0.0)
         self.assertEqual(feb["coverage_fraction"], 1.0)

@@ -4,6 +4,7 @@ from statistics import mean
 from .prepare import days_in_month
 
 MIN_BASELINE_YEARS = 24
+DEFAULT_EVENT_ID = "enos_1997_98"  # plan v2 s.10: episodio descriptivo P1
 
 
 def _month_index(date):
@@ -13,7 +14,7 @@ def _month_index(date):
     return year * 12 + month - 1
 
 
-def episode_comparison(rows, variable, catalog, coverage_start, coverage_end):
+def episode_comparison(rows, variable, catalog, coverage_start, coverage_end, event_id=None):
     start_limit, end_limit = coverage_start * 12, coverage_end * 12 + 11
     episodes = [
         item for item in catalog["episodes"] if item["sources"]
@@ -21,6 +22,10 @@ def episode_comparison(rows, variable, catalog, coverage_start, coverage_end):
     ]
     if not episodes:
         return {"status": "episode_unavailable", "months": []}
+    if event_id is not None:
+        episodes = [item for item in episodes if item.get("id") == event_id]
+        if not episodes:
+            return {"status": "episode_unavailable", "months": []}
     episode = max(episodes, key=lambda item: _month_index(item["end"]))
     start, end = map(_month_index, (episode["start"], episode["end"]))
     neutral = None
@@ -70,7 +75,7 @@ def episode_comparison(rows, variable, catalog, coverage_start, coverage_end):
         "neutral_window": [
             f"{index // 12}-{index % 12 + 1:02d}" for index in (start - neutral[0], end - neutral[0])
         ] if neutral else None,
-        "baseline": [1981, 2010], "unit": "mm/month" if variable == "PRECTOTCORR" else "degC",
+        "baseline": [1981, 2010], "label": "descriptivo: anomalía mensual, no tendencia ni causa", "unit": "mm/month" if variable == "PRECTOTCORR" else "degC",
         "baseline_min_years": MIN_BASELINE_YEARS,
         "months": months,
     }

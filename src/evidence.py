@@ -7,7 +7,7 @@ from statistics import mean, median
 from .contracts import REGION_IDS, SLOPE_UNITS, VARIABLE_IDS, validate_query
 from .statistics import (
     LONG_TERM_MIN_YEARS, MIN_YEARS_FOR_DESCRIPTIVE_SLOPE, _select_window_series,
-    compute_long_term_trend, fdr_by,
+    compute_long_term_trend, fdr_by, homogeneity_check,
 )
 
 
@@ -70,22 +70,42 @@ def sen_mann_kendall(rows, start, end, variable, region):
                 status="inferential")
 
 
+PRECIP_CAUTION = "reanalysis_precip_caution"
+
+
+def _family_id(scope, variables, start, end, method):
+    subject = "+".join(variables) if scope == "regions" else variables[0]
+    suffix = "" if method == "ols" else "|mk"
+    return f"{scope}|{subject}|{'+'.join(REGION_IDS)}|{start}-{end}|v2{suffix}"
+
+
 def evidence_family(series, start, end, scope, variable=None):
-    """Adjust all eligible tests before returning a filtered result to the UI."""
+    """Adjust all eligible tests before returning a filtered result to the UI.
+
+    Regional family: 2 variables x 2 regions; map family: every eligible cell of BOTH sectors
+    for one variable. The correction is fixed here, before any view filtering.
+    """
     variables = (variable,) if variable else VARIABLE_IDS
     entries = {}
     for subject, (region, rows) in series.items():
         for var in variables:
             long_term = compute_long_term_trend(rows, start, end, variable=var, region_id=region)
+            lag_p = {s.lags: s.p_value for s in long_term.sensitivity}
+            main_p = long_term.trend.p_value
+            changes = None
+            if main_p is not None and lag_p and all(v is not None for v in lag_p.values()):
+                changes = any((v < 0.05) != (main_p < 0.05) for v in lag_p.values())
             entries[subject, var] = {
                 "ols": long_term.trend,
                 "hac_sensitivity": long_term.sensitivity,
+                "hac_sensitivity_changes_conclusion": changes,
                 "mann_kendall": sen_mann_kendall(rows, start, end, var, region),
+                "homogeneity": homogeneity_check(rows, start, end, variable=var, region_id=region),
             }
 
     families = {}
     for method in ("ols", "mann_kendall"):
-        family_id = f"{scope}|{method}|{'+'.join(variables)}|{start}-{end}|v2"
+        family_id = _family_id(scope, variables, start, end, method)
         eligible = []
         for entry in entries.values():
             result = entry[method]
@@ -93,12 +113,24 @@ def evidence_family(series, start, end, scope, variable=None):
             if p is not None:
                 eligible.append((entry, p))
         for (entry, _), adjusted in zip(eligible, fdr_by([p for _, p in eligible])):
-            fields = dict(p_adjusted=adjusted, significant=adjusted <= 0.05, family_id=family_id)
+            fields = dict(p_adjusted=adjusted, significant=adjusted < 0.05, family_id=family_id)
             if method == "ols":
                 entry[method] = replace(entry[method], **fields)
             else:
                 entry[method].update(fields)
         families[method] = dict(family_id=family_id, scope=scope, variables=variables,
                                 regions=REGION_IDS, planned_tests=len(entries),
-                                valid_tests=len(eligible), alpha=0.05)
+                                valid_tests=len(eligible), alpha=0.05, method="fdr_by",
+                                start_year=start, end_year=end)
+
+    # Advertencias de calidad de datos: se anaden al TrendResult, nunca ocultan la tendencia.
+    for (_, var), entry in entries.items():
+        extra = []
+        if entry["homogeneity"]["possible_inhomogeneity"]:
+            extra.append("possible_inhomogeneity")
+        if var == "PRECTOTCORR":
+            extra.append(PRECIP_CAUTION)
+        if extra:
+            ols = entry["ols"]
+            entry["ols"] = replace(ols, warnings=tuple(dict.fromkeys(ols.warnings + tuple(extra))))
     return entries, families

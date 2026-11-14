@@ -420,7 +420,7 @@ def _hac_small_sample_correction(n: int, *, k_params: int = HAC_REGRESSION_PARAM
 
 
 def _hac_inference(
-    xs: list[float], residuals: list[float], slope_per_year: float, *, lags: int
+    xs: list[float], residuals: list[float], slope_per_year: float, *, lags: int, scale: float = 1.0
 ) -> dict[str, float] | None:
     """SE/IC/p de la pendiente (por decada) con HAC a `lags` rezagos. `None` si
     degenerado (SE numericamente nulo: no se puede dividir, solo la magnitud
@@ -429,7 +429,8 @@ def _hac_inference(
     n = len(xs)
     var_py = _hac_variance_per_year(xs, residuals, lags=lags) * _hac_small_sample_correction(n)
     se_per_year = math.sqrt(var_py) if var_py > 0.0 else 0.0
-    if se_per_year < HAC_DEGENERATE_SE_TOL:
+    # Tolerancia relativa a la escala de la serie (mm/yr vs degC), no absoluta.
+    if se_per_year < HAC_DEGENERATE_SE_TOL * max(1.0, scale):
         return None
     se_decade = se_per_year * 10.0
     df = n - HAC_REGRESSION_PARAMS
@@ -501,7 +502,7 @@ def compute_window_stats(
     if n_years == 0:
         warnings.append("no_data")
     elif n_years < expected_years:
-        warnings.append("gaps_in_window")
+        warnings.append("temporal_gaps")
 
     mean = sum(values_used) / n_years if n_years > 0 else None
     first_used_year = years_used[0] if years_used else None
@@ -653,10 +654,17 @@ def compute_long_term_trend(
     n_years = len(years_used)
     first_used_year = years_used[0] if years_used else None
     last_used_year = years_used[-1] if years_used else None
-    coverage_fraction = n_years / expected_years
+    # coverage_fraction = fraccion de peso de mascara elegible (plan v2 s.3.1), no fraccion de anios.
+    window_rows = [r for r in annual_rows if r["variable"] == variable and start_year <= r["year"] <= end_year
+                   and (region_id is None or r.get("region_id") == region_id)]
+    coverages = [r["mean_monthly_coverage"] for r in window_rows if r.get("mean_monthly_coverage") is not None]
+    coverage_fraction = min(coverages) if coverages else (1.0 if n_years else 0.0)
+    coverage_failed = any("coverage_failure" in (r.get("warnings") or ()) for r in window_rows)
 
     if n_years < MIN_YEARS_FOR_DESCRIPTIVE_SLOPE:
         warnings = ["no_data"] if n_years == 0 else ["short_record"]
+        if coverage_failed:
+            warnings.append("coverage_failure")
         trend = TrendResult(
             region_id=region_id, variable=variable, start_year=start_year, end_year=end_year,
             first_used_year=first_used_year, last_used_year=last_used_year, n_years=n_years,
@@ -672,19 +680,22 @@ def compute_long_term_trend(
     slope_per_year, _intercept, residuals = _ols_fit(xs, ys)
     slope_per_decade = slope_per_year * 10.0
     total_change = slope_per_year * (last_used_year - first_used_year)
+    scale = max(abs(v) for v in ys)
 
     consecutive = (last_used_year - first_used_year + 1) == n_years
     warnings: list[str] = []
     if not consecutive:
-        warnings.append("gaps_in_window")
+        warnings.append("temporal_gaps")
+    if n_years < expected_years:
+        warnings.append("incomplete_years")
 
     eligible_for_inference = n_years >= LONG_TERM_MIN_YEARS and consecutive
     sensitivity: list[HacSensitivity] = []
     main_result: dict[str, float] | None = None
     if eligible_for_inference:
-        main_result = _hac_inference(xs, residuals, slope_per_year, lags=HAC_MAIN_LAGS)
+        main_result = _hac_inference(xs, residuals, slope_per_year, lags=HAC_MAIN_LAGS, scale=scale)
         for lags in HAC_SENSITIVITY_LAGS:
-            result = _hac_inference(xs, residuals, slope_per_year, lags=lags)
+            result = _hac_inference(xs, residuals, slope_per_year, lags=lags, scale=scale)
             sensitivity.append(
                 HacSensitivity(
                     lags=lags,
@@ -705,7 +716,7 @@ def compute_long_term_trend(
         se_hac = p_value = ci_low = ci_high = hac_lags = None
         method = "OLS descriptivo"
         if eligible_for_inference:
-            warnings.append("degenerate_fit")
+            warnings.append("degenerate_series")
         else:
             warnings.append("short_for_inference")
 
@@ -771,7 +782,7 @@ def compute_regional_family(
 
     results = list(raw_trends)
     for i, q in zip(valid_idx, q_values):
-        results[i] = dataclasses.replace(raw_trends[i], p_adjusted=q, significant=q <= alpha, family_id=fid)
+        results[i] = dataclasses.replace(raw_trends[i], p_adjusted=q, significant=q < alpha, family_id=fid)
 
     return RegionalFamily(
         family_id=fid,
@@ -799,3 +810,50 @@ def filter_family(
         for t in family.results
         if (variable is None or t.variable == variable) and (region_id is None or t.region_id == region_id)
     )
+
+
+# --------------------------------------------------------------------------- #
+# Diagnostico de homogeneidad (cambio de nivel): Pettitt sobre residuos OLS
+# --------------------------------------------------------------------------- #
+HOMOGENEITY_ALPHA = 0.05
+HOMOGENEITY_MIN_YEARS = 20
+
+
+def homogeneity_check(
+    annual_rows: list[dict[str, Any]], start_year: int, end_year: int, *, variable: str, region_id: str
+) -> dict[str, Any]:
+    """Prueba de Pettitt (no parametrica) de un salto de nivel en la serie anual.
+
+    Se aplica a los RESIDUOS de la recta OLS para que una tendencia gradual no se confunda con un
+    salto abrupto. p ~ 2 exp(-6 K^2 / (n^3 + n^2)) (aproximacion asintotica de Pettitt, 1979).
+    Es un diagnostico de calidad de datos: NO oculta ni modifica la tendencia, y no distingue por si
+    solo un cambio de fuente de un cambio climatico real. Se calcula igual para ambas variables.
+    """
+    validate_query(variable, region_id, start_year, end_year)
+    years, values = _select_window_series(annual_rows, start_year, end_year, variable=variable, region_id=region_id)
+    n = len(years)
+    result: dict[str, Any] = {
+        "method": "Pettitt sobre residuos OLS", "alpha": HOMOGENEITY_ALPHA, "n_years": n,
+        "status": "insufficient_data", "break_year": None, "p_value": None,
+        "mean_before": None, "mean_after": None, "ratio_after_before": None,
+        "possible_inhomogeneity": None,
+    }
+    if n < HOMOGENEITY_MIN_YEARS or (years[-1] - years[0] + 1) != n:
+        return result
+    xs = [float(y) for y in years]
+    _slope, _intercept, residuals = _ols_fit(xs, list(values))
+    best_k, best_t = -1.0, 0
+    for t in range(n - 1):
+        u = sum((residuals[i] > residuals[j]) - (residuals[i] < residuals[j])
+                for i in range(t + 1) for j in range(t + 1, n))
+        if abs(u) > best_k:
+            best_k, best_t = abs(u), t
+    p = min(1.0, 2.0 * math.exp(-6.0 * best_k ** 2 / (n ** 3 + n ** 2)))
+    before, after = values[: best_t + 1], values[best_t + 1:]
+    mean_before, mean_after = sum(before) / len(before), sum(after) / len(after)
+    result.update(
+        status="ok", break_year=years[best_t + 1], p_value=p, mean_before=mean_before, mean_after=mean_after,
+        ratio_after_before=(mean_after / mean_before) if mean_before else None,
+        possible_inhomogeneity=p < HOMOGENEITY_ALPHA,
+    )
+    return result

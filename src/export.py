@@ -102,3 +102,81 @@ def format_csv(rows):
         writer.writeheader()
         writer.writerows(rows)
     return stream.getvalue()
+
+
+# --------------------------------------------------------------------------- #
+# ExportBundle v2 (plan §4.7): UI = CSV = JSON, todos desde la MISMA ficha del servicio
+# --------------------------------------------------------------------------- #
+def _flat(row):
+    return {k: (";".join(v) if isinstance(v, (list, tuple)) else v) for k, v in row.items()}
+
+
+def _fmt_p(p):
+    return "N/D" if p is None else ("<0,0001" if p < 1e-4 else f"{p:.4f}".replace(".", ","))
+
+
+def _num(x, nd=3):
+    return "N/D" if x is None else f"{x:.{nd}f}".replace(".", ",")
+
+
+def evidence_markdown(card) -> str:
+    from .service import WARNING_TEXT, _sector
+
+    q = card["query"]
+    lines = [
+        f"# Ficha de detective — {card['preset_id']}",
+        "",
+        f"- **result_id:** `{card['result_id']}`",
+        f"- **Período:** {q['start_year']}–{q['end_year']} · **Variable:** {q['variable']}",
+        f"- **Datos sintéticos:** {'SÍ' if card['synthetic'] else 'no (NASA POWER real)'}",
+        f"- **Generada:** {card['generated_at']} · **Análisis:** v{card['analysis_version']} · "
+        f"**Máscara:** {card['mask_version']}",
+        "",
+        "## Hipótesis",
+        card["hypothesis"] or "_(sin hipótesis)_",
+        "",
+        "## Resultado",
+        card["summary"],
+        "",
+        "## Tendencias por sector",
+        "| Sector | Pendiente/década | Cambio total | IC 95 % individual | p | p ajustado (BY) | Nivel | Años |",
+        "|---|---:|---:|---|---:|---:|---|---:|",
+    ]
+    for r in card["results"]:
+        ci = "N/D" if r["ci_low"] is None else f"[{_num(r['ci_low'])}, {_num(r['ci_high'])}]"
+        lines.append(f"| {_sector(r['region_id'])} | {_num(r['slope_per_decade'])} {r['slope_unit']} | "
+                     f"{_num(r['total_change'])} | {ci} | {_fmt_p(r['p_value'])} | {_fmt_p(r['p_adjusted'])} | "
+                     f"{r['level']} | {r['n_years']} |")
+    lines += ["", "## Familias de corrección (Benjamini–Yekutieli)"]
+    for f in card["family_metadata"]:
+        lines.append(f"- `{f['family_id']}` · {f['scope']} · pruebas planeadas {f['planned_tests']}, "
+                     f"válidas {f['valid_tests']}, α = {f['alpha']}")
+    lines += ["", "## Advertencias"]
+    for w in card["warnings"]:
+        lines.append(f"- **{w}:** {WARNING_TEXT.get(w, '')}")
+    lines += ["", "## Límites"]
+    lines += [f"- {text}" for text in card.get("provenance", {}).get("limitations", [])]
+    lines += ["", "## Fuentes", "- S1 NASA POWER Monthly API: https://power.larc.nasa.gov/docs/services/api/temporal/monthly/",
+              "- S2 NASA POWER fuentes meteorológicas: https://power.larc.nasa.gov/docs/methodology/data/sources_meteorology/",
+              "- S3 statsmodels HAC: https://www.statsmodels.org/stable/generated/statsmodels.regression.linear_model.RegressionResults.get_robustcov_results.html",
+              "- S4 statsmodels multipletests: https://www.statsmodels.org/stable/generated/statsmodels.stats.multitest.multipletests.html",
+              "", f"_SHA-256 de datos:_ `{card['data_sha256']}`", ""]
+    return "\n".join(lines)
+
+
+def build_export_bundle(card):
+    from .contracts import ExportBundle
+
+    series = [dict(r, result_id=card["result_id"]) for r in card["series"]]
+    trends = []
+    for r in card["results"]:
+        diag = (card.get("diagnostics") or {}).get(r["region_id"], {})
+        trends.append(_flat(dict(r, result_id=card["result_id"], mask_version=card["mask_version"],
+                                 hac_sensitivity_changes_conclusion=diag.get("hac_sensitivity_changes_conclusion"))))
+    return ExportBundle(
+        series_csv=format_csv(series).encode("utf-8"),
+        trends_csv=format_csv(trends).encode("utf-8"),
+        provenance_json=to_json(card["provenance"], indent=2).encode("utf-8"),
+        evidence_md=evidence_markdown(card).encode("utf-8"),
+        evidence_json=to_json(card, indent=2).encode("utf-8"),
+    )
