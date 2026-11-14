@@ -85,7 +85,7 @@ def fetch_variable_raw(
 
     payload = json.loads(raw_bytes.decode("utf-8"))
     file_meta = {
-        "path": raw_file.as_posix(),
+        "path": f"data/raw/{raw_file.name}",
         "sha256": sha256_bytes(raw_bytes),
     }
     return payload, file_meta, url, retrieved_at

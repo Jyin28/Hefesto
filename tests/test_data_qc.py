@@ -51,7 +51,8 @@ class TestCostaRicaDataQC(unittest.TestCase):
 
     def test_provenance_hashes_and_strict_json(self) -> None:
         raw_text = (PROCESSED_DIR / "provenance_base.json").read_text(encoding="utf-8")
-        self.assertNotIn("NaN", raw_text)
+        self.assertNotIn(": NaN", raw_text)
+        self.assertNotIn(": Infinity", raw_text)
         prov = json.loads(raw_text)
         self.assertFalse(prov["synthetic"])
         self.assertIsNone(prov["provider_version"])

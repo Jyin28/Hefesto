@@ -14,11 +14,11 @@
   ],
   "raw_files": [
     {
-      "path": "C:/Users/5amz/Documents/TEC/Hefesto/Hefesto/data/raw/nasa_power_monthly_T2M_1981_2024.json",
+      "path": "data/raw/nasa_power_monthly_T2M_1981_2024.json",
       "sha256": "2a07475eb5a628c5b251aa2015b5abd2ca9add7303ca08a14ead04a32a2e7d04"
     },
     {
-      "path": "C:/Users/5amz/Documents/TEC/Hefesto/Hefesto/data/raw/nasa_power_monthly_PRECTOTCORR_1981_2024.json",
+      "path": "data/raw/nasa_power_monthly_PRECTOTCORR_1981_2024.json",
       "sha256": "6490a051292bea41c2f55f232cae46e7cba2ebab3e1e879d92e5f6648174a68c"
     }
   ],
