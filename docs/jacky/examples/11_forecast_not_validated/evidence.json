@@ -1,0 +1,156 @@
+{
+  "schema_version": "2.1-proposal",
+  "result_id": null,
+  "preset_id": null,
+  "hypothesis": "",
+  "query": {
+    "product": "forecast",
+    "variable": "T2M",
+    "zone_ids": [
+      "CR_CAR"
+    ],
+    "cell_ids": [],
+    "spatial_level": "zone",
+    "start_date": "2025-01-01",
+    "end_date": "2025-06-30",
+    "time_resolution": "annual",
+    "preset_id": null,
+    "event_id": null,
+    "baseline": null,
+    "analysis_scope_id": null,
+    "metric": null
+  },
+  "query_effective": null,
+  "product": "forecast",
+  "availability": {
+    "status": "unavailable",
+    "reason_code": "forecast_not_validated",
+    "message": "El modelo existe pero aun no esta validado; no se presenta como prediccion.",
+    "missing_requirements": [
+      "forecast_validation"
+    ],
+    "available_range": [
+      "2025-01-01",
+      "2025-06-30"
+    ],
+    "available_resolution": [
+      "monthly"
+    ],
+    "checked_at": "2026-11-14T00:00:00Z",
+    "retryable": false
+  },
+  "source_mode": "mock",
+  "synthetic": true,
+  "presentable_as_real": false,
+  "summary": "Sin resultado (unavailable: forecast_not_validated). El modelo existe pero aun no esta validado; no se presenta como prediccion. Datos sinteticos de contrato (mock): no son evidencia cientifica.",
+  "results": null,
+  "warnings": [
+    "synthetic"
+  ],
+  "limitations": [
+    "Datos sinteticos de contrato; no son evidencia cientifica.",
+    "Celdas de decenas de km (0,5 x 0,625 grados); no es limite administrativo ni detalle de finca."
+  ],
+  "source_ids": [],
+  "data_sha256": null,
+  "mask_version": null,
+  "analysis_version": "2.0",
+  "generated_at": "2026-11-14T00:00:00Z",
+  "geographic_context": {
+    "zones": [
+      {
+        "zone_id": "CR_CAR",
+        "label": "Sector Caribe (ventana didactica)",
+        "bbox": [
+          -84.0625,
+          9.25,
+          -82.8125,
+          10.75
+        ],
+        "crs": "EPSG:4326",
+        "zone_version": "mock-1",
+        "geometry_sha256": "b4140fa8ea6e99320cdc9497d99f9bbb1cad83ae3f34ba20107bd9373e1482bb",
+        "mask_version": "mock",
+        "mask_sha256": "142ffd0619b9850b49c837cbd2d9e2e1a66ca9bb255c720b0597a28a9c0fefc3",
+        "cell_ids": [
+          "G_9.500_-83.750",
+          "G_9.500_-83.125",
+          "G_10.000_-83.750",
+          "G_10.000_-83.125",
+          "G_10.500_-83.750"
+        ]
+      }
+    ],
+    "cell_ids": [
+      "G_9.500_-83.750",
+      "G_9.500_-83.125",
+      "G_10.000_-83.750",
+      "G_10.000_-83.125",
+      "G_10.500_-83.750"
+    ],
+    "grid_id": "MOCK_GRID",
+    "grid_version": "mock-1",
+    "native_resolution_deg": [
+      0.5,
+      0.625
+    ],
+    "geographic_scale": "Celdas de decenas de km (0,5 x 0,625 grados); no es limite administrativo ni detalle de finca.",
+    "scale_warning": "Una celda puede pertenecer a varias zonas; no sumar celdas compartidas dos veces."
+  },
+  "data_coverage": {
+    "expected_months": 6,
+    "valid_months": 0,
+    "complete_years": 0,
+    "missing_periods": [
+      [
+        "2025-01-01",
+        "2025-06-30"
+      ]
+    ],
+    "available_range": null
+  },
+  "forecast_metadata": {
+    "forecast_id": "FC_CR_CAR_T2M_mock1",
+    "model_id": "MOCK_FIXTURE",
+    "model_version": "mock-1",
+    "target_variable": "T2M",
+    "target_definition": "Temperatura media mensual del aire a 2 m",
+    "unit": "degC",
+    "zone_id": "CR_CAR",
+    "effective_scale": "Celdas de decenas de km (0,5 x 0,625 grados); no es limite administrativo ni detalle de finca.",
+    "issued_at": "2025-01-01T00:00:00Z",
+    "data_cutoff": "2024-12-31",
+    "training_start": "1981-01-01",
+    "training_end": "2024-12-31",
+    "forecast_start": "2025-01-01",
+    "forecast_end": "2025-06-30",
+    "horizon": "6 months",
+    "frequency": "monthly",
+    "timezone": "America/Costa_Rica",
+    "valid_until": "2030-12-31",
+    "input_source_ids": [
+      "S1"
+    ],
+    "input_hashes": [
+      "bc0819bfac2c6d8c2d4c1bc5632182c8ed5afb341f7b69d062a5ac197a84f002"
+    ],
+    "config_hash": "4a9aa82e963c66ced6fa03a108d3512e2aad886cca6fe617a9543e3017ce1a90",
+    "code_version": "2.0",
+    "synthetic": true,
+    "generation_mode": "imported",
+    "validation_status": "not_evaluated",
+    "validation_method": null,
+    "evaluation_period": null,
+    "sample_count": null,
+    "benchmark": null,
+    "metric_name": null,
+    "metric_value": null,
+    "metric_unit": null,
+    "limitations": [
+      "Puntos sinteticos de un generador, no la salida de un modelo.",
+      "No es un pronostico meteorologico ni de suministro."
+    ]
+  },
+  "distribution_metadata": null,
+  "service_coverage_metadata": null
+}
