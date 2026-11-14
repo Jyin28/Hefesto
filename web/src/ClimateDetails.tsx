@@ -1,3 +1,6 @@
+import type { ReactNode } from 'react'
+import { copy } from './copy'
+import type { Level } from './copy'
 import type { Cell, Climate, Local } from './data'
 
 const numberFormat = new Intl.NumberFormat('es-CR', { maximumSignificantDigits: 4 })
@@ -55,8 +58,8 @@ export function WaterDetails({ local, canton }: { local: Local; canton: string }
   </div>
 }
 
-export function ClimateDetails({ data, unit, selected, choose }: {
-  data: Climate; unit: string; selected: string; choose: (id: string) => void
+export function ClimateDetails({ data, unit, selected, choose, level = 'tecnico' }: {
+  data: Climate; unit: string; selected: string; choose: (id: string) => void; level?: Level
 }) {
   const { cells, comparison, evidence, enso, forecast } = data
   const values = cells.flatMap(cell => [cell.window_a_mean, cell.window_b_mean])
@@ -67,10 +70,17 @@ export function ClimateDetails({ data, unit, selected, choose }: {
   const eventField = enso.status === 'ok' ? 'enso_mean_vs_neutral' : 'enso_mean_anomaly'
   const extent = Math.max(...cells.map(cell => Math.abs(cell[eventField] ?? 0)), 0) || 1
   const slopeExtent = Math.max(...cells.map(cell => Math.abs(cell.long_term_slope ?? 0)), 0) || 1
+  const simple = level === 'basico'
+  const technical = (children: ReactNode) => simple
+    ? <details><summary>{copy.basico.technicalDetail}</summary>{children}</details> : <>{children}</>
   return <>
     {comparison && <>
-      <p>Cambio de promedio B − A · <strong>{number(comparison.mean_diff_b_minus_a)} {unit}</strong></p>
-      <p>Cambio de pendiente B − A · <strong>{number(comparison.slope_diff_b_minus_a)} {unit}/década</strong></p>
+      {simple
+        ? <p>Entre el primer y el segundo período, el promedio cambió <strong>{number(comparison.mean_diff_b_minus_a)} {unit}</strong>.</p>
+        : <>
+          <p title={copy.tecnico.tipSlope}>Cambio de promedio B − A · <strong>{number(comparison.mean_diff_b_minus_a)} {unit}</strong></p>
+          <p title={copy.tecnico.tipSlope}>Cambio de pendiente B − A · <strong>{number(comparison.slope_diff_b_minus_a)} {unit}/década</strong></p>
+        </>}
       {cells.length > 0 && <>
         <div className="grid-maps">
           <CellMap {...mapProps} field="window_a_mean" title={`A · ${comparison.window_a.start_year}–${comparison.window_a.end_year}`} />
@@ -79,6 +89,7 @@ export function ClimateDetails({ data, unit, selected, choose }: {
         <p className="muted">Escala compartida de {number(low)} a {number(high)} {unit}. Gris indica sin dato.</p>
       </>}
     </>}
+    {technical(<>
     <details>
       <summary>Incertidumbre y comprobación estadística</summary>
       <p>IC individual del 95 % · {number(data.trend.ci_low)} a {number(data.trend.ci_high)} {unit}/década</p>
@@ -116,6 +127,7 @@ export function ClimateDetails({ data, unit, selected, choose }: {
         : <p>Mes objetivo {forecast.target ?? 'sin dato'}. Pronóstico {number(forecast.forecast)} {forecast.unit}.
           MAE del modelo {number(forecast.model_mae)} y MAE de climatología {number(forecast.baseline_mae)}.</p>}
     </details>
+    </>)}
     {data.limitations.map(text => <p className="muted" key={text}>{text}</p>)}
   </>
 }
