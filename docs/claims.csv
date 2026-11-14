@@ -1,0 +1,12 @@
+claim_id,texto,result_id/source_id,revisor,estado
+CLM-01,"Los datos provienen de NASA POWER mensual (sistema de reanálisis MERRA-2), período 1981-2024: 44 años completos y 528 meses. Son estimaciones de un modelo atmosférico con asimilación de observaciones, no mediciones directas de estaciones meteorológicas ni de satélites puntuales.",DATA_SOURCES.md;S1,Samuel,VERIFICADO
+CLM-02,"La cuadrícula nativa es de 0.5° x 0.625° (~55 km x 69 km por celda). Hay 5 celdas terrestres elegibles en CR_PN y 5 en CR_CAR; no representan límites de provincias, cantones ni fincas.",DATA_SOURCES.md;S2,Samuel,VERIFICADO
+CLM-03,"PRECTOTCORR mide precipitación acumulada (mm/año); no mide caudal de ríos, recarga de acuíferos ni disponibilidad de agua potable.",DATA_SOURCES.md;S1,Samuel,VERIFICADO
+CLM-04,"Con 30 o más años consecutivos se usa OLS con errores estándar HAC (kernel Bartlett, L=3; sensibilidad L=1 y L=5) y corrección Benjamini-Yekutieli (alpha=0.05) sobre la familia de 2 variables x 2 sectores.",S3;S4,Emanuel,VERIFICADO
+CLM-05,"Un artículo de la UCR explica que El Niño y La Niña influyen de forma distinta en las vertientes del Pacífico y del Caribe; ENOS es variabilidad interanual y no prueba causalidad ni garantiza tendencias opuestas en 1981-2024.",S5,Samuel,VERIFICADO
+CLM-06,"Pendientes por década de CR_HEAT (T2M) en CR_PN y CR_CAR.",[PENDIENTE_RESULT_ID],Emanuel,PENDIENTE_DATO_REAL
+CLM-07,"Intervalos de confianza 95 % de la pendiente de CR_HEAT (T2M) en CR_PN y CR_CAR.",[PENDIENTE_RESULT_ID],Emanuel,PENDIENTE_DATO_REAL
+CLM-08,"Valores p_adjusted (BY, alpha=0.05) de CR_HEAT (T2M) en CR_PN y CR_CAR.",[PENDIENTE_RESULT_ID],Emanuel,PENDIENTE_DATO_REAL
+CLM-09,"Pendientes por década de CR_RAIN (PRECTOTCORR) en CR_PN y CR_CAR.",[PENDIENTE_RESULT_ID],Emanuel,PENDIENTE_DATO_REAL
+CLM-10,"Intervalos de confianza 95 % de la pendiente de CR_RAIN (PRECTOTCORR) en CR_PN y CR_CAR.",[PENDIENTE_RESULT_ID],Emanuel,PENDIENTE_DATO_REAL
+CLM-11,"Valores p_adjusted (BY, alpha=0.05) de CR_RAIN (PRECTOTCORR) en CR_PN y CR_CAR.",[PENDIENTE_RESULT_ID],Emanuel,PENDIENTE_DATO_REAL
