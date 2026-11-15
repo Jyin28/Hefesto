@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   server: {
-    allowedHosts: ['sb-29q8tisf0yuf.vercel.run', '.vercel.run'],
+    allowedHosts: ['sb-29q8tisf0yuf.vercel.run', '.vercel.run', 'workspace-paqerupp.v0.build'],
     proxy: { '/api': 'http://127.0.0.1:8000' },
   },
 })
