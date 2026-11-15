@@ -1,24 +1,39 @@
 import { useSyncExternalStore } from 'react'
-import { AFFECTATION_TYPES, WARNING_LEVELS, initialCantonData } from './data/cantonData'
-import type { Affectation, CantonData, LocalRecord } from './data/cantonData'
+import { initialCantonData } from './data/cantonData'
+import type { AsadaReport, CantonData, LocalRecord } from './data/cantonData'
 
-const KEY = 'hefesto.cantonData.v1'
+const KEY = 'hefesto.cantonData.v2'
+const LEGACY_KEY = 'hefesto.cantonData.v1'
 export const MAX_NOTES = 500
+export const MAX_FLOW = 10000
+export const MAX_LOCALITIES = 30
+export const MAX_LOCALITY = 80
 
-const typeIds = new Set<string>(AFFECTATION_TYPES.map(item => item.id))
-const levels = new Set<string>(WARNING_LEVELS)
 const text = (value: unknown, max: number) => typeof value === 'string' ? value.slice(0, max) : ''
+const validDate = (value: unknown) => {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+  const date = new Date(`${value}T00:00:00Z`)
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
+}
+/** Hoy en Costa Rica (AAAA-MM-DD): una medición no puede ser futura. */
+export const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(new Date())
 
 /** Lo guardado en localStorage lo puede editar cualquiera: se descarta todo lo que no tenga la forma esperada. */
 function sanitize(raw: unknown): CantonData {
   const source = (raw && typeof raw === 'object' ? raw : {}) as Partial<Record<keyof CantonData, unknown>>
-  const affectations = (Array.isArray(source.affectations) ? source.affectations : []).flatMap((item): Affectation[] => {
-    const value = item as Partial<Affectation> | null
-    if (!value || !typeIds.has(String(value.type)) || !levels.has(String(value.level)) || !/^\d{3}$/.test(String(value.cantonCode))) return []
+  const reports = (Array.isArray(source.reports) ? source.reports : []).flatMap((item): AsadaReport[] => {
+    const value = item as Partial<AsadaReport> | null
+    if (!value || !/^\d{5}-\d{4}$/.test(String(value.asadaId)) || !/^\d{3}$/.test(String(value.cantonCode))
+      || typeof value.caudal !== 'number' || !Number.isFinite(value.caudal) || value.caudal <= 0 || value.caudal > MAX_FLOW
+      || !validDate(value.measuredAt) || typeof value.ninoAffected !== 'boolean') return []
+    const localities = value.ninoAffected && Array.isArray(value.localities)
+      ? [...new Set(value.localities.map(item => text(item, MAX_LOCALITY).trim()).filter(Boolean))].slice(0, MAX_LOCALITIES) : []
+    // Si hay afectación, las localidades son obligatorias: un registro sin ellas no cumple el formulario.
+    if (value.ninoAffected && !localities.length) return []
     return [{
-      id: text(value.id, 64) || makeId(), cantonCode: String(value.cantonCode), type: value.type!, level: value.level!,
-      notes: text(value.notes, MAX_NOTES), createdAt: text(value.createdAt, 40), createdBy: text(value.createdBy, 120),
-      organization: text(value.organization, 120),
+      id: text(value.id, 64) || makeId(), asadaId: String(value.asadaId), cantonCode: String(value.cantonCode), caudal: value.caudal,
+      measuredAt: String(value.measuredAt), ninoAffected: value.ninoAffected, localities, notes: text(value.notes, MAX_NOTES),
+      createdAt: text(value.createdAt, 40), createdBy: text(value.createdBy, 120), organization: text(value.organization, 120),
     }]
   })
   const records = (Array.isArray(source.records) ? source.records : []).flatMap((item): LocalRecord[] => {
@@ -31,7 +46,7 @@ function sanitize(raw: unknown): CantonData {
       importedAt: text(value.importedAt, 40),
     }]
   })
-  return { affectations, records }
+  return { reports, records }
 }
 
 function makeId() {
@@ -41,8 +56,10 @@ function makeId() {
 function load(): CantonData {
   try {
     const stored = localStorage.getItem(KEY)
-    // Sin nada guardado se parte de la base inicial de cantonData.js.
-    return sanitize(stored ? JSON.parse(stored) : initialCantonData)
+    if (stored) return sanitize(JSON.parse(stored))
+    // Primera vez con el modelo por ASADA: se conservan los registros locales del modelo anterior; las afectaciones por cantón se descartan.
+    const legacy = localStorage.getItem(LEGACY_KEY)
+    return sanitize(legacy ? { records: (JSON.parse(legacy) as { records?: unknown }).records } : initialCantonData)
   } catch { return sanitize(initialCantonData) }
 }
 
@@ -62,8 +79,6 @@ if (typeof window !== 'undefined') {
   window.addEventListener('storage', event => { if (event.key === KEY || event.key === null) { state = load(); notify() } })
 }
 
-export const affectationLabel = (id: string) => AFFECTATION_TYPES.find(item => item.id === id)?.label ?? id
-
 export const getCantonData = () => state
 export function subscribeCantonData(listener: () => void) {
   listeners.add(listener)
@@ -74,12 +89,27 @@ export function useCantonData(): CantonData {
   return useSyncExternalStore(subscribeCantonData, getCantonData)
 }
 
-export function addAffectation(input: Omit<Affectation, 'id' | 'createdAt'>): boolean {
-  const entry: Affectation = { ...input, notes: input.notes.slice(0, MAX_NOTES), id: makeId(), createdAt: new Date().toISOString() }
-  return commit({ ...state, affectations: [entry, ...state.affectations] })
+export type SaveResult = 'saved' | 'memory' | 'forbidden' | 'invalid'
+
+/**
+ * Guarda un reporte. `allowedAsadaId` es la ASADA de la sesión: un administrador solo puede reportar sobre la suya.
+ * El caudal vigente de la ASADA pasa a ser el del reporte más reciente por fecha de medición.
+ */
+export function addAsadaReport(input: Omit<AsadaReport, 'id' | 'createdAt'>, allowedAsadaId: string): SaveResult {
+  if (input.asadaId !== allowedAsadaId) return 'forbidden'
+  const entry: AsadaReport = { ...input, notes: input.notes.slice(0, MAX_NOTES), id: makeId(), createdAt: new Date().toISOString() }
+  if (!validDate(entry.measuredAt) || entry.measuredAt > today()) return 'invalid'
+  const [clean] = sanitize({ reports: [entry] }).reports
+  if (!clean) return 'invalid'
+  return commit({ ...state, reports: [clean, ...state.reports] }) ? 'saved' : 'memory'
 }
 
-export const removeAffectation = (id: string) => commit({ ...state, affectations: state.affectations.filter(item => item.id !== id) })
+/** Solo se puede eliminar un reporte de la propia ASADA. */
+export function removeAsadaReport(id: string, allowedAsadaId: string): boolean {
+  if (!state.reports.some(item => item.id === id && item.asadaId === allowedAsadaId)) return false
+  commit({ ...state, reports: state.reports.filter(item => item.id !== id) })
+  return true
+}
 
 /** Un registro con el mismo cantón, variable, fecha y estación reemplaza al anterior. */
 export function addRecords(input: Omit<LocalRecord, 'id' | 'importedAt'>[]): boolean {
@@ -92,4 +122,7 @@ export function addRecords(input: Omit<LocalRecord, 'id' | 'importedAt'>[]): boo
 }
 
 export const removeRecords = (ids: Set<string>) => commit({ ...state, records: state.records.filter(item => !ids.has(item.id)) })
-export const resetCantonData = () => commit(sanitize(initialCantonData))
+
+/** Borra los registros locales y solo los reportes de la ASADA indicada; los de otras ASADAs no se tocan. */
+export const resetCantonData = (asadaId: string) =>
+  commit({ reports: state.reports.filter(item => item.asadaId !== asadaId), records: [] })

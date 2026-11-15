@@ -143,8 +143,8 @@ export type SynthesisInput = {
   precip?: VarStats; temp?: VarStats
   enso?: { start: string; end: string; precip: number | null; temp: number | null }
   confidence: Confidence; continuityPct: number; coveragePct: number; stations: number
-  /** Afectaciones registradas por comisiones para el cantón (de mayor a menor nivel). */
-  affectations?: { typeLabel: string; level: AlertLevel; notes: string; by: string }[]
+  /** Reportes de las ASADAs del cantón: cuántas hay, cuántas reportaron y cuáles están afectadas por El Niño. */
+  operators?: { total: number; reported: number; affected: { name: string; localities: string[] }[] }
   /** Registros locales cargados por comisiones, por variable. */
   local?: { temp?: LocalStat; precip?: LocalStat }
 }
@@ -157,11 +157,15 @@ export function synthesis(input: SynthesisInput): string[] {
   const { level, zone, range, precip, temp, enso } = input
   const basic = level === 'basico'
   const extras: string[] = []
-  for (const item of (input.affectations ?? []).slice(0, 3)) {
-    const level_ = ALERT_LABEL[item.level]
+  const water = input.operators
+  if (water && water.total > 0 && water.reported > 0) {
+    const names = water.affected.slice(0, 3).map(item => item.name).join(', ')
+    const places = [...new Set(water.affected.flatMap(item => item.localities))].slice(0, 6).join(', ')
     extras.push(basic
-      ? `Una comisión registró en ${zone} una afectación por ${item.typeLabel.toLowerCase()} con nivel de advertencia ${level_}.${item.notes ? ` Nota técnica: «${item.notes}».` : ''}`
-      : `Afectación registrada en ${zone}: ${item.typeLabel}, nivel ${level_}${item.by ? ` (${item.by})` : ''}.${item.notes ? ` Notas: «${item.notes}».` : ''} Registro local, sin verificación independiente.`)
+      ? water.affected.length
+        ? `En ${zone}, ${water.affected.length} de ${water.total} operadores de agua reportan afectación por El Niño (${names})${places ? `. Localidades afectadas: ${places}` : ''}.`
+        : `En ${zone}, ${water.reported} de ${water.total} operadores de agua enviaron su reporte y ninguno indica afectación por El Niño.`
+      : `Reportes de operadores en ${zone}: ${water.reported} de ${water.total} con reporte; ${water.affected.length} con afectación por El Niño${names ? ` (${names})` : ''}${places ? `; localidades: ${places}` : ''}. Autorreporte sin verificación independiente.`)
   }
   for (const [name, unit, stat, digits] of [['temperatura', '°C', input.local?.temp, 1], ['lluvia', 'mm', input.local?.precip, 0]] as const) {
     if (!stat) continue

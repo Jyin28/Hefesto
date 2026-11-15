@@ -1,4 +1,4 @@
-import type { Feature, FeatureCollection, MultiPolygon, Polygon } from 'geojson'
+import type { Feature, FeatureCollection, Geometry, MultiPolygon, Polygon } from 'geojson'
 
 export const regions = [
   { id: 'CR', name: 'Costa Rica (malla nacional)' },
@@ -70,11 +70,35 @@ export type Climate = {
   forecast: { status: string; message?: string; source_url?: string; unit?: string; forecast?: number | null;
     target?: string; model_mae?: number; baseline_mae?: number }
 }
+/** Las cuatro capas del mapa nacional. `Variable` (evidencia estadística completa) sigue siendo solo T2M y lluvia. */
+export type LayerVar = 'T2M' | 'PRECTOTCORR' | 'RH2M' | 'UV'
+/** Serie anual de una capa: un valor por año desde `start` hasta `end`, por celda y promedio nacional. */
+export type Layer = {
+  label: string; unit: string; start: number; end: number
+  national: (number | null)[]; cells: Record<string, (number | null)[]>
+  /** El UV viene de NASA en una malla de 1°: varias celdas del mapa comparten el mismo punto. */
+  resampled: boolean
+  provenance: { source?: string; url?: string; sha256?: string | null; retrieved_at?: string; parameter?: string }
+}
 export type Snapshot = {
   climate: Record<Region, Record<Variable, Climate>>
   cells?: Record<Region, Record<string, Record<Variable, Climate>>>
+  layers?: Record<LayerVar, Layer>
   local: Local
 }
+
+/** Operador de agua (ASADA, CAAR...) del catálogo SAGA. Solo se busca; no se dibuja en el mapa. */
+export type OperatorSource = { name: string; caudal: number | null; basin: string }
+export type Operator = {
+  id: string; name: string; type: string; region: string; province: string; canton: string; district: string
+  cantonCode: string; area: string; services: number | null
+  /** Caudal inicial en L/s: suma del último caudal registrado de sus fuentes. */
+  caudal: number | null
+  sources: OperatorSource[]
+}
+export type Asadas = { source: { label: string; unit: string; note: string }; operators: Operator[] }
+export type WaterwayKind = 'river' | 'canal' | 'stream' | 'water'
+export type Waterways = FeatureCollection<Geometry, { name: string | null; kind: WaterwayKind }>
 
 export async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> {
   const response = await fetch(url, { signal })
@@ -86,3 +110,6 @@ const staticRoot = `${import.meta.env.BASE_URL}data/`
 export const getSnapshot = (signal: AbortSignal) => getJson<Snapshot>(`${staticRoot}snapshot.json`, signal)
 export const getGeo = (signal: AbortSignal) => getJson<Geo>(`${staticRoot}geo.json`, signal)
 export const getBoundaries = (signal: AbortSignal) => getJson<Boundaries>(`${staticRoot}cantones.geojson`, signal)
+export const getAsadas = (signal: AbortSignal) => getJson<Asadas>(`${staticRoot}asadas.json`, signal)
+/** ~4,5 MB: solo se pide al entrar al mapa de cuencas. */
+export const getWaterways = (signal: AbortSignal) => getJson<Waterways>(`${staticRoot}waterways.geojson`, signal)

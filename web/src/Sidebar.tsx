@@ -7,6 +7,8 @@ const items: { id: Section; label: string; icon: ReactNode; adminOnly?: boolean 
   { id: 'general', label: 'General', icon: <svg viewBox="0 0 24 24" aria-hidden="true" {...stroke}><circle cx="12" cy="12" r="8.5" /><path d="M3.5 12h17M12 3.5c2.5 2.6 2.5 14.4 0 17M12 3.5c-2.5 2.6-2.5 14.4 0 17" /></svg> },
   { id: 'temp', label: 'Temp', icon: <svg viewBox="0 0 24 24" aria-hidden="true" {...stroke}><path d="M10 4a2 2 0 0 1 4 0v9.2a4 4 0 1 1-4 0Z" /><path d="M12 9v7" /></svg> },
   { id: 'precip', label: 'Precip', icon: <svg viewBox="0 0 24 24" aria-hidden="true" {...stroke}><path d="M12 3.5c-3 4.2-6 7-6 10.2a6 6 0 0 0 12 0c0-3.2-3-6-6-10.2Z" /></svg> },
+  { id: 'uv', label: 'UV', icon: <svg viewBox="0 0 24 24" aria-hidden="true" {...stroke}><circle cx="12" cy="12" r="3.8" /><path d="M12 3v2.4M12 18.6V21M3 12h2.4M18.6 12H21M5.6 5.6l1.7 1.7M16.7 16.7l1.7 1.7M5.6 18.4l1.7-1.7M16.7 7.3l1.7-1.7" /></svg> },
+  { id: 'humedad', label: 'Humedad', icon: <svg viewBox="0 0 24 24" aria-hidden="true" {...stroke}><path d="M12 3.5c-2.6 3.7-5.2 6.2-5.2 9a5.2 5.2 0 0 0 10.4 0c0-2.8-2.6-5.300-5.200-9Z" /><path d="M3.5 20c1.200-.9 2.300-.9 3.500 0s2.300.9 3.500 0 2.300-.9 3.500 0 2.300.9 3.500 0 2.300-.9 3.500 0" /></svg> },
   { id: 'avisos', label: 'Avisos Generales', icon: <svg viewBox="0 0 24 24" aria-hidden="true" {...stroke}><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15Z" /><path d="M10 21h4" /></svg> },
   { id: 'admin', label: 'Admin', adminOnly: true, icon: <svg viewBox="0 0 24 24" aria-hidden="true" {...stroke}><path d="M12 3.5 5 6.5v5c0 4.2 2.8 7.4 7 9 4.2-1.6 7-4.800 7-9v-5Z" /><path d="m9 12 2.200 2.200L15.500 10" /></svg> },
 ]

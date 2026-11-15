@@ -8,8 +8,10 @@ const M = { top: 14, right: 14, bottom: 30, left: 52 }
 
 function niceStep(span: number) { return span <= 12 ? 2 : span <= 25 ? 5 : 10 }
 
-export function SeriesChart({ series, range, unit, tone, label, projection }: {
+export function SeriesChart({ series, range, unit, tone, label, projection, digits: forcedDigits }: {
   series: Point[]; range: Range; unit: string; tone: 'water' | 'emerald'; label: string
+  /** Decimales de los ejes; por defecto se deducen de la escala. */
+  digits?: number
   projection?: { year: number; value: number }[]
 }) {
   const id = useId().replace(/:/g, '')
@@ -69,7 +71,7 @@ export function SeriesChart({ series, range, unit, tone, label, projection }: {
     const next = Math.min(selectable.length - 1, Math.max(0, index + (event.key === 'ArrowRight' ? 1 : -1)))
     setActive(selectable[next].year)
   }
-  const digits = Math.abs(y1) >= 100 ? 0 : 1
+  const digits = forcedDigits ?? (Math.abs(y1) >= 100 ? 0 : 1)
 
   return <div className="series-chart" tabIndex={0} onKeyDown={onKey} onBlur={() => setActive(null)}
     aria-label={`${label}, ${range[0]} a ${range[1]}. Usá las flechas izquierda y derecha para leer cada año.`}>
@@ -99,7 +101,7 @@ export function SeriesChart({ series, range, unit, tone, label, projection }: {
       </g>}
     </svg>
     <p className="chart-readout" aria-live="polite">{current
-      ? <>{current.year}: <strong>{fmt(current.value, digits === 0 ? 0 : 2)} {unit}</strong>{current.projected ? ' · proyección de tendencia' : ''}</>
+      ? <>{current.year}: <strong>{fmt(current.value, digits === 0 ? 0 : Math.max(2, digits))} {unit}</strong>{current.projected ? ' · proyección de tendencia' : ''}</>
       : <span className="muted">Pasá el cursor o usá las flechas para leer un año.{extra.length ? ' Línea punteada: proyección de tendencia.' : ''}</span>}</p>
   </div>
 }

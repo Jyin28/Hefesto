@@ -33,27 +33,27 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
 
 export function AdminModal({ onClose, onLogin }: { onClose: () => void; onLogin: (session: Session) => void }) {
   const [error, setError] = useState('')
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [demo, setDemo] = useState(0)
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!email.trim() || !password) { setError('Completá usuario y contraseña.'); return }
-    const session = login(email, password)
+    if (!username.trim() || !password) { setError('Completá usuario y contraseña.'); return }
+    const session = login(username, password)
     if (!session) { setError('Usuario o contraseña incorrectos.'); return }
     onLogin(session)
   }
   function fillDemo() {
     const account = demoAccounts[demo % demoAccounts.length]
-    setEmail(account.email)
+    setUsername(account.username)
     setPassword(account.password)
     setError('')
     setDemo(value => value + 1)
   }
-  return <Modal title="Acceso Comisiones / Admin" onClose={onClose}>
+  return <Modal title="Acceso ASADAs / Admin" onClose={onClose}>
     <form onSubmit={submit}>
-      <p className="muted">La consulta pública no requiere cuenta. Este acceso es solo para comisiones y administración.</p>
-      <label>Usuario<input type="text" name="user" autoComplete="username" value={email} onChange={event => setEmail(event.target.value)} /></label>
+      <p className="muted">La consulta pública no requiere cuenta. Este acceso es solo para quienes administran una ASADA: cada usuario reporta únicamente sobre su propia ASADA.</p>
+      <label>Usuario de la ASADA<input type="text" name="user" autoComplete="username" value={username} onChange={event => setUsername(event.target.value)} /></label>
       <label>Contraseña<input type="password" name="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} /></label>
       {error && <p className="error" role="alert">{error}</p>}
       <button type="button" className="pill pill-ghost" onClick={fillDemo}>Autocompletar credenciales demo</button>

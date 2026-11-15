@@ -1,26 +1,24 @@
-import { ALERT_LABEL, ensoMean, fmt, localStat } from './analysis'
-import type { AlertLevel } from './analysis'
+import { ensoMean, fmt, localStat, mean, usable } from './analysis'
+import type { Range } from './analysis'
 import { Tile } from './Bento'
 import { ClimateDetails, WaterDetails } from './ClimateDetails'
 import { copy } from './copy'
 import type { Alert, Level } from './copy'
 import { regions } from './data'
-import type { Canton, Climate, Local, Notice, Region, Variable } from './data'
-import type { Affectation, LocalRecord } from './data/cantonData'
-import { AlertPill } from './Forecast'
-import { affectationLabel } from './store'
+import type { Canton, Climate, Layer, LayerVar, Local, Notice, Region, Variable } from './data'
+import type { LocalRecord } from './data/cantonData'
+import { SeriesChart } from './SeriesChart'
+import { META, seriesPoints, slopePerDecade } from './layers'
+import type { CantonSummary } from './asadas'
 
-export type AffectationOverview = { code: string; name: string; level: AlertLevel; type: string; count: number }
-const LEVEL_RANK: Record<AlertLevel, number> = { verde: 0, amarillo: 1, naranja: 2, rojo: 3 }
-export const worstOf = (items: Affectation[]) => items.reduce<Affectation | undefined>((worst, item) =>
-  !worst || LEVEL_RANK[item.level] > LEVEL_RANK[worst.level] ? item : worst, undefined)
+export type CantonOverview = { code: string; name: string; operators: number; reported: number; affected: number }
 
 const format = new Intl.NumberFormat('es-CR', { maximumFractionDigits: 2 })
 const dateFormat = new Intl.DateTimeFormat('es-CR', { dateStyle: 'medium', timeZone: 'America/Costa_Rica' })
 
-export function GeneralPanel({ level, climateBy, region, canton, cell, alert, notices, loading, worst }: {
+export function GeneralPanel({ level, climateBy, region, canton, cell, alert, notices, loading, nino }: {
   level: Level; climateBy: Record<Variable, Climate | undefined>; region?: Region; canton?: Canton; cell: string
-  alert: Alert; notices: Notice[]; loading: boolean; worst?: Affectation
+  alert: Alert; notices: Notice[]; loading: boolean; nino?: CantonSummary
 }) {
   const text = copy[level]
   const enso = climateBy.PRECTOTCORR?.enso
@@ -39,8 +37,8 @@ export function GeneralPanel({ level, climateBy, region, canton, cell, alert, no
     <Tile title={cell ? `Celda ${cell}` : canton?.name ?? 'Costa Rica'} span={2}>
       <div className="chips">
         <span className={`chip ${alert}`}>{text.alertLabel[alert]}</span>
-        {worst && <AlertPill level={worst.level} />}
-        {worst && <span className="chip">{affectationLabel(worst.type)}</span>}
+        {nino && nino.affected > 0 && <span className="chip nino">{nino.affected} {nino.affected === 1 ? 'ASADA afectada' : 'ASADAs afectadas'} por El Niño</span>}
+        {nino && nino.affected === 0 && nino.reported > 0 && <span className="chip ok">Reportes sin afectación</span>}
         {regionName ? <span className="chip nasa">Datos NASA POWER · {regionName}</span> : <span className="chip imn">Información pendiente</span>}
       </div>
       <p className="muted" style={{ marginTop: 8 }}>{notices.length
@@ -144,26 +142,21 @@ export function LocalRecordsTile({ level, records, variable }: { level: Level; r
   </Tile>
 }
 
-export function NoticesPanel({ level, loading, notices, operators, catalog, selected, alert, highlight, highlightCanton, affectations, overview, select }: {
+export function NoticesPanel({ level, loading, notices, operators, catalog, selected, alert, highlight, highlightCanton, overview, select }: {
   level: Level; loading: boolean; notices: Notice[]; operators: Local['operators']; catalog: Local
   selected: string; alert: Alert; highlight: string | null; highlightCanton: string | null
-  affectations: Affectation[]; overview: AffectationOverview[]; select: (code: string) => void
+  overview: CantonOverview[]; select: (code: string) => void
 }) {
   const text = copy[level]
   return <>
-    <Tile title="Afectaciones registradas por comisiones" badge={<span className="chip imn">Registro local (demo)</span>}>
-      {affectations.length ? affectations.map(item => <article className="card notice" key={item.id}>
-        <div className="chips"><AlertPill level={item.level} /><span className="chip">{affectationLabel(item.type)}</span></div>
-        {item.notes ? <p>{item.notes}</p> : <p className="muted">Sin notas técnicas.</p>}
-        <p className="source">{item.organization || item.createdBy}{item.createdAt ? ` · ${dayFormat.format(new Date(item.createdAt))}` : ''}</p>
-      </article>) : <p className="empty">No hay afectaciones registradas para este cantón.</p>}
-      {overview.length > 0 && <>
-        <h4>{level === 'tecnico' ? 'Estado de alerta por cantón' : 'Cantones con afectaciones'}</h4>
+    <Tile title="El Niño y los operadores de agua" badge={<span className="chip imn">Autorreporte (demo)</span>}>
+      {overview.length ? <>
+        <h4>{level === 'tecnico' ? 'Cantones con operadores reportando' : 'Cantones con reportes de las ASADAs'}</h4>
         <div className="overview">{overview.map(item => <button key={item.code} className={item.code === selected ? 'overview-row on' : 'overview-row'} onClick={() => select(item.code)}>
-          <span>{item.name}<small> · {affectationLabel(item.type)}{item.count > 1 ? ` (+${item.count - 1})` : ''}</small></span>
-          <AlertPill level={item.level} /></button>)}</div>
-      </>}
-      <p className="muted">{ALERT_LABEL.verde}, {ALERT_LABEL.amarillo}, {ALERT_LABEL.naranja} y {ALERT_LABEL.rojo} son niveles de advertencia definidos por la comisión que registra.</p>
+          <span>{item.name}<small> · {item.reported} de {item.operators} con reporte</small></span>
+          {item.affected > 0 ? <span className="chip nino">{item.affected} {item.affected === 1 ? 'afectada' : 'afectadas'}</span> : <span className="chip ok">Sin afectación</span>}</button>)}</div>
+      </> : <p className="empty">Todavía ninguna ASADA envió su reporte. Cuando lo hagan, se verá aquí y en el color de cada cantón.</p>}
+      <p className="muted">Los reportes los envía cada ASADA sobre sí misma. Son autorreportes: no los verifica una entidad independiente.</p>
     </Tile>
     <Tile title={level === 'tecnico' ? 'Comunicados activos' : 'Avisos publicados'} badge={<span className={`chip ${alert}`}>{text.alertLabel[alert]}</span>}>
     {notices.length ? notices.map(notice => {
@@ -187,6 +180,42 @@ export function NoticesPanel({ level, loading, notices, operators, catalog, sele
       {operators.length ? operators.map(operator => <p key={operator.name}><strong>{operator.name}</strong><br />{operator.communities.join(', ')}{operator.phone && <> · <a href={`tel:${operator.phone}`}>{operator.phone}</a></>}{operator.sourceId && catalog.sources?.[operator.sourceId] && <> · <a href={catalog.sources[operator.sourceId].url}>Fuente</a></>}</p>)
         : <p className="muted">Directorio local pendiente de verificación.</p>}
       <WaterDetails local={catalog} canton={selected} />
+    </Tile>
+  </>
+}
+
+const slopeFmt = new Intl.NumberFormat('es-CR', { maximumFractionDigits: 3 })
+
+/** Secciones UV y Humedad: serie anual de la capa para el país o la celda elegida, con su explicación en palabras simples. */
+export function LayerPanel({ variable, layer, cell, range, year, zoneName }: {
+  variable: LayerVar; layer?: Layer; cell: string; range: Range; year: number; zoneName: string
+}) {
+  const meta = META[variable]
+  if (!layer) return <Tile title={meta.name}><p className="empty">Todavía no se cargó esta capa de NASA POWER.</p></Tile>
+  const points = seriesPoints(layer, cell || undefined)
+  const series = cell ? layer.cells[cell] : layer.national
+  const from = Math.max(range[0], layer.start), to = Math.min(range[1], layer.end)
+  const inRange = usable(points, [from, to])
+  const slope = series ? slopePerDecade(layer, series, [from, to]) : null
+  const shown = Math.min(Math.max(year, layer.start), layer.end)
+  const atYear = points.find(point => point.year === shown)?.value ?? null
+  return <>
+    <Tile title={`${meta.name}: ${cell ? `celda ${cell}` : 'promedio del país'}`} badge={<span className="chip nasa">NASA POWER</span>}>
+      <SeriesChart series={points} range={[layer.start, layer.end]} unit={variable === 'UV' ? 'índice UV' : meta.unit} tone={variable === 'UV' ? 'water' : 'emerald'}
+        label={`${meta.name} anual`} digits={meta.digits} />
+      <p className="muted">{meta.about}</p>
+      {layer.resampled && <p className="muted">NASA publica esta capa en cuadros de 1° (unos 110 km), más grandes que los del mapa: zonas vecinas pueden compartir el mismo valor.</p>}
+    </Tile>
+    <Tile title="Lo que muestra el mapa" span={1}>
+      <p className="big">{atYear == null ? 'Sin dato' : fmt(atYear, meta.digits)}<small> {meta.unit}</small></p>
+      <p className="muted">{meta.valueTitle(shown)} en {zoneName}.</p>
+    </Tile>
+    <Tile title="Cambio cada 10 años" span={1}>
+      <p className="big">{slope == null ? 'Sin dato' : `${slope >= 0 ? '+' : ''}${slopeFmt.format(Number(slope.toFixed(meta.slopeDigits + 1)))}`}<small> {meta.slopeUnit}</small></p>
+      <p className="muted">{slope == null ? `Hacen falta al menos 10 años con dato entre ${from} y ${to}.` : `Calculado con ${inRange.length} años (${from}–${to}). Promedio del rango: ${fmt(mean(inRange.map(point => point.value)) ?? 0, meta.digits)}${meta.unit ? ` ${meta.unit}` : ''}.`}</p>
+    </Tile>
+    <Tile title="Fuente" span={2}>
+      <p className="source">NASA POWER, parámetro {layer.provenance.parameter ?? variable} · {layer.start}–{layer.end}. Promedios anuales de los 12 meses; los años incompletos no se usan.</p>
     </Tile>
   </>
 }

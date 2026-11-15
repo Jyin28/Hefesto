@@ -1,11 +1,16 @@
-export type AffectationType = 'sequia' | 'inundacion' | 'deslizamiento' | 'cuenca-asada'
-export type WarningLevel = 'verde' | 'amarillo' | 'naranja' | 'rojo'
-
-export type Affectation = {
+/** Reporte de una ASADA: último caudal medido y si El Niño la afecta. Solo lo envía el administrador de esa ASADA. */
+export type AsadaReport = {
   id: string
+  /** IDEO del operador en SAGA, por ejemplo «00114-2014». */
+  asadaId: string
   cantonCode: string
-  type: AffectationType
-  level: WarningLevel
+  /** Caudal histórico medido, en L/s. Actualiza el caudal vigente de la ASADA. */
+  caudal: number
+  /** Fecha de la medición (AAAA-MM-DD). */
+  measuredAt: string
+  ninoAffected: boolean
+  /** Localidades afectadas dentro de la ASADA (solo si ninoAffected). */
+  localities: string[]
   notes: string
   createdAt: string
   createdBy: string
@@ -24,8 +29,6 @@ export type LocalRecord = {
   importedAt: string
 }
 
-export type CantonData = { affectations: Affectation[]; records: LocalRecord[] }
+export type CantonData = { reports: AsadaReport[]; records: LocalRecord[] }
 
-export const AFFECTATION_TYPES: { id: AffectationType; label: string }[]
-export const WARNING_LEVELS: WarningLevel[]
 export const initialCantonData: CantonData

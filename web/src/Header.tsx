@@ -15,12 +15,12 @@ export function Header({ level, mapMode, setMapMode, openAdmin, session, logout 
         <button aria-pressed={mapMode === 'grid'} onClick={() => setMapMode('grid')} title={tip.mapTip.grid}>Mapa Interactivo: Cuadrícula NASA POWER (0.5° × 0.625°)</button>
         <button aria-pressed={mapMode === 'cantones'} onClick={() => setMapMode('cantones')} title={tip.mapTip.cantones}>Cuencas Cantonales y Afectaciones</button>
       </div>
-      {session ? <div className="admin-badge" role="status" title={`${session.name} · ${session.email}`}>
+      {session ? <div className="admin-badge" role="status" title={`${session.name} · ${session.username}`}>
         <span className="dot verde" aria-hidden="true" />
-        <span>Modo Administrador Activo (Comisión Nacional)</span>
+        <span>Modo Administrador Activo</span>
         <small>{session.name}</small>
         <button className="pill pill-ghost" onClick={logout}>Cerrar sesión</button>
-      </div> : <button className="pill pill-ghost admin-link" onClick={openAdmin}>Acceso Comisiones / Admin</button>}
+      </div> : <button className="pill pill-ghost admin-link" onClick={openAdmin}>Acceso ASADAs / Admin</button>}
     </div>
   </header>
 }
