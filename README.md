@@ -16,5 +16,5 @@ y un newsletter por Telegram.
 ## Enlaces
 
 - **Sitio web (Vercel):** [https://TU-PROYECTO.vercel.app](https://v0-agualerta.vercel.app)
-- **Documentación:** [`docs/`](docs/)
+- **Documentación:** Hefesto_AguaAlerta.pdf
 - **Video de YouTube:** [https://www.youtube.com/watch?v=TU-VIDEO](https://youtu.be/49YRnnPCppY)
