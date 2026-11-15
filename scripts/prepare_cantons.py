@@ -1,6 +1,7 @@
 """Normalize a WGS 84 canton GeoJSON obtained from the team's mapping source."""
 import argparse
 import json
+import unicodedata
 from pathlib import Path
 from urllib.parse import urlencode
 from urllib.error import URLError
@@ -10,6 +11,45 @@ ROOT = Path(__file__).resolve().parents[1]
 IGN_LAYER = "https://services8.arcgis.com/gEjMfQjIBmRHMGao/arcgis/rest/services/Cantones_de_Costa_Rica/FeatureServer/0"
 
 
+# Nombres de la capa que difieren de la DTA 2026: (provincia, cantón) normalizados -> código.
+NAME_ALIASES = {
+    ("alajuela", "alfaro ruiz"): "211",
+    ("alajuela", "valverde vega"): "212",
+    ("puntarenas", "aguirre"): "606",
+    ("san jose", "leon cortes"): "120",
+    ("san jose", "vasquez de coronado"): "111",
+}
+
+
+def normalize(text):
+    decomposed = unicodedata.normalize("NFD", str(text).strip().lower())
+    return "".join(char for char in decomposed if not unicodedata.combining(char))
+
+
+def match_by_names(features, parser):
+    """Asigna el código y el nombre DTA a cada cantón de una capa que solo trae NAME_1 y NAME_2."""
+    reference = json.loads((ROOT / "data" / "web" / "cantons.json").read_text(encoding="utf-8"))["cantons"]
+    by_name = {(normalize(info["province"]), normalize(info["name"])): code for code, info in reference.items()}
+    by_name.update(NAME_ALIASES)
+    matched, unmatched = [], []
+    for feature in features:
+        fields = feature["properties"]
+        key = (normalize(fields.get("NAME_1", "")), normalize(fields.get("NAME_2", "")))
+        code = by_name.get(key)
+        if code is None:
+            unmatched.append(f"{fields.get('NAME_1')} / {fields.get('NAME_2')}")
+            continue
+        info = reference[code]
+        matched.append({**feature, "properties": {"code": code, "name": info["name"], "province": info["province"]}})
+    if unmatched:
+        parser.error(f"Cantones sin correspondencia en la DTA 2026: {unmatched}")
+    missing = sorted(set(reference) - {feature["properties"]["code"] for feature in matched})
+    if missing:
+        names = ", ".join(code + " " + reference[code]["name"] for code in missing)
+        print("Aviso: sin polígono propio en la capa: " + names)
+    return matched
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("file", type=Path, nargs="?")
@@ -17,6 +57,8 @@ def main():
     parser.add_argument("--code-field", default="code")
     parser.add_argument("--name-field", default="name")
     parser.add_argument("--province-field", default="province")
+    parser.add_argument("--match-names", action="store_true",
+                        help="Deriva el código DTA desde NAME_1 (provincia) y NAME_2 (cantón), como en la capa tipo GADM")
     parser.add_argument("--output", type=Path, default=ROOT / "web" / "public" / "data" / "cantones.geojson")
     args = parser.parse_args()
     if args.ign == bool(args.file):
@@ -34,6 +76,10 @@ def main():
         source = json.loads(args.file.read_text(encoding="utf-8-sig"))
     if source.get("type") != "FeatureCollection" or not source.get("features"):
         parser.error("Se necesita un GeoJSON FeatureCollection con polígonos cantonales.")
+
+    if args.match_names:
+        source["features"] = match_by_names(source["features"], parser)
+        args.code_field, args.name_field, args.province_field = "code", "name", "province"
 
     features = []
     codes = set()

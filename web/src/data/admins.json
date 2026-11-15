@@ -1,0 +1,8 @@
+{
+  "_aviso": "SOLO DEMOSTRACION. Este archivo se incluye en el codigo que descarga cualquier visitante, asi que no protege nada. Para produccion hace falta autenticacion en un servidor. Cada cuenta administra una sola ASADA (asadaId = IDEO del Excel de SAGA).",
+  "admins": [
+    { "username": "asada-colorado-liberia", "password": "colorado2026", "name": "ASADA Colorado de Liberia", "organization": "ASADA Colorado de Liberia (demo)", "asadaId": "00001-2014" },
+    { "username": "asada-playa-tamarindo", "password": "tamarindo2026", "name": "ASADA Playa Tamarindo de Santa Cruz", "organization": "ASADA Playa Tamarindo (demo)", "asadaId": "00114-2014" },
+    { "username": "asada-colinas-isletas", "password": "colinas2026", "name": "ASADA Colinas e Isletas de Guácimo", "organization": "ASADA Colinas e Isletas (demo)", "asadaId": "01361-2014" }
+  ]
+}

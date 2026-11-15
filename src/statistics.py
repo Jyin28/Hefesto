@@ -125,6 +125,7 @@ from src.contracts import (
     SLOPE_UNITS,
     VARIABLE_IDS,
     TrendResult,
+    WEB_REGION_IDS,
     validate_query,
 )
 
@@ -488,7 +489,7 @@ def compute_window_stats(
     `years_used` queda mas corto pero la ventana reportada no se recorta.
     Ver `_select_window_series` para las guardas de region/duplicados.
     """
-    validate_query(variable, region_id, start_year, end_year)
+    validate_query(variable, region_id, start_year, end_year, regions=WEB_REGION_IDS)
     unit = ANNUAL_UNITS[variable]
     slope_unit = SLOPE_UNITS[variable]
 
@@ -572,7 +573,7 @@ def compare_historical_windows(
 
     uses_default = window_a is None and window_b is None
     if uses_default:
-        validate_query(variable, region_id, coverage_start_year, coverage_end_year)
+        validate_query(variable, region_id, coverage_start_year, coverage_end_year, regions=WEB_REGION_IDS)
         window_a, window_b = default_windows(coverage_start_year, coverage_end_year)
     elif window_a is None or window_b is None:
         raise ValueError(
@@ -644,7 +645,7 @@ def compute_long_term_trend(
     menos de 10 anios validos, "insufficient_data" (igual que
     `compute_window_stats`).
     """
-    validate_query(variable, region_id, start_year, end_year)
+    validate_query(variable, region_id, start_year, end_year, regions=WEB_REGION_IDS)
     unit_slope = SLOPE_UNITS[variable]
     expected_years = end_year - start_year + 1
 
@@ -829,7 +830,7 @@ def homogeneity_check(
     Es un diagnostico de calidad de datos: NO oculta ni modifica la tendencia, y no distingue por si
     solo un cambio de fuente de un cambio climatico real. Se calcula igual para ambas variables.
     """
-    validate_query(variable, region_id, start_year, end_year)
+    validate_query(variable, region_id, start_year, end_year, regions=WEB_REGION_IDS)
     years, values = _select_window_series(annual_rows, start_year, end_year, variable=variable, region_id=region_id)
     n = len(years)
     result: dict[str, Any] = {
