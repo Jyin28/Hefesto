@@ -24,3 +24,17 @@
 2. **Escala regional:** Cada celda cubre decenas de kilometros; no representa fincas, cantones ni cuencas especificas.
 3. **Mezcla costera y orografia:** Las celdas costeras incluyen fraccion oceanica y suavizan gradientes abruptos de las cordilleras de Costa Rica.
 4. **Uso educativo:** Herramienta de exploracion historica; no pronostica sequias, inundaciones ni disponibilidad de agua potable.
+
+## 4. Qué datos usa el producto MVP (y cuáles no)
+**Usados:** `data/raw/nasa_power_monthly_{T2M,PRECTOTCORR}_1981_2024.json` (crudo inmutable, SHA-256 en
+`provenance_base.json`), `data/processed/grid_monthly.parquet` (10 560 registros, 5 celdas × 2 sectores × 528 meses × 2 variables),
+`data/processed/masks.parquet`, `data/processed/provenance_base.json`, `data/web/enso.json` (episodios ENOS) y `config/discovery.json`.
+Verificados con `scripts/verify_data.py` (esquema, unidades, celdas, 528 meses/celda, sin NaN ni fill values, Parquet == crudo).
+
+**No usados por el producto** (se conservan en el repo como insumos): las tres hojas de cálculo de AyA/anomalía cantonal,
+`data/processed/water_*.csv`, `data/web/local.json` y `cantons.json`, `data/mock/` (solo pruebas), la rama `feat/samuel-data-cr`
+(`data/processed` allí son datos de relleno: precipitación casi constante y celdas marinas; **no usar**).
+
+## 5. Limitación adicional detectada
+Las celdas del Caribe incluyen terreno alto (Talamanca): T2M medio ≈ 22 °C, menor que el de la costa de Limón.
+La lluvia de reanálisis no está validada con estaciones (ver `docs/limitations.md` §9).

@@ -1,0 +1,79 @@
+{
+  "operators": [
+    {
+      "cantonCodes": ["503"], "name": "ASADA Playa Grande",
+      "phone": "+50626532459", "communities": ["Playa Grande"],
+      "sourceId": "asada-playa-grande"
+    },
+    {
+      "cantonCodes": ["503"], "name": "ASADA Surfside",
+      "phone": "+50686026019", "communities": ["Surfside, Playa Potrero"],
+      "sourceId": "asada-surfside"
+    }
+  ],
+  "notices": [
+    {
+      "id": "playa-grande-racionamiento-2026-09", "cantonCodes": ["503"],
+      "title": "Horario de racionamiento en Playa Grande",
+      "summary": "Programación publicada para Playa Grande del 5 de setiembre al 30 de noviembre de 2026. Consultá las franjas de tu sector y verificá cambios con la ASADA.",
+      "source": "ASADA Playa Grande · comunicado reproducido por Upe",
+      "sourceUrl": "https://u.pe/es/info/asada-playa-grande-water-rationing-schedule-sep-5-nov-30-2026-horario-de-racionamiento-de-agua/",
+      "publishedAt": "2026-09-04T00:00:00-06:00", "expiresAt": "2026-11-30T23:59:59-06:00",
+      "communities": ["Playa Grande, Cabo Velas"]
+    }
+  ],
+  "waterCoverage": [
+    {
+      "cantonCode": "503", "geography": "Santa Cruz", "geographyLevel": "cantón",
+      "year": 2020, "indicator": "Población con agua potable", "unit": "%",
+      "value": 73, "numerator": 50541, "denominator": 69424,
+      "denominatorDefinition": "Población cantonal según el cuadro 5 de AyA",
+      "operator": null, "sourceId": "aya-lna-2020"
+    },
+    {
+      "cantonCode": "701", "geography": "Limón", "geographyLevel": "cantón",
+      "year": 2020, "indicator": "Población con agua potable", "unit": "%",
+      "value": 90, "numerator": 89533, "denominator": 99041,
+      "denominatorDefinition": "Población cantonal según el cuadro 5 de AyA",
+      "operator": null, "sourceId": "aya-lna-2020"
+    }
+  ],
+  "distribution": [
+    {
+      "cantonCode": "503", "year": 2023, "value": 12, "unit": "ASADAS",
+      "indicator": "ASADAS de Santa Cruz a las que AyA vendía agua",
+      "operator": "AyA", "sourceId": "aresep-47-2023",
+      "limitation": "El boletín no identifica las ASADAS ni informa caudal, volumen u horas de servicio."
+    },
+    {
+      "cantonCode": "503", "year": 2026, "value": 12, "unit": "horas por día programadas",
+      "indicator": "Bloques de servicio publicados para Playa Grande",
+      "geography": "Playa Grande, Cabo Velas", "geographyLevel": "comunidad",
+      "start": "2026-09-05", "end": "2026-11-30", "recordType": "programado",
+      "operator": "ASADA Playa Grande", "sourceId": "racionamiento-playa-grande-2026",
+      "limitation": "Reconstruido de los bloques 05:00–13:00 y 17:00–21:00 del comunicado. Consultar excepciones y cambios. Sin mediciones de horas efectivas."
+    }
+  ],
+  "sources": {
+    "aya-lna-2020": {
+      "label": "AyA / Laboratorio Nacional de Aguas, cuadro 5",
+      "url": "https://www.aya.go.cr/transparenciainst/rendicion_cuentas/planesespecificossectorial/agua%20para%20consumo%20humano%20y%20saneamiento%20en%20costa%20rica%20al%202020_%20brechas%20en%20tiempos%20de%20pandemia.pdf"
+    },
+    "aresep-47-2023": {
+      "label": "ARESEP, boletín 47-2023",
+      "url": "https://aresep.go.cr/noticias/aresep-detecta-irregularidades-venta-agua/"
+    },
+    "asada-playa-grande": {
+      "label": "Sitio oficial de ASADA Playa Grande",
+      "url": "https://www.asadaplayagrande.com/contact.html"
+    },
+    "asada-surfside": {
+      "label": "Calendario oficial de ASADA Surfside",
+      "url": "https://www.asadasurfside.com/rationing-calendar/"
+    },
+    "racionamiento-playa-grande-2026": {
+      "label": "Comunicado de ASADA Playa Grande reproducido por Upe, 4 de setiembre de 2026",
+      "url": "https://u.pe/es/info/asada-playa-grande-water-rationing-schedule-sep-5-nov-30-2026-horario-de-racionamiento-de-agua/"
+    }
+  }
+}

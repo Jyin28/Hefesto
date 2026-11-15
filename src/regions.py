@@ -7,8 +7,12 @@ verificados contra la linea de costa y frontera terrestre de Costa Rica (WGS84 /
 from __future__ import annotations
 
 import math
-import pandas as pd
+from typing import TYPE_CHECKING
+
 from src.contracts import RegionSpec
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 MASK_VERSION = "cr-land-mask-v2.0"
 MASK_SOURCE = (
@@ -77,8 +81,8 @@ def assign_region(lat: float, lon: float) -> str | None:
     return None
 
 
-def build_masks_df() -> pd.DataFrame:
-    """Construye la tabla masks.parquet con pesos cos(lat) normalizados por sector."""
+def mask_records() -> list[dict]:
+    """Pesos cos(lat) normalizados por sector para el paquete publicado."""
     rows = []
     for region_id, coords in VERIFIED_LAND_CELLS.items():
         raw_weights = [math.cos(math.radians(lat)) for lat, _ in coords]
@@ -93,7 +97,14 @@ def build_masks_df() -> pd.DataFrame:
                     "mask_version": str(MASK_VERSION),
                 }
             )
-    df = pd.DataFrame(rows)
+    return rows
+
+
+def build_masks_df() -> pd.DataFrame:
+    """Construye la tabla masks.parquet."""
+    import pandas as pd
+
+    df = pd.DataFrame(mask_records())
     df = df.astype(
         {
             "region_id": "string",

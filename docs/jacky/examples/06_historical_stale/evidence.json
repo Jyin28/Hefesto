@@ -1,0 +1,224 @@
+{
+  "schema_version": "2.1-proposal",
+  "result_id": "a564e08f2c6bd5677d67ea4addaca5c0",
+  "preset_id": null,
+  "hypothesis": "",
+  "query": {
+    "product": "historical",
+    "variable": "T2M",
+    "zone_ids": [
+      "MOCK_STALE"
+    ],
+    "cell_ids": [],
+    "spatial_level": "zone",
+    "start_date": "2000-01-01",
+    "end_date": "2009-12-31",
+    "time_resolution": "annual",
+    "preset_id": null,
+    "event_id": null,
+    "baseline": null,
+    "analysis_scope_id": null,
+    "metric": null
+  },
+  "query_effective": {
+    "product": "historical",
+    "variable": "T2M",
+    "zone_ids": [
+      "MOCK_STALE"
+    ],
+    "cell_ids": [],
+    "spatial_level": "zone",
+    "start_date": "2000-01-01",
+    "end_date": "2009-12-31",
+    "time_resolution": "annual",
+    "preset_id": null,
+    "event_id": null,
+    "baseline": null,
+    "analysis_scope_id": null,
+    "metric": null
+  },
+  "product": "historical",
+  "availability": {
+    "status": "stale",
+    "reason_code": "snapshot_expired",
+    "message": "Snapshot vencido (valid_until 2024-06-30); no tratar como actual.",
+    "missing_requirements": [],
+    "available_range": [
+      "1981-01-01",
+      "2024-12-31"
+    ],
+    "available_resolution": [
+      "monthly",
+      "annual"
+    ],
+    "checked_at": "2026-11-14T00:00:00Z",
+    "retryable": true
+  },
+  "source_mode": "mock",
+  "synthetic": true,
+  "presentable_as_real": false,
+  "summary": "Serie T2M annual 2000-01-01..2009-12-31: 10 registros. Vencido: no tratar como actual. Datos sinteticos de contrato (mock): no son evidencia cientifica.",
+  "results": [
+    {
+      "zone_id": "MOCK_STALE",
+      "variable": "T2M",
+      "year": 2000,
+      "value": 26.399124,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_STALE",
+      "variable": "T2M",
+      "year": 2001,
+      "value": 26.505175,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_STALE",
+      "variable": "T2M",
+      "year": 2002,
+      "value": 26.879798,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_STALE",
+      "variable": "T2M",
+      "year": 2003,
+      "value": 26.54692,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_STALE",
+      "variable": "T2M",
+      "year": 2004,
+      "value": 26.534318,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_STALE",
+      "variable": "T2M",
+      "year": 2005,
+      "value": 26.962654,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_STALE",
+      "variable": "T2M",
+      "year": 2006,
+      "value": 26.703723,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_STALE",
+      "variable": "T2M",
+      "year": 2007,
+      "value": 26.575862,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_STALE",
+      "variable": "T2M",
+      "year": 2008,
+      "value": 27.02618,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    },
+    {
+      "zone_id": "MOCK_STALE",
+      "variable": "T2M",
+      "year": 2009,
+      "value": 26.864213,
+      "unit": "degC",
+      "months_valid": 12,
+      "complete": true,
+      "synthetic": true
+    }
+  ],
+  "warnings": [
+    "synthetic",
+    "snapshot_expired"
+  ],
+  "limitations": [
+    "Datos sinteticos de contrato; no son evidencia cientifica.",
+    "Celdas de decenas de km (0,5 x 0,625 grados); no es limite administrativo ni detalle de finca."
+  ],
+  "source_ids": [
+    "S1"
+  ],
+  "data_sha256": "b863a8bce56886fdbe46e8cdf6b96f5def46a1dd448403291cad9c0758119466",
+  "mask_version": "mock",
+  "analysis_version": "2.0",
+  "generated_at": "2026-11-14T00:00:00Z",
+  "geographic_context": {
+    "zones": [
+      {
+        "zone_id": "MOCK_STALE",
+        "label": "MOCK: snapshot vencido",
+        "bbox": [
+          -85.9375,
+          9.75,
+          -85.3125,
+          10.25
+        ],
+        "crs": "EPSG:4326",
+        "zone_version": "mock-1",
+        "geometry_sha256": "bc9e10010f2486ba60f9fd8c21bb861409c937975a86277fb53c896d48557085",
+        "mask_version": "mock",
+        "mask_sha256": "e38ecc9e6b807133b7bdefc3f7503bf1f89439d4b2415960898b5ec62472fe56",
+        "cell_ids": [
+          "G_10.000_-85.625"
+        ]
+      }
+    ],
+    "cell_ids": [
+      "G_10.000_-85.625"
+    ],
+    "grid_id": "MOCK_GRID",
+    "grid_version": "mock-1",
+    "native_resolution_deg": [
+      0.5,
+      0.625
+    ],
+    "geographic_scale": "Celdas de decenas de km (0,5 x 0,625 grados); no es limite administrativo ni detalle de finca.",
+    "scale_warning": "Una celda puede pertenecer a varias zonas; no sumar celdas compartidas dos veces."
+  },
+  "data_coverage": {
+    "expected_months": 120,
+    "valid_months": 120,
+    "complete_years": 10,
+    "missing_periods": [],
+    "available_range": [
+      "1981-01-01",
+      "2024-12-31"
+    ]
+  },
+  "forecast_metadata": null,
+  "distribution_metadata": null,
+  "service_coverage_metadata": null
+}

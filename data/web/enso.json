@@ -1,0 +1,36 @@
+{
+  "episodes": [
+    {
+      "id": "enos_1997_98",
+      "start": "1997-06",
+      "end": "1998-05",
+      "sources": [
+        "https://www.ucr.ac.cr/noticias/2023/7/12/el-nino-y-la-nina-dos-caras-de-un-mismo-fenomeno-climatico/"
+      ],
+      "note": "Ventana del plan v2 (S5, UCR: ENOS y efectos regionales). Boletines IMN del episodio 1997-98 pendientes de verificar; comparación descriptiva, sin atribución causal."
+    },
+    {
+      "start": "2023-07",
+      "end": "2024-04",
+      "sources": [
+        "https://www.imn.ac.cr/documents/10179/552310/JULIO",
+        "https://www.imn.ac.cr/documents/10179/569095/%23172%28mayo%29"
+      ],
+      "note": "Ventana de impacto nacional documentado por el IMN.",
+      "id": "enos_2023_24"
+    }
+  ],
+  "neutral_periods": [
+    {
+      "start": "2013-07",
+      "end": "2014-04",
+      "sources": [
+        "https://www.imn.ac.cr/documents/10179/14637/JULIO",
+        "https://www.imn.ac.cr/web/imn/43",
+        "https://www.imn.ac.cr/documents/10179/14639/ENERO",
+        "https://www.imn.ac.cr/documents/10179/28158/%23%2065",
+        "https://www.imn.ac.cr/documents/10179/14639/ABRIL"
+      ]
+    }
+  ]
+}

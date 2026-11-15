@@ -6,18 +6,19 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
-
-import numpy as np
-import pandas as pd
+from typing import TYPE_CHECKING, Any
 
 from src.contracts import COVERAGE_END_YEAR, COVERAGE_START_YEAR, MONTHLY_UNITS, VARIABLE_IDS
 from src.regions import MASK_VERSION, assign_region
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 # Caja minima valida para el endpoint regional (>= 2 deg x 2 deg) que envuelve CR_PN y CR_CAR
 DOWNLOAD_BBOX = {
@@ -91,8 +92,8 @@ def fetch_variable_raw(
     return payload, file_meta, url, retrieved_at
 
 
-def parse_payload_to_rows(payload: dict[str, Any], variable: str) -> list[dict[str, Any]]:
-    """Convierte el GeoJSON de NASA POWER a filas mensuales limpias de Costa Rica."""
+def parse_monthly_records(payload: dict[str, Any], variable: str) -> list[dict[str, Any]]:
+    """Convierte el GeoJSON de NASA POWER a registros mensuales de Costa Rica."""
     fill_value = float(payload.get("header", {}).get("fill_value", -999.0))
     unit = MONTHLY_UNITS[variable]
     rows: list[dict[str, Any]] = []
@@ -115,9 +116,9 @@ def parse_payload_to_rows(payload: dict[str, Any], variable: str) -> list[dict[s
             if month < 1 or month > 12:
                 continue
 
-            val = float(raw_val)
-            if np.isclose(val, fill_value) or val <= -900.0:
-                val = np.nan
+            val = float(raw_val) if raw_val is not None else math.nan
+            if not math.isfinite(val) or math.isclose(val, fill_value) or val <= -900.0:
+                val = None
 
             rows.append(
                 {
@@ -125,7 +126,8 @@ def parse_payload_to_rows(payload: dict[str, Any], variable: str) -> list[dict[s
                     "variable": variable,
                     "lat": lat,
                     "lon": lon,
-                    "time": pd.Timestamp(year=year, month=month, day=1),
+                    "year": year,
+                    "month": month,
                     "value": val,
                     "unit": unit,
                     "synthetic": False,
@@ -134,8 +136,22 @@ def parse_payload_to_rows(payload: dict[str, Any], variable: str) -> list[dict[s
     return rows
 
 
+def parse_payload_to_rows(payload: dict[str, Any], variable: str) -> list[dict[str, Any]]:
+    """Adapta los registros a la representación histórica de la ingesta Parquet."""
+    import pandas as pd
+
+    rows = parse_monthly_records(payload, variable)
+    for row in rows:
+        row["time"] = pd.Timestamp(year=row.pop("year"), month=row.pop("month"), day=1)
+        if row["value"] is None:
+            row["value"] = math.nan
+    return rows
+
+
 def ingest_all(raw_dir: Path) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Descarga y normaliza todas las variables del MVP y construye provenance_base."""
+    import pandas as pd
+
     all_rows: list[dict[str, Any]] = []
     request_urls: list[str] = []
     raw_files: list[dict[str, str]] = []

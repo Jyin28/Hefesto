@@ -1,0 +1,43 @@
+﻿{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-86.0, 9.75],
+            [-85.0, 9.75],
+            [-85.0, 11.25],
+            [-86.0, 11.25],
+            [-86.0, 9.75]
+          ]
+        ]
+      },
+      "properties": {
+        "region_id": "CR_PN",
+        "name": "Sector Pacífico Norte (Guanacaste)"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-84.0, 9.5],
+            [-82.75, 9.5],
+            [-82.75, 10.75],
+            [-84.0, 10.75],
+            [-84.0, 9.5]
+          ]
+        ]
+      },
+      "properties": {
+        "region_id": "CR_CAR",
+        "name": "Sector Caribe (Limón)"
+      }
+    }
+  ]
+}

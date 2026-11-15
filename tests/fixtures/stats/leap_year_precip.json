@@ -1,0 +1,28 @@
+{
+  "case_id": "leap_year_precip",
+  "synthetic": true,
+  "status": "referencia_agregacion_anual",
+  "status_note": "Solo 2 anios: muy por debajo del minimo descriptivo (10) y de inferencia (30); se usa unicamente para contrastar la aritmetica de dias.",
+  "unit": "mm/day",
+  "unit_annual": "mm/yr",
+  "input": {
+    "variable": "PRECTOTCORR",
+    "years": [
+      1999,
+      2000
+    ],
+    "monthly_value_constant": 2.0
+  },
+  "expected": {
+    "1999": {
+      "total_days": 365,
+      "annual_rate_mm_per_day": 2.0,
+      "annual_total_mm_per_year": 730.0
+    },
+    "2000": {
+      "total_days": 366,
+      "annual_rate_mm_per_day": 2.0,
+      "annual_total_mm_per_year": 732.0
+    }
+  }
+}

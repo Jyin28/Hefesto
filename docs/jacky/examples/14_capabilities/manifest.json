@@ -1,0 +1,30 @@
+{
+  "schema_version": "2.1-proposal",
+  "result_id": null,
+  "product": "capabilities",
+  "source_mode": "mock",
+  "synthetic": true,
+  "availability": {
+    "status": "available",
+    "reason_code": null
+  },
+  "generated_at": "2026-11-14T00:00:00Z",
+  "conventions": {
+    "encoding": "utf-8",
+    "delimiter": ",",
+    "decimal": ".",
+    "line_terminator": "\n",
+    "missing": "empty cell",
+    "nested": "compact JSON text",
+    "booleans": "true/false",
+    "row_keys": "every row carries result_id and product plus its join keys"
+  },
+  "tables_present": [],
+  "tables_absent": [],
+  "files": [
+    "evidence.json",
+    "ficha.md",
+    "manifest.json",
+    "provenance.json"
+  ]
+}

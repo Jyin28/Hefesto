@@ -1,0 +1,30 @@
+{
+  "case_id": "incomplete_year",
+  "synthetic": true,
+  "status": "anio_incompleto",
+  "status_note": "Un mes ausente deja el anio sin los 12 meses validos exigidos; el cero de febrero sigue siendo valido.",
+  "unit": "mm/day",
+  "input": {
+    "variable": "PRECTOTCORR",
+    "year": 2005,
+    "monthly_values": [
+      2.0,
+      0.0,
+      2.0,
+      2.0,
+      null,
+      2.0,
+      2.0,
+      2.0,
+      2.0,
+      2.0,
+      2.0,
+      2.0
+    ]
+  },
+  "expected": {
+    "valid_months": 11,
+    "year_complete": false,
+    "zero_counts_as_valid": true
+  }
+}

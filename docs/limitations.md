@@ -79,3 +79,19 @@ Hefesto v2 **no usa LLM ni IA generativa en tiempo de ejecución**. Las recomend
 | S3 | statsmodels: OLS con covarianza HAC. |
 | S4 | Benjamini y Yekutieli (2001), control de la tasa de falsos descubrimientos bajo dependencia. |
 | S5 | Artículo UCR sobre El Niño y La Niña (enlace en la sección 5). |
+
+## 9. Calidad de la lluvia de reanálisis (diagnóstico de la rama MVP)
+
+- Los totales anuales de `PRECTOTCORR` suben de ~1 000–1 500 mm/año (años 80–90) a más de 3 000 mm/año en años recientes en ambos sectores
+  (p. ej. Caribe 803 mm en 1994 frente a 5 079 mm en 2024; Pacífico Norte 352 mm en 1994 frente a 3 732 mm en 2024).
+  Las pendientes resultantes (+402 y +592 mm/año por década) son enormes y **no están validadas con estaciones**.
+- NASA POWER indica que los datos más recientes pueden provenir de GEOS-IT, que carece de la normalización por pluviómetros de MERRA-2;
+  no documenta una ruptura específica. La prueba de Pettitt sobre residuos **no** detecta un salto de nivel único (p≈0,2–0,4), y la
+  tendencia es robusta al año final (2020, 2023 o 2024). Con esto, el patrón puede ser deriva del reanálisis o cambio real: **no se puede distinguir sin estaciones**.
+- Regla del producto: la tendencia se muestra siempre (no se oculta ni se cambia el período), con la advertencia `reanalysis_precip_caution`
+  en pantalla, ficha y exportación. Nunca presentar estas magnitudes como lluvia observada ni derivar decisiones de agua.
+- La advertencia `possible_inhomogeneity` se activa solo si Pettitt (sobre residuos OLS) da p < 0,05 y se calcula igual para ambas variables.
+- Pendiente humana: contrastar con estaciones del IMN.
+
+## 10. Alcance del MVP
+Fuera de alcance y no incluidos en la app: pronóstico, cobertura de agua/ASADAS, cantones, mapa web React.

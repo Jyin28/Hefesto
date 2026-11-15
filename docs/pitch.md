@@ -1,7 +1,6 @@
 # Pitch — Hefesto: Detective Tico (4:30)
 
-> **BORRADOR — DATOS SYNTHETIC / CIFRAS ESTADÍSTICAS PENDIENTES.**
-> Donde aparezca `[CIFRA_PENDIENTE]`, Emanuel entrega el número real. Donde aparezca `[CAPTURA_SYNTHETIC]`, Kevin reemplaza por la captura real de la app. No decir ninguna cifra que no esté confirmada.
+> **Guion de ensayo con datos reales.** Las cifras y su verificación están en [Validación](validation.md). Las capturas quedan para el ensayo en navegador.
 
 ## Cronograma (total 4:30)
 
@@ -21,13 +20,13 @@
 "En Costa Rica todos hablamos del calor y de la lluvia: ¿hace más calor que antes?, ¿llueve distinto en el Caribe que en el Pacífico? Pasar de la intuición a la evidencia no es fácil. **Hefesto: Detective Tico** convierte una pregunta cotidiana en evidencia reproducible, paso a paso, para colegios y universidades. Funciona sin internet y sin inteligencia artificial generativa en producción."
 
 ### 0:30–1:10 · Joshua · Diapositiva 2
-"El estudiante responde tres preguntas y el sistema, con reglas fijas y transparentes, le propone la variable: temperatura del aire a dos metros, T2M, para calor; precipitación corregida, PRECTOTCORR, para lluvia. Los datos son de NASA POWER mensual, del reanálisis MERRA-2, de 1981 a 2024: 44 años completos. Son estimaciones de un modelo con asimilación de observaciones, no mediciones de estaciones."
+"El estudiante elige calor o lluvia. El sitio usa temperatura del aire a dos metros para calor y precipitación corregida para lluvia. Los datos son de NASA POWER mensual, del reanálisis MERRA-2, de 1981 a 2024: 44 años completos. Son estimaciones de un modelo con asimilación de observaciones, no mediciones de estaciones."
 
 ### 1:10–2:05 · Kevin · Diapositiva 3 (Caso calor, `CR_HEAT`)
-"Primer caso: calor. Comparamos dos sectores didácticos, Pacífico Norte y Caribe, con cinco celdas terrestres cada uno. La app muestra la serie anual completa, el mapa de las diez celdas y cuatro tarjetas: qué cambia, dónde, cuánto y con qué evidencia. `[CAPTURA_SYNTHETIC]` En el Pacífico Norte la pendiente por década es `[CIFRA_PENDIENTE]` y en el Caribe es `[CIFRA_PENDIENTE]`, con intervalos de confianza `[CIFRA_PENDIENTE]`. Aclaramos siempre: es temperatura del aire, no del mar."
+"Primer caso: calor. Comparamos dos sectores didácticos, Pacífico Norte y Caribe, con cinco celdas terrestres cada uno. La app compara 1981–2002 con 2003–2024 con mapas de la misma escala. En el Caribe, la pendiente de temperatura del aire es +0,144 °C por década, con un intervalo individual de 0,081 a 0,207. En Pacífico Norte estimamos −0,036 °C por década y el intervalo incluye cero."
 
 ### 2:05–3:00 · Kevin · Diapositiva 4 (Caso lluvia, `CR_RAIN`)
-"Segundo caso: lluvia, en milímetros por año. Comparamos de nuevo Pacífico Norte y Caribe. `[CAPTURA_SYNTHETIC]` Las pendientes son `[CIFRA_PENDIENTE]` y `[CIFRA_PENDIENTE]`. Un artículo de la UCR explica que El Niño y La Niña influyen de forma distinta en las dos vertientes. Pero eso es variabilidad interanual: no prueba una tendencia ni garantiza pendientes opuestas entre 1981 y 2024. Y recordemos: medimos lluvia, no caudal de ríos, ni recarga de acuíferos, ni agua potable."
+"Segundo caso: lluvia, en milímetros por año. Comparamos de nuevo Pacífico Norte y Caribe. Las pendientes son +402 y +592 mm/año por década, respectivamente, pero advertimos que la lluvia de reanálisis no está validada con estaciones y esas magnitudes son un patrón del producto, no lluvia observada. Mostramos el episodio de junio de 1997 a mayo de 1998 como anomalías frente a la climatología 1981–2010. Un artículo de la UCR explica que El Niño y La Niña influyen de forma distinta en las dos vertientes. Pero eso es variabilidad interanual: no prueba una tendencia ni garantiza pendientes opuestas entre 1981 y 2024. Y recordemos: medimos lluvia, no caudal de ríos, ni recarga de acuíferos, ni agua potable."
 
 ### 3:00–3:50 · Emanuel · Diapositiva 5
 "Para ser honestos con la estadística, usamos solo años con doce meses completos. Con menos de diez años no ajustamos nada; entre diez y veintinueve mostramos solo la pendiente descriptiva; con treinta o más años consecutivos usamos regresión OLS con errores estándar HAC, kernel Bartlett y L igual a 3, con sensibilidad en L igual a 1 y 5. Corregimos por comparaciones múltiples con Benjamini-Yekutieli, alfa 0.05, sobre dos variables por dos sectores. Y si algo no es significativo, decimos evidencia insuficiente, no ausencia de cambio."
@@ -36,16 +35,11 @@
 "Cada celda mide unos 55 por 69 kilómetros; no son provincias, cantones ni fincas, y las celdas costeras pueden mezclar tierra y mar. Es una herramienta educativa: no está validada para alertas, racionamiento, ASADAS ni agricultura, ni aún con usuarios externos."
 
 ### 4:10–4:30 · Joshua · Diapositiva 6
-"Cada recorrido termina en una Ficha de Detective, en JSON y Markdown, reproducible y 100 % offline. Lo que sigue: integrar los resultados finales y validar con docentes y estudiantes. Detective Tico no promete respuestas; enseña a hacer buenas preguntas con evidencia. Gracias."
+"Cada recorrido termina en una Ficha de Detective, descargable en JSON y CSV, reproducible con el paquete local. Detective Tico no promete respuestas; enseña a hacer buenas preguntas con evidencia. Gracias."
 
-## Plan B — si las pendientes resultan iguales o no significativas
+## Si el navegador o la publicación fallan
 
-**No prometer contrastes que los datos no muestran.** Cambios al guion (misma duración):
-
-- **Kevin, diapositivas 3 y 4:** reemplazar la frase de contraste por: "Las pendientes de los dos sectores son `[CIFRA_PENDIENTE]` y `[CIFRA_PENDIENTE]`; la evidencia es la que muestra la tarjeta, sin forzar una diferencia."
-- **Emanuel, diapositiva 5:** agregar: "Si el resultado no es significativo, la ficha dice evidencia insuficiente bajo este modelo. No significa que no haya cambio, y más años no garantizan reducir p."
-- **Joshua, cierre:** "La historia de Detective Tico no es encontrar siempre un culpable: es aprender a decir con rigor qué dicen los datos y qué no."
-- **ENOS:** mantener el contexto como variabilidad interanual, sin atribuir las pendientes a ENOS.
+Usar la ejecución local de Streamlit y abrir el JSON y CSV del mismo resultado. Si el mapa interactivo falla, la ficha se puede cambiar con el selector de celdas. El cuadro de validación contiene las cifras de respaldo.
 
 ## Preguntas y respuestas (Q&A)
 
@@ -57,6 +51,6 @@
 | 4 | ¿Por qué BY? | Emanuel | Hay 4 pruebas (2 variables × 2 sectores); BY corrige por comparaciones múltiples y es válido bajo dependencia, para evitar falsos hallazgos. |
 | 5 | ¿Qué significa "no significativo"? | Emanuel | Evidencia insuficiente bajo este modelo, no ausencia de cambio. Más años no garantizan reducir p. |
 | 6 | ¿Por qué ENOS no prueba tendencia? | Joshua | ENOS es variabilidad interanual; influye distinto en cada vertiente según la UCR, pero no demuestra causalidad ni garantiza pendientes opuestas en 1981–2024. |
-| 7 | ¿Qué innovación aportan? | Kevin | Del dato a una pregunta cotidiana: recomendación transparente, 4 tarjetas, límites visibles, Ficha reproducible JSON/Markdown, 100 % offline y sin IA generativa en producción. |
+| 7 | ¿Qué innovación aportan? | Kevin | Del dato a una pregunta cotidiana: ventanas comparables, selección de celdas, evidencia estadística y ficha reproducible en JSON y CSV. |
 
 *(Dueños propuestos: ajustar si el equipo lo prefiere.)*

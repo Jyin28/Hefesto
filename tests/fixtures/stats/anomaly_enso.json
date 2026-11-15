@@ -1,0 +1,23 @@
+{
+  "case_id": "anomaly_enso",
+  "synthetic": true,
+  "status": "ver_scenarios",
+  "status_note": "Caso A: referencia disponible. Caso B: referencia ausente, la anomalia queda ausente (no se asume 0).",
+  "unit": "degC",
+  "input": {
+    "variable": "T2M",
+    "month": "julio",
+    "scenario_reference_available": {
+      "observed": 12.0,
+      "reference_mean": 10.0
+    },
+    "scenario_reference_missing": {
+      "observed": 12.0,
+      "reference_mean": null
+    }
+  },
+  "expected": {
+    "anomaly_reference_available": 2.0,
+    "anomaly_reference_missing": null
+  }
+}

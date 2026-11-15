@@ -1,0 +1,111 @@
+{
+  "schema_version": "2.1-proposal",
+  "result_id": null,
+  "preset_id": null,
+  "hypothesis": "",
+  "query": {
+    "product": "historical",
+    "variable": "T2M",
+    "zone_ids": [
+      "CR_PN"
+    ],
+    "cell_ids": [],
+    "spatial_level": "zone",
+    "start_date": "2000-01-01",
+    "end_date": "2009-12-31",
+    "time_resolution": "daily",
+    "preset_id": null,
+    "event_id": null,
+    "baseline": null,
+    "analysis_scope_id": null,
+    "metric": null
+  },
+  "query_effective": null,
+  "product": "historical",
+  "availability": {
+    "status": "unsupported",
+    "reason_code": "resolution_not_supported",
+    "message": "Resolucion 'daily' fuera del contrato; use monthly o annual.",
+    "missing_requirements": [],
+    "available_range": null,
+    "available_resolution": [
+      "monthly",
+      "annual"
+    ],
+    "checked_at": "2026-11-14T00:00:00Z",
+    "retryable": false
+  },
+  "source_mode": "mock",
+  "synthetic": true,
+  "presentable_as_real": false,
+  "summary": "Sin resultado (unsupported: resolution_not_supported). Resolucion 'daily' fuera del contrato; use monthly o annual. Datos sinteticos de contrato (mock): no son evidencia cientifica.",
+  "results": null,
+  "warnings": [
+    "synthetic"
+  ],
+  "limitations": [
+    "Datos sinteticos de contrato; no son evidencia cientifica.",
+    "Celdas de decenas de km (0,5 x 0,625 grados); no es limite administrativo ni detalle de finca."
+  ],
+  "source_ids": [],
+  "data_sha256": null,
+  "mask_version": null,
+  "analysis_version": "2.0",
+  "generated_at": "2026-11-14T00:00:00Z",
+  "geographic_context": {
+    "zones": [
+      {
+        "zone_id": "CR_PN",
+        "label": "Sector Pacifico Norte (ventana didactica)",
+        "bbox": [
+          -85.9375,
+          9.75,
+          -84.6875,
+          11.25
+        ],
+        "crs": "EPSG:4326",
+        "zone_version": "mock-1",
+        "geometry_sha256": "7dac2113c5522db82ba4cb0ab320339f17ed1420b52789653864e55419306e40",
+        "mask_version": "mock",
+        "mask_sha256": "865694add3b166f69ae54c3817e31a9376a8e25ddcbefa7ce6db029703c5a8db",
+        "cell_ids": [
+          "G_10.000_-85.625",
+          "G_10.500_-85.625",
+          "G_10.500_-85.000",
+          "G_11.000_-85.625",
+          "G_11.000_-85.000"
+        ]
+      }
+    ],
+    "cell_ids": [
+      "G_10.000_-85.625",
+      "G_10.500_-85.625",
+      "G_10.500_-85.000",
+      "G_11.000_-85.625",
+      "G_11.000_-85.000"
+    ],
+    "grid_id": "MOCK_GRID",
+    "grid_version": "mock-1",
+    "native_resolution_deg": [
+      0.5,
+      0.625
+    ],
+    "geographic_scale": "Celdas de decenas de km (0,5 x 0,625 grados); no es limite administrativo ni detalle de finca.",
+    "scale_warning": "Una celda puede pertenecer a varias zonas; no sumar celdas compartidas dos veces."
+  },
+  "data_coverage": {
+    "expected_months": 120,
+    "valid_months": 0,
+    "complete_years": 0,
+    "missing_periods": [
+      [
+        "2000-01-01",
+        "2009-12-31"
+      ]
+    ],
+    "available_range": null
+  },
+  "forecast_metadata": null,
+  "distribution_metadata": null,
+  "service_coverage_metadata": null
+}
