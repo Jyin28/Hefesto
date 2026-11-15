@@ -9,6 +9,7 @@ import type { Boundaries, CdsData, Geo, GridGeo, LayerVar, Region, Snapshot, Wat
 import { buildLayerGrid, colorExpression, describe, legendGradient, legendTitle, metaFor } from './layers'
 import type { LayerMode, Source } from './layers'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import { t } from './i18n'
 
 const empty: FeatureCollection = { type: 'FeatureCollection', features: [] }
 // Límites del mapa: la malla NASA POWER 7×7 (8,25–11,75 °N · 86,5625–82,1875 °O) más 0,25° al sur para que
@@ -31,7 +32,13 @@ const OUTLINE = {
 } as const
 const HOVER_SCALE = 1.04
 const HOVER_MS = 120
-const WATER_NAMES = { river: 'Río', canal: 'Canal', stream: 'Quebrada', water: 'Cuerpo de agua' } as const
+/** El texto de atribución lo escribe `python -m src.cds` en español: en inglés se traducen sus frases conocidas. */
+const attributionText = (text: string) => t(text, text
+  .replace('Contiene información modificada del Servicio de Cambio Climático de Copernicus', 'Contains modified Copernicus Climate Change Service information')
+  .replace('ERA5-Land y ERA5', 'ERA5-Land and ERA5')
+  .replace('Ni la Comisión Europea ni ECMWF son responsables del uso que se haga de ella.', 'Neither the European Commission nor ECMWF is responsible for any use that may be made of the information it contains.'))
+/** Con getters: en el idioma activo. */
+const WATER_NAMES = { get river() { return t('Río', 'River') }, get canal() { return t('Canal', 'Canal') }, get stream() { return t('Quebrada', 'Stream') }, get water() { return t('Cuerpo de agua', 'Body of water') } } as const
 
 /** Resumen de los operadores de agua de un cantón, según el catálogo SAGA y los reportes de las ASADAs. */
 export type CantonStatus = { operators: number; reported: number; affected: number }
@@ -194,7 +201,7 @@ export function Map({ boundaries, geo, snapshot, cds, cdsGeo, cdsMissing, waterw
       instance.on('mousemove', event => {
         const { mode: current, level: lvl, alerts: states, cantonStatus: status, variable: variableNow, layerMode: modeNow, grid: now, source: sourceNow } = latest.current
         const canton = instance.queryRenderedFeatures(event.point, { layers: ['cantons'] })[0]
-        const place = canton?.properties ? `Cantón: ${canton.properties.name}` : 'Costa Rica'
+        const place = canton?.properties ? `${t('Cantón', 'Canton')}: ${canton.properties.name}` : 'Costa Rica'
         const province = canton?.properties?.province ? String(canton.properties.province) : undefined
         let content: HTMLElement | undefined
         if (current !== 'cantones') {
@@ -203,12 +210,12 @@ export function Map({ boundaries, geo, snapshot, cds, cdsGeo, cdsMissing, waterw
           const cellId = cell?.properties?.id ? String(cell.properties.id) : ''
           showHover(cellId, () => now.land.features.find(item => item.properties.id === cellId) as Feature | undefined)
           if (cell?.properties?.has === 1) {
-            const approximate = cell.properties.approx === 1 ? ' · valor aproximado: toma el punto de tierra más cercano de ERA5-Land' : ''
+            const approximate = cell.properties.approx === 1 ? t(' · valor aproximado: toma el punto de tierra más cercano de ERA5-Land', ' · approximate value: it takes the nearest land point of ERA5-Land') : ''
             content = hoverCard(place, province, describe(variableNow, modeNow, Number(cell.properties.v), Number(cell.properties.nat), now, sourceNow) + approximate)
           } else if (cell || canton) {
             content = hoverCard(place, province, modeNow === 'slope'
-              ? `${meta.slopeTitle}: sin datos suficientes en este período`
-              : `${meta.valueTitle(now.year)}: sin dato`)
+              ? t(`${meta.slopeTitle}: sin datos suficientes en este período`, `${meta.slopeTitle}: not enough data in this period`)
+              : t(`${meta.valueTitle(now.year)}: sin dato`, `${meta.valueTitle(now.year)}: no data`))
           }
         } else {
           const hoveredCode = canton?.properties?.code ? String(canton.properties.code) : ''
@@ -217,17 +224,17 @@ export function Map({ boundaries, geo, snapshot, cds, cdsGeo, cdsMissing, waterw
           const water = instance.queryRenderedFeatures(box, { layers: WATER_LAYERS })[0]
           if (water?.properties) {
             const kind = String(water.properties.kind) as keyof typeof WATER_NAMES
-            const label = water.properties.name ? String(water.properties.name) : `${WATER_NAMES[kind] ?? 'Curso de agua'} sin nombre`
-            content = hoverCard(label, undefined, canton?.properties ? `En el cantón de ${canton.properties.name}` : undefined)
+            const label = water.properties.name ? String(water.properties.name) : t(`${WATER_NAMES[kind] ?? 'Curso de agua'} sin nombre`, `Unnamed ${(WATER_NAMES[kind] ?? 'watercourse').toLowerCase()}`)
+            content = hoverCard(label, undefined, canton?.properties ? t(`En el cantón de ${canton.properties.name}`, `In the canton of ${canton.properties.name}`) : undefined)
           } else if (canton?.properties) {
             const code = String(canton.properties.code)
             const info = status[code]
             const parts: string[] = []
             if (info?.operators) {
-              parts.push(plural(info.operators, 'operador de agua', 'operadores de agua'))
-              if (info.affected) parts.push(`${info.affected} ${info.affected === 1 ? 'reporta' : 'reportan'} afectación por El Niño`)
-              else if (info.reported) parts.push(`${info.reported} ${info.reported === 1 ? 'reportó' : 'reportaron'} sin afectación`)
-            } else parts.push('Sin operadores de agua cargados')
+              parts.push(t(plural(info.operators, 'operador de agua', 'operadores de agua'), plural(info.operators, 'water operator', 'water operators')))
+              if (info.affected) parts.push(t(`${info.affected} ${info.affected === 1 ? 'reporta' : 'reportan'} afectación por El Niño`, `${info.affected} ${info.affected === 1 ? 'reports' : 'report'} impacts from El Niño`))
+              else if (info.reported) parts.push(t(`${info.reported} ${info.reported === 1 ? 'reportó' : 'reportaron'} sin afectación`, `${info.reported} reported no impact`))
+            } else parts.push(t('Sin operadores de agua cargados', 'No water operators loaded'))
             if ((states[code] ?? 'none') !== 'none') parts.push(copy[lvl].alertLabel[states[code]])
             content = hoverCard(place, province, parts.join(' · '))
           }
@@ -331,37 +338,38 @@ export function Map({ boundaries, geo, snapshot, cds, cdsGeo, cdsMissing, waterw
   const digits = layerMode === 'slope' ? meta.slopeDigits : meta.digits
   const legendNumber = (value: number) => (layerMode === 'slope' && value > 0 ? '+' : '') + fmt(value, digits)
   return <>
-    <div className="map" ref={container} aria-label="Mapa de Costa Rica" />
+    <div className="map" ref={container} aria-label={t('Mapa de Costa Rica', 'Map of Costa Rica')} />
     {!failed && <div className="map-hud">
-      <div className="legend glass" aria-label="Leyenda del mapa">
+      <div className="legend glass" aria-label={t('Leyenda del mapa', 'Map legend')}>
         {mode !== 'cantones' ? <>
           <strong>{legendTitle(variable, layerMode, grid, source)}</strong>
           <div className="legend-bar" style={{ background: legendGradient(variable, layerMode) }} />
           <div className="legend-scale">
             <span>{legendNumber(lo)}</span>{layerMode === 'slope' && <span>0</span>}<span>{legendNumber(hi)}</span>
           </div>
-          {mode === 'cds' && cdsMissing && <span><strong>Datos CDS todavía no generados.</strong> Corré <code>python -m src.cds</code>.</span>}
-          {grid.withData < grid.total && <span>Gris: sin datos suficientes.</span>}
-          {mode === 'cds' && !!cds?.layers[variable]?.filled?.length && <span>Costa: las celdas cuyo centro cae en el mar toman el punto de tierra más cercano (valor aproximado).</span>}
-          {mode === 'cds' && variable === 'UV' && <span>El UV viene en cuadros de 0,25°: varios cuadros vecinos comparten valor.</span>}
-          <span>Solo se colorea el territorio nacional.</span>
+          {mode === 'cds' && cdsMissing && <span><strong>{t('Datos CDS todavía no generados.', 'CDS data not generated yet.')}</strong> {t('Corré', 'Run')} <code>python -m src.cds</code>.</span>}
+          {grid.withData < grid.total && <span>{t('Gris: sin datos suficientes.', 'Gray: not enough data.')}</span>}
+          {mode === 'cds' && !!cds?.layers[variable]?.filled?.length && <span>{t('Costa: las celdas cuyo centro cae en el mar toman el punto de tierra más cercano (valor aproximado).', 'Coast: cells whose center falls in the sea take the nearest land point (approximate value).')}</span>}
+          {mode === 'cds' && variable === 'UV' && <span>{t('El UV viene en cuadros de 0,25°: varios cuadros vecinos comparten valor.', 'UV comes in 0.25° squares: several neighboring squares share a value.')}</span>}
+          <span>{t('Solo se colorea el territorio nacional.', 'Only the national territory is colored.')}</span>
         </> : <>
-          <strong>Operadores de agua y El Niño</strong>
-          <div className="legend-row"><span className="swatch" style={{ background: AFFECTED }} />Hay operadores afectados</div>
-          <div className="legend-row"><span className="swatch" style={{ background: REPORTED }} />Reportaron sin afectación</div>
-          <strong>Avisos publicados</strong>
+          <strong>{t('Operadores de agua y El Niño', 'Water operators and El Niño')}</strong>
+          <div className="legend-row"><span className="swatch" style={{ background: AFFECTED }} />{t('Hay operadores afectados', 'Some operators are affected')}</div>
+          <div className="legend-row"><span className="swatch" style={{ background: REPORTED }} />{t('Reportaron sin afectación', 'Reported no impact')}</div>
+          <strong>{t('Avisos publicados', 'Published notices')}</strong>
           {(['active', 'expired', 'none'] as const).map(state => <div className="legend-row" key={state}>
             <span className="swatch" style={{ background: state === 'active' ? NOTICE_ACTIVE : state === 'expired' ? NOTICE_EXPIRED : LAND }} />{copy[level].alertLabel[state]}
           </div>)}
-          <strong>Agua</strong>
-          <div className="legend-row"><span className="swatch line" style={{ background: RIVER }} />Ríos y quebradas</div>
-          <div className="legend-row"><span className="swatch" style={{ background: WATER_FILL }} />Lagos y embalses</div>
+          <strong>{t('Agua', 'Water')}</strong>
+          <div className="legend-row"><span className="swatch line" style={{ background: RIVER }} />{t('Ríos y quebradas', 'Rivers and streams')}</div>
+          <div className="legend-row"><span className="swatch" style={{ background: WATER_FILL }} />{t('Lagos y embalses', 'Lakes and reservoirs')}</div>
         </>}
       </div>
     </div>}
-    <p className="map-caption">{failed ? 'El mapa requiere WebGL. Podés seleccionar un cantón desde el buscador.'
-      : mode === 'cantones' ? `${boundaries ? `${boundaries.features.length} cantones con polígono propio. ` : 'Cargando la capa cantonal… '}Ríos y quebradas: © colaboradores de OpenStreetMap (ODbL).`
-        : mode === 'cds' ? (cds ? cds.attribution : cdsMissing ? 'Los datos del CDS de Copernicus todavía no se han generado.' : 'Cargando los datos del CDS…')
-          : boundaries ? `${boundaries.features.length} cantones con polígono propio.` : 'Cargando la capa cantonal…'}</p>
+    <p className="map-caption">{failed ? t('El mapa requiere WebGL. Podés seleccionar un cantón desde el buscador.', 'The map requires WebGL. You can select a canton from the search box.')
+      : mode === 'cantones' ? t(`${boundaries ? `${boundaries.features.length} cantones con polígono propio. ` : 'Cargando la capa cantonal… '}Ríos y quebradas: © colaboradores de OpenStreetMap (ODbL).`,
+        `${boundaries ? `${boundaries.features.length} cantons with their own polygon. ` : 'Loading the cantonal layer… '}Rivers and streams: © OpenStreetMap contributors (ODbL).`)
+        : mode === 'cds' ? (cds ? attributionText(cds.attribution) : cdsMissing ? t('Los datos del CDS de Copernicus todavía no se han generado.', 'The Copernicus CDS data have not been generated yet.') : t('Cargando los datos del CDS…', 'Loading the CDS data…'))
+          : boundaries ? t(`${boundaries.features.length} cantones con polígono propio.`, `${boundaries.features.length} cantons with their own polygon.`) : t('Cargando la capa cantonal…', 'Loading the cantonal layer…')}</p>
   </>
 }

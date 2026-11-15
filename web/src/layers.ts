@@ -3,6 +3,7 @@ import type { ExpressionSpecification } from 'maplibre-gl'
 import { fmt, ols, usable } from './analysis'
 import type { Point, Range } from './analysis'
 import type { GeoCell, Layer, LayerVar } from './data'
+import { t } from './i18n'
 
 /** «slope» = cuánto cambia cada 10 años dentro de un rango de años; «value» = el valor de un año concreto. */
 export type LayerMode = 'slope' | 'value'
@@ -36,30 +37,39 @@ type Meta = {
   about: string
 }
 
+/** Los textos son getters: se leen en el idioma activo cada vez que se usan (META se declara una sola vez, al cargar el módulo). */
 export const META: Record<LayerVar, Meta> = {
   T2M: {
-    name: 'Temperatura', valueTitle: year => `Temperatura promedio en ${year}`, slopeTitle: 'Cambio de temperatura',
-    unit: '°C', slopeUnit: '°C', digits: 1, slopeDigits: 2, flat: 0.03, same: 0.3, more: 'más cálido', less: 'más fresco',
+    get name() { return t('Temperatura', 'Temperature') }, valueTitle: year => t(`Temperatura promedio en ${year}`, `Average temperature in ${year}`),
+    get slopeTitle() { return t('Cambio de temperatura', 'Temperature change') },
+    unit: '°C', slopeUnit: '°C', digits: 1, slopeDigits: 2, flat: 0.03, same: 0.3,
+    get more() { return t('más cálido', 'warmer') }, get less() { return t('más fresco', 'cooler') },
     values: ['#38BDF8', '#fef3c7', '#f59e0b', '#dc2626'], slope: [SKY, PAPER, AMBER],
-    about: 'Temperatura del aire a 2 metros del suelo, promediada en todo el año.',
+    get about() { return t('Temperatura del aire a 2 metros del suelo, promediada en todo el año.', 'Air temperature 2 meters above the ground, averaged over the whole year.') },
   },
   PRECTOTCORR: {
-    name: 'Lluvia', valueTitle: year => `Lluvia total en ${year}`, slopeTitle: 'Cambio de la lluvia anual',
-    unit: 'mm', slopeUnit: 'mm', digits: 0, slopeDigits: 0, flat: 20, same: 100, more: 'más lluvioso', less: 'más seco',
+    get name() { return t('Lluvia', 'Rain') }, valueTitle: year => t(`Lluvia total en ${year}`, `Total rainfall in ${year}`),
+    get slopeTitle() { return t('Cambio de la lluvia anual', 'Change in annual rainfall') },
+    unit: 'mm', slopeUnit: 'mm', digits: 0, slopeDigits: 0, flat: 20, same: 100,
+    get more() { return t('más lluvioso', 'rainier') }, get less() { return t('más seco', 'drier') },
     values: ['#f1f5f9', '#7dd3fc', '#0369a1', '#1e3a8a'], slope: [AMBER, PAPER, SKY],
-    about: 'Lluvia total que cae en el año, en milímetros (1 mm = 1 litro por metro cuadrado).',
+    get about() { return t('Lluvia total que cae en el año, en milímetros (1 mm = 1 litro por metro cuadrado).', 'Total rain that falls in the year, in millimeters (1 mm = 1 liter per square meter).') },
   },
   RH2M: {
-    name: 'Humedad', valueTitle: year => `Humedad del aire en ${year}`, slopeTitle: 'Cambio de la humedad del aire',
-    unit: '%', slopeUnit: 'puntos de humedad', digits: 1, slopeDigits: 1, flat: 0.15, same: 1.5, more: 'más húmedo', less: 'menos húmedo',
+    get name() { return t('Humedad', 'Humidity') }, valueTitle: year => t(`Humedad del aire en ${year}`, `Air humidity in ${year}`),
+    get slopeTitle() { return t('Cambio de la humedad del aire', 'Change in air humidity') },
+    unit: '%', get slopeUnit() { return t('puntos de humedad', 'humidity points') }, digits: 1, slopeDigits: 1, flat: 0.15, same: 1.5,
+    get more() { return t('más húmedo', 'more humid') }, get less() { return t('menos húmedo', 'less humid') },
     values: ['#dcfce7', '#86efac', '#22c55e', '#14532d'], slope: ['#b45309', PAPER, '#16a34a'],
-    about: 'Humedad relativa del aire a 2 metros del suelo: qué tan cargado de vapor de agua está, de 0 a 100 %.',
+    get about() { return t('Humedad relativa del aire a 2 metros del suelo: qué tan cargado de vapor de agua está, de 0 a 100 %.', 'Relative humidity of the air 2 meters above the ground: how loaded with water vapor it is, from 0 to 100 %.') },
   },
   UV: {
-    name: 'Radiación UV', valueTitle: year => `Radiación UV (promedio del día) en ${year}`, slopeTitle: 'Cambio de la radiación UV',
-    unit: '', slopeUnit: 'puntos del índice UV', digits: 2, slopeDigits: 2, flat: 0.01, same: 0.03, more: 'más radiación UV', less: 'menos radiación UV',
+    get name() { return t('Radiación UV', 'UV radiation') }, valueTitle: year => t(`Radiación UV (promedio del día) en ${year}`, `UV radiation (daily average) in ${year}`),
+    get slopeTitle() { return t('Cambio de la radiación UV', 'Change in UV radiation') },
+    unit: '', get slopeUnit() { return t('puntos del índice UV', 'UV index points') }, digits: 2, slopeDigits: 2, flat: 0.01, same: 0.03,
+    get more() { return t('más radiación UV', 'more UV radiation') }, get less() { return t('menos radiación UV', 'less UV radiation') },
     values: ['#ede9fe', '#a78bfa', '#7c3aed', '#4c1d95'], slope: ['#94a3b8', PAPER, '#7c3aed'],
-    about: 'Índice UV promedio de las 24 horas del día (incluye la noche), por eso es mucho más bajo que el valor del mediodía que se anuncia en las noticias.',
+    get about() { return t('Índice UV promedio de las 24 horas del día (incluye la noche), por eso es mucho más bajo que el valor del mediodía que se anuncia en las noticias.', 'Average UV index over the 24 hours of the day (including the night), which is why it is much lower than the midday value announced in the news.') },
   },
 }
 
@@ -67,9 +77,12 @@ export const META: Record<LayerVar, Meta> = {
 export type Source = 'nasa' | 'cds'
 /** El UV del CDS es energía (W/m² de UV-A + UV-B, promedio de 24 h), no el índice UV de NASA: otra unidad y otra escala. */
 const CDS_UV: Meta = {
-  ...META.UV, unit: 'W/m²', slopeUnit: 'W/m²', digits: 1, slopeDigits: 2, flat: 0.05, same: 0.5,
-  valueTitle: year => `Radiación UV que llega al suelo (promedio del día) en ${year}`,
-  about: 'Energía de radiación ultravioleta (UV-A y UV-B) que llega a cada metro cuadrado del suelo, promediada las 24 horas del día (incluye la noche). Se mide en W/m²; no es el índice UV que se anuncia en las noticias.',
+  // Sin `...META.UV`: copiar con spread evaluaría los getters al cargar el módulo y congelaría el idioma.
+  get name() { return META.UV.name }, get slopeTitle() { return META.UV.slopeTitle }, get more() { return META.UV.more }, get less() { return META.UV.less },
+  values: META.UV.values, slope: META.UV.slope,
+  unit: 'W/m²', slopeUnit: 'W/m²', digits: 1, slopeDigits: 2, flat: 0.05, same: 0.5,
+  valueTitle: year => t(`Radiación UV que llega al suelo (promedio del día) en ${year}`, `UV radiation reaching the ground (daily average) in ${year}`),
+  get about() { return t('Energía de radiación ultravioleta (UV-A y UV-B) que llega a cada metro cuadrado del suelo, promediada las 24 horas del día (incluye la noche). Se mide en W/m²; no es el índice UV que se anuncia en las noticias.', 'Energy of ultraviolet radiation (UV-A and UV-B) reaching each square meter of ground, averaged over the 24 hours of the day (including the night). It is measured in W/m²; it is not the UV index announced in the news.') },
 }
 export const metaFor = (variable: LayerVar, source: Source = 'nasa'): Meta => source === 'cds' && variable === 'UV' ? CDS_UV : META[variable]
 
@@ -163,23 +176,24 @@ export function legendGradient(variable: LayerVar, mode: LayerMode) {
 export function legendTitle(variable: LayerVar, mode: LayerMode, grid: Pick<LayerGrid, 'range' | 'year'>, source: Source = 'nasa') {
   const meta = metaFor(variable, source)
   return mode === 'slope'
-    ? `${meta.slopeTitle} cada 10 años (${grid.range[0]}–${grid.range[1]})${meta.slopeUnit ? ` · ${meta.slopeUnit}` : ''}`
+    ? `${meta.slopeTitle} ${t('cada 10 años', 'every 10 years')} (${grid.range[0]}–${grid.range[1]})${meta.slopeUnit ? ` · ${meta.slopeUnit}` : ''}`
     : `${meta.valueTitle(grid.year)}${meta.unit ? ` (${meta.unit})` : ''}`
 }
 
 const withUnit = (text: string, unit: string) => unit === '%' ? `${text} %` : unit ? `${text} ${unit}` : text
 
-/** Frase para la gente general: «Cambio de temperatura: subió 0,2 °C cada 10 años (1981–2024)». */
+/** Frase para la gente general: «Cambio de temperatura: subió 0,2 °C cada 10 años (1981–2024)» (en inglés, «rose 0.2 °C every 10 years»). */
 export function describe(variable: LayerVar, mode: LayerMode, value: number, national: number, grid: Pick<LayerGrid, 'range' | 'year'>,
   source: Source = 'nasa'): string {
   const meta = metaFor(variable, source)
   if (mode === 'slope') {
     const [from, to] = grid.range
-    if (Math.abs(value) < meta.flat) return `${meta.slopeTitle}: casi no cambió entre ${from} y ${to}`
-    return `${meta.slopeTitle}: ${value > 0 ? 'subió' : 'bajó'} ${withUnit(fmt(Math.abs(value), meta.slopeDigits), meta.slopeUnit)} cada 10 años (${from}–${to})`
+    if (Math.abs(value) < meta.flat) return t(`${meta.slopeTitle}: casi no cambió entre ${from} y ${to}`, `${meta.slopeTitle}: barely changed between ${from} and ${to}`)
+    return t(`${meta.slopeTitle}: ${value > 0 ? 'subió' : 'bajó'} ${withUnit(fmt(Math.abs(value), meta.slopeDigits), meta.slopeUnit)} cada 10 años (${from}–${to})`,
+      `${meta.slopeTitle}: ${value > 0 ? 'rose' : 'fell'} ${withUnit(fmt(Math.abs(value), meta.slopeDigits), meta.slopeUnit)} every 10 years (${from}–${to})`)
   }
   const diff = value - national
-  const against = Math.abs(diff) < meta.same ? 'similar al promedio del país' : `${diff > 0 ? meta.more : meta.less} que el promedio del país`
+  const against = Math.abs(diff) < meta.same ? t('similar al promedio del país', 'similar to the national average') : t(`${diff > 0 ? meta.more : meta.less} que el promedio del país`, `${diff > 0 ? meta.more : meta.less} than the national average`)
   return `${meta.valueTitle(grid.year)}: ${withUnit(fmt(value, meta.digits), meta.unit)} · ${against}`
 }
 

@@ -1,305 +1,236 @@
-import { useEffect, useState } from 'react'
-import type { CSSProperties } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { CountUp } from './CountUp'
 import type { MapMode } from './copy'
-import { EnsoTimeline, RainChart, TemperatureChart } from './PredictionCharts'
-import { REGIONS, REGION_SHORT, firstTemperature, getAlerts, getPredictions, monthLong, monthOnly, monthShort, num, rainAnalog, signed } from './predictionsData'
-import type { Predictions as PredictionsData, RegionId, TelegramAlert } from './predictionsData'
-import { useReveal, useScrollToHash } from './useReveal'
+import { getAsadas } from './data'
+import type { Canton, Operator } from './data'
+import { t } from './i18n'
+import { LangSwitch } from './LangSwitch'
+import { MethodSimple } from './Methodology'
+import { NewsletterForm } from './NewsletterForm'
+import { NumericData, stagger } from './PredictionDetails'
+import { REGION_SHORT, cellCoordinates, ensoCategory, firstTemperature, getCantonIndex, getPredictions, monthLong, monthShort, num, rainAnalog, regionForCell, signed } from './predictionsData'
+import type { CantonIndexItem, Predictions as PredictionsData, RegionId } from './predictionsData'
+import { SearchBox } from './SearchBox'
+import { useReveal } from './useReveal'
 
 const img = (name: string) => `${import.meta.env.BASE_URL}img/${name}`
-const stagger = (index: number) => ({ '--i': index }) as CSSProperties
-const meter = (percent: number) => ({ '--w': `${Math.max(0, Math.min(100, percent))}%` }) as CSSProperties
 
-const KIND_LABEL: Record<TelegramAlert['kind'], string> = { heat: 'Calor', rain: 'Lluvia', nino: 'El Niño' }
-const KIND_ICON: Record<TelegramAlert['kind'], string> = { heat: '🌡️', rain: '🌧️', nino: '⚠️' }
-const STATUS_LABEL: Record<TelegramAlert['status'], string> = { preview: 'Vista previa', sent: 'Enviado por Telegram', pending: 'Pendiente: falta que la persona abra el bot', failed: 'No se pudo enviar' }
+/** Lo que el público está mirando: todo el país (por defecto), un cantón o una ASADA. Los dos últimos se resuelven por su cuadro del mapa de NASA. */
+type Place = { kind: 'country' } | { kind: 'canton'; code: string } | { kind: 'asada'; operator: Operator }
+type Panel = 'datos' | 'metodo' | null
 
-function RegionTabs({ value, onChange, label }: { value: RegionId; onChange: (region: RegionId) => void; label: string }) {
-  return <div className="segmented pred-tabs" role="group" aria-label={label}>
-    {REGIONS.map(region => <button key={region} aria-pressed={value === region} onClick={() => onChange(region)}>{REGION_SHORT[region]}</button>)}
-  </div>
+/** Cómo se nombra cada zona dentro de una frase (con getters: siempre en el idioma activo). */
+const REGION_PLAIN: Record<RegionId, string> = {
+  get CR() { return t('todo el país', 'the whole country') },
+  get CR_PN() { return t('la zona del Pacífico Norte (Guanacaste)', 'the North Pacific area (Guanacaste)') },
+  get CR_CAR() { return t('la zona del Caribe (Limón)', 'the Caribbean area (Limón)') },
 }
 
-// ------------------------------------------------------------------ Lo más importante
+const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
+const panelFromHash = (): Panel => window.location.hash === '#datos' ? 'datos' : window.location.hash === '#metodo' ? 'metodo' : null
 
-function NinoCard({ data }: { data: PredictionsData }) {
+// ------------------------------------------------------------------ Resumen para el público
+
+function NinoSummary({ data }: { data: PredictionsData }) {
   const { enso } = data
   const analog = enso.analog
   if (enso.status !== 'active' || !enso.start) {
     return <article className="pred-card reveal" style={stagger(0)}>
       <span className="eyebrow">El Niño</span>
-      <p className="pred-big">{num(enso.latest.value)}<small> RONI · {monthShort(enso.latest.month)}</small></p>
-      <p>Ahora no hay un episodio de El Niño en curso: el RONI está por debajo de 0,5.</p>
+      <p className="pred-big">No<small>{t('Ahora no hay un episodio de El Niño en el océano Pacífico.', 'There is no El Niño episode in the Pacific Ocean right now.')}</small></p>
+      <p>{t('Si el océano vuelve a calentarse de forma sostenida, esta página lo va a avisar.', 'If the ocean warms up again for a sustained period, this page will let you know.')}</p>
     </article>
   }
-  const phases = [
-    { name: 'Inicio', value: monthLong(enso.start), note: `confirmado: ${enso.months_so_far} meses con RONI ≥ 0,5` },
-    ...(analog?.peak_window ? [{ name: 'Pico', value: `${monthShort(analog.peak_window.earliest)} – ${monthShort(analog.peak_window.latest)}`, note: `lo más típico: ${monthLong(analog.peak_window.typical)}` }] : []),
-    ...(analog ? [{ name: 'Fin', value: `${monthShort(analog.end_window.earliest)} – ${monthShort(analog.end_window.latest)}`, note: `lo más típico: ${monthLong(analog.end_window.typical)}` }] : []),
-  ]
+  const category = ensoCategory(enso.category)
   return <article className="pred-card nino reveal" style={stagger(0)}>
-    <span className="eyebrow"><span className="pulse-dot" aria-hidden="true" /> El Niño en curso · rango de fechas</span>
-    <p className="pred-big"><CountUp value={enso.latest.value} format={value => num(value)} /><small> RONI en {monthShort(enso.latest.month)} · {enso.category}{enso.rising ? ' y subiendo' : ''}</small></p>
-    <ol className="phases">
-      {phases.map((phase, index) => <li key={phase.name} style={stagger(index)}>
-        <span>{phase.name}</span><strong>{phase.value}</strong><em>{phase.note}</em>
-      </li>)}
-    </ol>
-    {analog && <p className="muted">Pico y fin salen de {analog.n} episodios fuertes anteriores. Es una comparación histórica, no un pronóstico del océano.</p>}
+    <span className="eyebrow"><span className="pulse-dot" aria-hidden="true" /> El Niño</span>
+    <p className="pred-big">{t('Activo', 'Active')}<small>{t(
+      `El océano Pacífico está más caliente de lo normal desde ${monthLong(enso.start)}. Es un episodio ${category}${enso.rising ? ' y sigue creciendo' : ''}.`,
+      `The Pacific Ocean has been warmer than normal since ${monthLong(enso.start)}. It is a ${category} episode${enso.rising ? ' and still growing' : ''}.`)}</small></p>
+    {analog && <p>{t(
+      `Lo más probable es que termine hacia ${monthLong(analog.end_window.typical)}, aunque podría ser desde ${monthShort(analog.end_window.earliest)} hasta ${monthShort(analog.end_window.latest)}.`,
+      `It will most likely end around ${monthLong(analog.end_window.typical)}, although it could be anywhere from ${monthShort(analog.end_window.earliest)} to ${monthShort(analog.end_window.latest)}.`)}</p>}
+    <p className="muted">{t('Son fechas de referencia según otros episodios fuertes; nadie puede asegurar el día exacto.', 'These are reference dates based on other strong episodes; nobody can guarantee the exact day.')}</p>
   </article>
 }
 
-function TemperatureCard({ data }: { data: PredictionsData }) {
-  const national = firstTemperature(data, 'CR')
-  if (!national) return null
-  const regions = REGIONS.map(region => ({ region, found: firstTemperature(data, region) })).filter(item => item.found)
+function HeatSummary({ data, region }: { data: PredictionsData; region: RegionId }) {
+  const heat = firstTemperature(data, region)
+  if (!heat) return null
+  const diff = heat.anomaly
+  const phrase = diff >= 0.3 ? t('más calor de lo normal', 'warmer than normal') : diff <= -0.3 ? t('más fresco de lo normal', 'cooler than normal') : t('casi igual de calor que lo normal', 'about as warm as normal')
   return <article className="pred-card heat reveal" style={stagger(1)}>
-    <span className="eyebrow">Temperatura · {monthLong(national.row.target_month)}</span>
-    <p className="pred-big"><CountUp value={national.anomaly} format={value => `${value < 0 ? '−' : '+'}${num(Math.abs(value))}`} /><small> °C sobre lo normal en todo el país</small></p>
-    <div className="meters">
-      {regions.map(({ region, found }, index) => <div key={region} className="meter-row" style={stagger(index)}>
-        <span>{REGION_SHORT[region]}</span>
-        <div className="meter heat"><span style={meter((found!.anomaly / 2) * 100)} /></div>
-        <strong>{signed(found!.anomaly)} °C</strong>
-      </div>)}
-    </div>
-    <p className="muted">Pronóstico experimental. Estimación del país: {num(national.estimate)} °C (banda de 90 %: {num(national.low)} a {num(national.high)}), frente a {num(national.normal)} °C normales.</p>
+    <span className="eyebrow">{t('Calor', 'Heat')} · {monthLong(heat.row.target_month)}</span>
+    <p className="pred-big"><CountUp value={diff} format={value => `${value < 0 ? '−' : '+'}${num(Math.abs(value))} °C`} /><small>{t(`${capitalize(phrase)} en ${REGION_PLAIN[region]}.`, `${capitalize(phrase)} in ${REGION_PLAIN[region]}.`)}</small></p>
+    <p>{diff >= 0.5 ? t('Es bastante más de lo que suele pasar en ese mes.', 'That is quite a bit more than usual for that month.')
+      : diff >= 0.3 ? t('Se va a sentir un poco más caliente que de costumbre.', 'It will feel a bit warmer than usual.')
+        : t('No se espera una diferencia grande con un mes normal.', 'No big difference from a normal month is expected.')}</p>
+    <p className="tag">{t('Pronóstico experimental', 'Experimental forecast')}</p>
   </article>
 }
 
-function RainCard({ data }: { data: PredictionsData }) {
-  const month = data.variables.PRECTOTCORR.regions.CR.rows[0]?.target_month
-  const national = month ? rainAnalog(data, 'CR', month) : undefined
-  if (!month || !national) return null
+function RainSummary({ data, region }: { data: PredictionsData; region: RegionId }) {
+  const month = data.variables.PRECTOTCORR.regions[region].rows[0]?.target_month
+  const found = month ? rainAnalog(data, region, month) : undefined
+  if (!month || !found) return null
+  const less = found.anomaly_pct < 0
   return <article className="pred-card rain reveal" style={stagger(2)}>
-    <span className="eyebrow">Lluvia · {monthLong(month)}</span>
-    <p className="pred-big"><CountUp value={national.anomaly_pct} format={value => `${value < 0 ? '−' : '+'}${num(Math.abs(value), 0)} %`} /><small> en años parecidos de El Niño</small></p>
-    <div className="meters">
-      {REGIONS.map((region, index) => {
-        const found = rainAnalog(data, region, month)
-        return found && <div key={region} className="meter-row" style={stagger(index)}>
-          <span>{REGION_SHORT[region]}</span>
-          <div className="meter rain"><span style={meter(Math.abs(found.anomaly_pct))} /></div>
-          <strong>{signed(found.anomaly_pct, 0)} %</strong>
-        </div>
-      })}
-    </div>
-    <p className="tag">Sin pronóstico validado de lluvia</p>
-    <p className="muted">Es lo que pasó en {national.n_years} años con un Niño como el actual, frente a lo normal. Describe el pasado; no asegura lo que va a llover.</p>
+    <span className="eyebrow">{t('Lluvia', 'Rain')} · {monthLong(month)}</span>
+    <p className="pred-big"><CountUp value={found.anomaly_pct} format={value => `${value < 0 ? '−' : '+'}${num(Math.abs(value), 0)} %`} /><small>{t(
+      `${less ? 'Menos' : 'Más'} lluvia que lo normal en ${REGION_PLAIN[region]}, en años parecidos de El Niño.`,
+      `${less ? 'Less' : 'More'} rain than normal in ${REGION_PLAIN[region]}, in similar El Niño years.`)}</small></p>
+    <p>{t(`No es una predicción: cuenta lo que pasó en los ${found.n_years} años con un Niño parecido al de ahora.`,
+      `This is not a prediction: it counts what happened in the ${found.n_years} years with an El Niño similar to the current one.`)}</p>
+    <p className="tag">{t('Sin pronóstico validado de lluvia', 'No validated rain forecast')}</p>
   </article>
 }
 
-function Suggestions({ data }: { data: PredictionsData }) {
-  const month = data.variables.PRECTOTCORR.regions.CR.rows[0]?.target_month
-  const national = month ? rainAnalog(data, 'CR', month) : undefined
-  const heat = firstTemperature(data, 'CR')
-  const items = [
-    ...(data.enso.status === 'active' && national && national.anomaly_pct <= -20 ? [{
-      tone: 'agua', title: 'Preparate para menos lluvia', text: `En años parecidos llovió cerca de ${num(Math.abs(national.anomaly_pct), 0)} % menos en ${monthLong(national.month)}. Guardá agua limpia, revisá fugas y confirmá con tu ASADA si habrá racionamientos.` }] : []),
-    ...(heat && heat.anomaly >= 0.5 ? [{
-      tone: 'calor', title: 'Calor sobre lo normal', text: `Se espera cerca de ${num(heat.anomaly)} °C más que lo normal en ${monthLong(heat.row.target_month)}. Hidratate seguido, evitá el sol de 10 a. m. a 2 p. m. y cuidá a niños y personas mayores.` }] : []),
-    { tone: 'info', title: 'Verificá antes de decidir', text: 'Son cifras regionales y experimentales, no avisos oficiales. Para tu zona seguí el boletín ENOS del IMN y los avisos de tu ASADA o del AyA.' },
-  ]
-  return <div className="pred-tips">
-    {items.map((item, index) => <article key={item.title} className={`pred-tip ${item.tone} reveal`} style={stagger(index)}>
-      <span className="chip">{item.tone === 'agua' ? 'Agua' : item.tone === 'calor' ? 'Calor' : 'Información'}</span>
-      <h3>{item.title}</h3><p>{item.text}</p>
-    </article>)}
+type Tip = { tone: 'agua' | 'calor' | 'info' | 'ok'; label: string; title: string; text: string }
+
+/** Consejos según lo que dicen los números de la zona. Si hay una ASADA elegida, se nombra. */
+function buildTips(data: PredictionsData, region: RegionId, asada?: Operator): Tip[] {
+  const month = data.variables.PRECTOTCORR.regions[region].rows[0]?.target_month
+  const rain = month ? rainAnalog(data, region, month) : undefined
+  const heat = firstTemperature(data, region)
+  const provider = asada ? asada.name : t('tu ASADA', 'your ASADA')
+  const tips: Tip[] = []
+  if (data.enso.status === 'active' && rain && rain.anomaly_pct <= -20) tips.push({
+    tone: 'agua', label: t('Agua', 'Water'), title: t('Preparate para menos lluvia', 'Get ready for less rain'),
+    text: t(`En años parecidos llovió cerca de ${num(Math.abs(rain.anomaly_pct), 0)} % menos en ${monthLong(rain.month)}. Guardá agua limpia, revisá si hay fugas en tu casa y preguntale a ${provider} si habrá racionamientos.`,
+      `In similar years it rained about ${num(Math.abs(rain.anomaly_pct), 0)} % less in ${monthLong(rain.month)}. Store clean water, check for leaks at home and ask ${provider} whether there will be rationing.`) })
+  else if (rain && rain.anomaly_pct >= 20) tips.push({
+    tone: 'agua', label: t('Agua', 'Water'), title: t('Puede llover más de lo normal', 'It may rain more than normal'),
+    text: t(`En años parecidos llovió cerca de ${num(rain.anomaly_pct, 0)} % más en ${monthLong(rain.month)}. Mantené limpios los canales y desagües y no cruces ríos crecidos.`,
+      `In similar years it rained about ${num(rain.anomaly_pct, 0)} % more in ${monthLong(rain.month)}. Keep gutters and drains clear and do not cross swollen rivers.`) })
+  if (heat && heat.anomaly >= 0.5) tips.push({
+    tone: 'calor', label: t('Calor', 'Heat'), title: t('Calor sobre lo normal', 'Heat above normal'),
+    text: t(`Se espera cerca de ${num(heat.anomaly)} °C más que lo normal en ${monthLong(heat.row.target_month)}. Tomá agua seguido, evitá el sol de 10 a. m. a 2 p. m. y cuidá a niños y personas mayores.`,
+      `About ${num(heat.anomaly)} °C above normal is expected in ${monthLong(heat.row.target_month)}. Drink water often, avoid the sun from 10 a.m. to 2 p.m. and look after children and older people.`) })
+  if (!tips.length) tips.push({
+    tone: 'ok', label: t('Todo en calma', 'All calm'), title: t('Nada fuera de lo común por ahora', 'Nothing out of the ordinary for now'),
+    text: t('Los números de esta zona no muestran un cambio grande en el calor ni en la lluvia. Aun así, seguí los avisos oficiales.',
+      'The numbers for this area do not show a big change in heat or rain. Even so, follow the official notices.') })
+  tips.push({
+    tone: 'info', label: t('Información', 'Information'), title: t('Verificá antes de decidir', 'Check before deciding'),
+    text: t(`Son cifras de una zona amplia y experimentales, no avisos oficiales. Para tu comunidad confiá en el boletín del IMN y en los avisos de ${provider} o del AyA.`,
+      `These are experimental figures for a wide area, not official notices. For your community, rely on the IMN bulletin and on the notices from ${provider} or the AyA.`) })
+  return tips
+}
+
+function PlaceBar({ data, place, region, label, sub, cell, reset }: { data: PredictionsData; place: Place; region: RegionId; label: string; sub?: string; cell?: string; reset: () => void }) {
+  const coords = cell ? cellCoordinates(cell) : ''
+  return <div className="place-bar reveal">
+    <div>
+      <span className="eyebrow">{t('Resumen para', 'Summary for')}</span>
+      <h2 id="top-title">{label}</h2>
+      {sub && <p className="place-sub">{sub}</p>}
+      <p className="place-note">
+        {place.kind === 'country'
+          ? t('Mostramos el promedio de todo el país. Buscá tu cantón o tu ASADA para ver lo que se espera en tu zona.', 'We show the national average. Search for your canton or your ASADA to see what is expected in your area.')
+          : region === 'CR'
+            ? t(`Este lugar queda en un cuadro del mapa (${coords}) que todavía no tiene un cálculo propio. Por eso mostramos el promedio de todo el país.`,
+              `This place falls in a map grid cell (${coords}) that does not have its own calculation yet. That is why we show the national average.`)
+            : t(`Este lugar queda en el cuadro del mapa ${coords}, que pertenece a ${REGION_PLAIN[region]}. Mostramos los datos de esa zona.`,
+              `This place falls in the map grid cell ${coords}, which belongs to ${REGION_PLAIN[region]}. We show the data for that area.`)}
+      </p>
+    </div>
+    <div className="place-actions">
+      {place.kind !== 'country' && <button className="pill pill-ghost" onClick={reset}>{t('← Ver todo el país', '← See the whole country')}</button>}
+      <span className="place-meta">{t('Datos hasta', 'Data through')} {monthLong(data.data_through)}</span>
+    </div>
   </div>
 }
 
-// ------------------------------------------------------------------ Detalle
-
-function TemperatureSection({ data }: { data: PredictionsData }) {
-  const [region, setRegion] = useState<RegionId>('CR_PN')
-  const block = data.variables.T2M
-  const rows = block.regions[region].rows
-  const validation = data.temperature_validation[`CDS/${region}/T2M`]
-  const best = validation ? validation.horizons['1'] : undefined
-  return <section className="section" id="temperatura" aria-labelledby="temp-title">
-    <div className="section-head reveal">
-      <span className="eyebrow">Predicción experimental</span>
-      <h2 id="temp-title">Temperatura de los próximos meses</h2>
-      <p className="lead">La única variable con pronóstico: promedio mensual de cada sector, con su banda de 90 % de confianza. Solo se publica donde la prueba con datos pasados lo respaldó.</p>
-    </div>
-    <div className="pred-panel reveal">
-      <div className="pred-panel-head"><RegionTabs value={region} onChange={setRegion} label="Sector de la predicción de temperatura" />
-        <div className="legend-inline"><span><i className="sw band" />Lo normal (1991–2020, 8 de cada 10 años)</span><span><i className="sw amber" />Estimación y banda de 90 %</span></div></div>
-      <TemperatureChart key={region} rows={rows} unit={block.unit} />
-    </div>
-    <div className="table-wrap reveal"><table className="pred-table">
-      <caption>{REGION_SHORT[region]} · temperatura media mensual (°C)</caption>
-      <thead><tr><th>Mes</th><th>Estimación</th><th>Banda de 90 %</th><th>Lo normal (P10–P90)</th><th>Diferencia</th></tr></thead>
-      <tbody>{rows.map(row => <tr key={row.target_month}>
-        <th scope="row">{monthLong(row.target_month)}</th>
-        <td>{row.estimate === null ? <span className="muted">Sin pronóstico validado</span> : num(row.estimate)}</td>
-        <td>{row.estimate === null ? '—' : `${num(row.lower90!)} a ${num(row.upper90!)}`}</td>
-        <td>{num(row.reference.mean)} ({num(row.reference.p10)}–{num(row.reference.p90)})</td>
-        <td>{row.estimate === null ? '—' : `${signed(Math.round(row.estimate * 10) / 10 - Math.round(row.reference.mean * 10) / 10)} °C`}</td>
-      </tr>)}</tbody>
-    </table></div>
-    {best && <p className="muted note reveal">En la prueba con años pasados, para el mes siguiente este modelo se equivocó {num(best.test_skill * 100, 0)} % menos que simplemente repetir el clima normal, y su banda de 90 % acertó {num(best.coverage90_recent * 100, 0)} % de las veces. Más allá de {validation.max_contiguous_horizon} {validation.max_contiguous_horizon === 1 ? 'mes' : 'meses'} la prueba no justifica publicar un pronóstico.</p>}
-  </section>
-}
-
-function RainSection({ data }: { data: PredictionsData }) {
-  const [region, setRegion] = useState<RegionId>('CR_CAR')
-  const rows = data.variables.PRECTOTCORR.regions[region].rows
-  const analog = data.rain_analog[region]
-  return <section className="section band" id="lluvia" aria-labelledby="rain-title">
-    <div className="section-head reveal">
-      <span className="eyebrow">Referencia histórica</span>
-      <h2 id="rain-title">Lluvia de los próximos meses</h2>
-      <p className="lead">Todavía no hay un pronóstico de lluvia que haya pasado la validación. Lo que sí se puede mostrar es cuánto llueve normalmente cada mes y cuánto llovió en los años en que El Niño estaba como ahora.</p>
-    </div>
-    <div className="pred-panel reveal">
-      <div className="pred-panel-head"><RegionTabs value={region} onChange={setRegion} label="Sector de la referencia de lluvia" />
-        <div className="legend-inline"><span><i className="sw rain" />Lo normal (8 de cada 10 años)</span><span><i className="sw tickmark" />Promedio normal</span><span><i className="sw diamond" />Años parecidos de El Niño (rojo: llovió más de 5 % menos)</span></div></div>
-      <RainChart key={region} rows={rows} analog={analog?.months ?? []} />
-    </div>
-    <div className="table-wrap reveal"><table className="pred-table">
-      <caption>{REGION_SHORT[region]} · lluvia mensual (mm)</caption>
-      <thead><tr><th>Mes</th><th>Lo normal (P10–P90)</th><th>En años parecidos de El Niño</th><th>Años con 100 mm o más</th></tr></thead>
-      <tbody>{rows.map(row => {
-        const found = analog?.months.find(item => item.month === row.target_month)
-        return <tr key={row.target_month}>
-          <th scope="row">{monthLong(row.target_month)}</th>
-          <td>{num(row.reference.mean, 0)} ({num(row.reference.p10, 0)}–{num(row.reference.p90, 0)})</td>
-          <td>{found ? `${num(found.mean_mm, 0)} mm (${signed(found.anomaly_pct, 0)} %)` : '—'}</td>
-          <td>{found ? `${Math.round(found.share_above_100mm * found.n_years)} de ${found.n_years}` : '—'}</td>
-        </tr>
-      })}</tbody>
-    </table></div>
-    {analog && <p className="muted note reveal">Años parecidos: {analog.criterion.charAt(0).toLowerCase() + analog.criterion.slice(1)} ({analog.years.join(', ')}). Son pocos años y no hay una prueba de significancia: sirve como contexto, no como promesa de lluvia.</p>}
-  </section>
-}
-
-function MoreData({ data }: { data: PredictionsData }) {
-  const analog = data.enso.analog
-  const reference = (variable: 'RH2M' | 'UV') => data.variables[variable]
-  return <section className="section" id="mas-datos" aria-labelledby="more-title">
-    <div className="section-head reveal">
-      <span className="eyebrow">Datos secundarios</span>
-      <h2 id="more-title">Más datos para quien quiere profundizar</h2>
-      <p className="lead">Referencias de humedad y radiación UV, qué tan confiable es la temperatura y los episodios de El Niño que sirvieron de comparación.</p>
-    </div>
-    <div className="more-grid">
-      {(['RH2M', 'UV'] as const).map((variable, index) => {
-        const block = reference(variable)
-        return <article key={variable} className="card more-card reveal" style={stagger(index)}>
-          <h3>{variable === 'RH2M' ? 'Humedad relativa del aire' : 'Radiación UV (NASA POWER)'}</h3>
-          <p className="muted">{variable === 'RH2M' ? 'Referencia 1991–2020 (%)' : 'Índice UV medio de 24 horas, 2001–2024. Incluye la noche: no es el índice del mediodía.'} Sin pronóstico validado.</p>
-          <div className="table-wrap"><table className="pred-table compact">
-            <thead><tr><th>Mes</th>{REGIONS.map(region => <th key={region}>{REGION_SHORT[region]}</th>)}</tr></thead>
-            <tbody>{block.regions.CR.rows.map((row, i) => <tr key={row.target_month}>
-              <th scope="row">{monthOnly(row.target_month)} {row.target_month.slice(2, 4)}</th>
-              {REGIONS.map(region => { const ref = block.regions[region].rows[i].reference; return <td key={region}>{num(ref.mean, variable === 'UV' ? 2 : 1)}</td> })}
-            </tr>)}</tbody>
-          </table></div>
-        </article>
-      })}
-      <article className="card more-card reveal" style={stagger(2)}>
-        <h3>Qué tan confiable es la temperatura</h3>
-        <p className="muted">Mejora frente a repetir el clima normal, en la prueba con años pasados (cuanto más a la derecha, mejor).</p>
-        <div className="meters">
-          {REGIONS.flatMap(region => Object.entries(data.temperature_validation[`CDS/${region}/T2M`]?.horizons ?? {}).map(([horizon, info]) => ({ region, horizon, info })))
-            .map(({ region, horizon, info }, index) => <div key={`${region}${horizon}`} className="meter-row" style={stagger(index)}>
-              <span>{REGION_SHORT[region]} · mes {horizon}</span>
-              <div className="meter good"><span style={meter(info.test_skill * 100)} /></div>
-              <strong>{num(info.test_skill * 100, 0)} %</strong>
-            </div>)}
-        </div>
-      </article>
-      {analog && <article className="card more-card reveal" style={stagger(3)}>
-        <h3>Episodios fuertes que sirvieron de comparación</h3>
-        <p className="muted">Cuánto duraron los {analog.n} episodios de El Niño con RONI máximo de 1,5 o más (en meses).</p>
-        <div className="meters">
-          {analog.events.map((event, index) => <div key={event.start} className="meter-row" style={stagger(index)}>
-            <span>{event.start.slice(0, 4)} – {event.end.slice(0, 4)}</span>
-            <div className="meter nino"><span style={meter((event.months / 20) * 100)} /></div>
-            <strong>{event.months}</strong>
-          </div>)}
-        </div>
-      </article>}
-    </div>
-  </section>
-}
-
-function TelegramSection({ alerts, failed }: { alerts?: TelegramAlert[]; failed: boolean }) {
-  return <section className="section band" id="alertas" aria-labelledby="tg-title">
-    <div className="section-head reveal">
-      <span className="eyebrow">Avisos de prueba</span>
-      <h2 id="tg-title">Alertas por Telegram</h2>
-      <p className="lead">Con estas predicciones se arman avisos cortos para personas de prueba según su zona: uno de calor, uno de probabilidad de lluvia y uno de zona afectada por El Niño.</p>
-    </div>
-    {failed && <p className="empty">Los avisos de prueba todavía no se generaron. Se crean con <code>python -m src.telegram_alerts preview</code>.</p>}
-    {!alerts && !failed && <p className="empty">Cargando los avisos…</p>}
-    <div className="bubbles">
-      {alerts?.map((alert, index) => <article key={alert.kind} className="bubble-card reveal" style={stagger(index)}>
-        <header><span aria-hidden="true">{KIND_ICON[alert.kind]}</span><strong>{KIND_LABEL[alert.kind]}</strong><span className={`chip status ${alert.status}`}>{STATUS_LABEL[alert.status]}</span></header>
-        <p className="bubble-place">📍 {alert.canton === alert.province ? alert.canton : `${alert.canton}, ${alert.province}`} · {alert.zone}</p>
-        <div className="bubble" role="note" aria-label={`Texto del aviso de ${KIND_LABEL[alert.kind]}`}>{alert.text}</div>
+function Summary({ data, place, region, label, sub, cell, reset }: { data: PredictionsData; place: Place; region: RegionId; label: string; sub?: string; cell?: string; reset: () => void }) {
+  const tips = buildTips(data, region, place.kind === 'asada' ? place.operator : undefined)
+  return <section className="section pred-first" id="resumen" aria-labelledby="top-title">
+    <PlaceBar data={data} place={place} region={region} label={label} sub={sub} cell={cell} reset={reset} />
+    <div className="pred-top" aria-live="polite"><NinoSummary data={data} /><HeatSummary data={data} region={region} /><RainSummary data={data} region={region} /></div>
+    <div className="pred-tips">
+      {tips.map((tip, index) => <article key={tip.tone + index} className={`pred-tip ${tip.tone} reveal`} style={stagger(index)}>
+        <span className="chip">{tip.label}</span>
+        <h3>{tip.title}</h3><p>{tip.text}</p>
       </article>)}
     </div>
-    <p className="muted note reveal">Un bot de Telegram solo puede escribirle a quien primero lo abrió y le envió /start. Son avisos de prueba para tres cuentas y no reemplazan los avisos oficiales.</p>
   </section>
 }
 
 // ------------------------------------------------------------------ Página
 
-function Body({ data, alerts, alertsFailed, openMap }: { data: PredictionsData; alerts?: TelegramAlert[]; alertsFailed: boolean; openMap: (mode: MapMode) => void }) {
-  useReveal([alerts])
-  useScrollToHash()
+function Body({ data, canton, asadas, searchLoading, panel, togglePanel }: {
+  data: PredictionsData
+  canton: CantonIndexItem[]; asadas: Operator[]; searchLoading: boolean
+  panel: Panel; togglePanel: (next: Exclude<Panel, null>) => void
+}) {
+  const [place, setPlace] = useState<Place>({ kind: 'country' })
+  const choices = useMemo(() => new Map<string, Canton>(canton.map(item => [item.code, { name: item.name, province: item.province }])), [canton])
+  const cells = useMemo(() => new Map(canton.map(item => [item.code, item.cell])), [canton])
+
+  const cantonCode = place.kind === 'canton' ? place.code : place.kind === 'asada' ? place.operator.cantonCode : ''
+  const cell = cantonCode ? cells.get(cantonCode) ?? '' : ''
+  const region: RegionId = cell ? regionForCell(data, cell) : 'CR'
+  const info = choices.get(cantonCode)
+  const label = place.kind === 'country' ? 'Costa Rica' : place.kind === 'asada' ? place.operator.name
+    : info ? (info.name === info.province ? info.name : `${info.name}, ${info.province}`) : 'Costa Rica'
+  const sub = place.kind === 'asada' ? `${place.operator.type} · ${place.operator.district}, ${place.operator.canton}, ${place.operator.province}` : undefined
+
+  useReveal([panel, place, region])
+
+  // Un enlace con #datos o #metodo abre su panel y baja hasta los botones; otro ancla (p. ej. #resumen) baja a su sección.
+  useEffect(() => {
+    if (panel) requestAnimationFrame(() => document.getElementById('mas')?.scrollIntoView())
+    else if (window.location.hash) document.getElementById(window.location.hash.slice(1))?.scrollIntoView()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   return <>
     <header className="hero pred-hero" id="inicio">
-      <img className="hero-img" src={img('nino.jpg')} alt="Quebrada con pozas y rocas cubiertas de musgo dentro de un bosque verde en Guanacaste" fetchPriority="high" />
+      <img className="hero-img" src={img('nino.jpg')} alt={t('Quebrada con pozas y rocas cubiertas de musgo dentro de un bosque verde en Guanacaste', 'Stream with pools and moss-covered rocks inside a green forest in Guanacaste')} fetchPriority="high" />
       <div className="hero-veil" aria-hidden="true" />
       <div className="hero-inner">
-        <span className="hero-eyebrow pred-rise" style={stagger(0)}>Predicciones · experimentales</span>
-        <h1 className="pred-rise" style={stagger(1)}>Lo que viene para el clima de Costa Rica</h1>
-        <p className="pred-rise" style={stagger(2)}>Cuándo podría durar El Niño, cuánto más caliente será y qué se sabe de la lluvia, con sus límites a la vista.</p>
-        <div className="hero-actions pred-rise" style={stagger(3)}>
-          <a className="pill pill-primary hero-cta" href="#resumen">Ver lo más importante</a>
-          <button className="pill hero-cta" onClick={() => openMap('grid')}>Abrir el mapa</button>
-        </div>
-        <p className="hero-meta pred-rise" style={stagger(4)}>Datos hasta {monthLong(data.data_through)} · RONI hasta {monthLong(data.roni_through)} · calibración del {new Date(`${data.calibration_date}T00:00:00`).toLocaleDateString('es-CR', { dateStyle: 'long' })}</p>
+        <span className="hero-eyebrow pred-rise" style={stagger(0)}>{t('AguaAlerta · Predicciones experimentales', 'AguaAlerta · Experimental predictions')}</span>
+        <h1 className="pred-rise" style={stagger(1)}>{t('Lo que viene para el clima de Costa Rica', "What is coming for Costa Rica's climate")}</h1>
       </div>
     </header>
 
     <main>
-      <section className="section pred-first" id="resumen" aria-labelledby="top-title">
+      <div className="pred-search section" role="search" aria-label={t('Buscar tu zona', 'Find your area')}>
+        <SearchBox context="predicciones" inputId="search-pred" choices={choices} asadas={asadas} loading={searchLoading}
+          districtNote={t('El resumen usa el cuadro del mapa de tu cantón.', "The summary uses your canton's map grid cell.")}
+          onCanton={code => setPlace({ kind: 'canton', code })} onAsada={operator => setPlace({ kind: 'asada', operator })} onProvince={() => undefined} />
+      </div>
+
+      <Summary data={data} place={place} region={region} label={label} sub={sub} cell={cell || undefined} reset={() => setPlace({ kind: 'country' })} />
+
+      {place.kind === 'asada' && <NewsletterForm key={place.operator.id} operator={place.operator} />}
+
+      <section className="section pred-more" id="mas" aria-labelledby="more-title">
         <div className="section-head reveal">
-          <span className="eyebrow">Lo más importante</span>
-          <h2 id="top-title">Resumen de las predicciones</h2>
+          <span className="eyebrow">{t('Para quien quiere saber más', 'For those who want to know more')}</span>
+          <h2 id="more-title">{t('Los números y cómo los calculamos', 'The numbers and how we calculate them')}</h2>
         </div>
-        <div className="pred-top"><NinoCard data={data} /><TemperatureCard data={data} /><RainCard data={data} /></div>
-        <Suggestions data={data} />
-      </section>
-
-      <section className="section" id="fechas" aria-labelledby="dates-title">
-        <div className="section-head reveal">
-          <span className="eyebrow">Rango de fechas</span>
-          <h2 id="dates-title">El Niño en el calendario</h2>
-          <p className="lead">El RONI ya superó el umbral de 0,5 desde {data.enso.start ? monthLong(data.enso.start) : 'antes'}. Los rangos de pico y de fin comparan con los episodios fuertes anteriores: marcan lo que suele pasar, no una fecha segura.</p>
+        <div className="more-buttons reveal">
+          <button id="btn-datos" className="more-button" aria-expanded={panel === 'datos'} aria-controls="panel-datos" onClick={() => togglePanel('datos')}>
+            <strong>{t('Datos numéricos', 'Numeric data')}</strong>
+            <span>{t('Gráficos, tablas y cifras de temperatura, lluvia y El Niño.', 'Charts, tables and figures on temperature, rain and El Niño.')}</span>
+            <i aria-hidden="true">{panel === 'datos' ? '▴' : '▾'}</i>
+          </button>
+          <button id="btn-metodo" className="more-button" aria-expanded={panel === 'metodo'} aria-controls="panel-metodo" onClick={() => togglePanel('metodo')}>
+            <strong>{t('Cómo obtenemos estos datos', 'How we obtain this data')}</strong>
+            <span>{t('El análisis estadístico de AguaAlerta explicado en simple, con un PDF completo.', "AguaAlerta's statistical analysis explained simply, with a full PDF.")}</span>
+            <i aria-hidden="true">{panel === 'metodo' ? '▴' : '▾'}</i>
+          </button>
         </div>
-        <div className="pred-panel reveal"><EnsoTimeline enso={data.enso} /></div>
-        <p className="muted note reveal">{data.enso.definition} Los datos del RONI llegan hasta {monthLong(data.roni_through)}; la línea no se proyecta hacia adelante.</p>
       </section>
 
-      <TemperatureSection data={data} />
-      <RainSection data={data} />
-      <MoreData data={data} />
-      <TelegramSection alerts={alerts} failed={alertsFailed} />
-
-      <section className="section" aria-labelledby="limits-title">
-        <div className="section-head reveal"><span className="eyebrow">Para leer con cuidado</span><h2 id="limits-title">Límites de estas predicciones</h2></div>
-        <ul className="facts reveal">{data.limits.map(limit => <li key={limit}>{limit}</li>)}</ul>
-      </section>
+      {panel === 'datos' && <div id="panel-datos" role="region" aria-labelledby="btn-datos"><NumericData data={data} region={region} /></div>}
+      {panel === 'metodo' && <div id="panel-metodo" role="region" aria-labelledby="btn-metodo"><MethodSimple data={data} /></div>}
     </main>
 
     <footer className="landing-footer">
-      <p><strong>El Niño en CR — Predicciones experimentales.</strong> Calculadas con el motor de predicciones de Hefesto sobre series regionales de Copernicus (ERA5-Land), NASA POWER y el RONI de NOAA. No reemplazan los avisos del IMN, el AyA ni de tu ASADA.</p>
+      <p><strong>{t('AguaAlerta — Predicciones experimentales.', 'AguaAlerta — Experimental predictions.')}</strong> {t(
+        'Calculadas con el motor de predicciones de AguaAlerta sobre series regionales de Copernicus (ERA5-Land), NASA POWER y el RONI de NOAA. No reemplazan los avisos del IMN, el AyA ni de tu ASADA.',
+        "Calculated with the AguaAlerta prediction engine on regional series from Copernicus (ERA5-Land), NASA POWER and NOAA's RONI. They do not replace the notices from the IMN, the AyA or your ASADA.")}</p>
     </footer>
   </>
 }
@@ -307,36 +238,55 @@ function Body({ data, alerts, alertsFailed, openMap }: { data: PredictionsData; 
 export function Predictions({ openMap, goHome }: { openMap: (mode: MapMode) => void; goHome: () => void }) {
   const [data, setData] = useState<PredictionsData>()
   const [failed, setFailed] = useState(false)
-  const [alerts, setAlerts] = useState<TelegramAlert[]>()
-  const [alertsFailed, setAlertsFailed] = useState(false)
+  const [canton, setCanton] = useState<CantonIndexItem[]>([])
+  const [asadas, setAsadas] = useState<Operator[]>([])
+  const [searchLoading, setSearchLoading] = useState(true)
+  const [panel, setPanel] = useState<Panel>(panelFromHash)
 
   useEffect(() => {
     const controller = new AbortController()
-    getPredictions(controller.signal).then(value => { if (!controller.signal.aborted) setData(value) })
-      .catch(() => { if (!controller.signal.aborted) setFailed(true) })
-    getAlerts(controller.signal).then(value => { if (!controller.signal.aborted) setAlerts(value.alerts) })
-      .catch(() => { if (!controller.signal.aborted) setAlertsFailed(true) })
+    const { signal } = controller
+    getPredictions(signal).then(value => { if (!signal.aborted) setData(value) })
+      .catch(() => { if (!signal.aborted) setFailed(true) })
+    // El buscador necesita los cantones (liviano) y las ASADAs (más pesado): si alguno falla, se busca con lo que haya.
+    void Promise.allSettled([
+      getCantonIndex(signal).then(value => { if (!signal.aborted) setCanton(value) }),
+      getAsadas(signal).then(value => { if (!signal.aborted) setAsadas(value.operators) }),
+    ]).then(() => { if (!signal.aborted) setSearchLoading(false) })
     return () => controller.abort()
   }, [])
 
+  /** Los botones del final abren y cierran su panel; los enlaces de la barra solo lo abren (`toggle = false`). */
+  function openPanel(next: Exclude<Panel, null>, toggle: boolean) {
+    const closing = toggle && panel === next
+    setPanel(closing ? null : next)
+    history.replaceState(null, '', closing ? `${window.location.pathname}${window.location.search}` : `#${next}`)
+    if (!closing) requestAnimationFrame(() => document.getElementById('mas')?.scrollIntoView({ behavior: 'smooth' }))
+  }
+
   return <div className="landing pred">
-    <nav className="landing-nav glass" aria-label="Navegación principal">
-      <a className="brand" href="." onClick={event => { event.preventDefault(); goHome() }}>El Niño en CR</a>
+    <nav className="landing-nav glass" aria-label={t('Navegación principal', 'Main navigation')}>
+      <a className="brand" href="." onClick={event => { event.preventDefault(); goHome() }}>AguaAlerta</a>
       <div className="nav-links">
-        <a href="#resumen">Resumen</a><a href="#temperatura">Temperatura</a><a href="#lluvia">Lluvia</a><a href="#mas-datos">Más datos</a><a href="#alertas">Alertas</a>
+        <a href="#resumen">{t('Resumen', 'Summary')}</a>
+        <button onClick={() => openPanel('datos', false)}>{t('Datos numéricos', 'Numeric data')}</button>
+        <button onClick={() => openPanel('metodo', false)}>{t('Cómo lo obtenemos', 'How we get it')}</button>
       </div>
-      <div className="segmented" role="group" aria-label="Mapas y predicciones">
-        <button onClick={() => openMap('grid')}>NASA POWER</button>
-        <button onClick={() => openMap('cds')}>CDS</button>
-        <button onClick={() => openMap('cantones')}>Nacionales</button>
-        <button aria-pressed="true" aria-current="page">Predicciones</button>
+      <div className="nav-tools">
+        <LangSwitch />
+        <div className="segmented" role="group" aria-label={t('Mapas y predicciones', 'Maps and predictions')}>
+          <button onClick={() => openMap('grid')}>NASA POWER</button>
+          <button onClick={() => openMap('cds')}>CDS</button>
+          <button onClick={() => openMap('cantones')}>{t('Nacionales', 'National')}</button>
+          <button aria-pressed="true" aria-current="page">{t('Predicciones', 'Predictions')}</button>
+        </div>
       </div>
     </nav>
-    {data ? <Body data={data} alerts={alerts} alertsFailed={alertsFailed} openMap={openMap} />
+    {data ? <Body data={data} canton={canton} asadas={asadas} searchLoading={searchLoading} panel={panel} togglePanel={next => openPanel(next, true)} />
       : <header className="hero pred-hero loading">
         <div className="hero-veil" aria-hidden="true" />
-        <div className="hero-inner"><h1>{failed ? 'No se pudieron cargar las predicciones' : 'Calculando…'}</h1>
-          <p>{failed ? 'Generalas con «python -m src.predictions» y recargá la página.' : 'Cargando las predicciones.'}</p></div>
+        <div className="hero-inner"><h1>{failed ? t('No se pudieron cargar las predicciones', 'Could not load the predictions') : t('Calculando…', 'Calculating…')}</h1>
+          <p>{failed ? t('Generalas con «python -m src.predictions» y recargá la página.', 'Generate them with "python -m src.predictions" and reload the page.') : t('Cargando las predicciones.', 'Loading the predictions.')}</p></div>
       </header>}
   </div>
 }

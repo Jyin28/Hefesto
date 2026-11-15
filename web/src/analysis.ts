@@ -1,5 +1,6 @@
 import type { Cell, Climate, Variable } from './data'
 import type { Level } from './copy'
+import { lazyNumberFormat, t } from './i18n'
 
 export type Point = { year: number; value: number | null; complete?: boolean }
 export type Range = [number, number]
@@ -12,10 +13,13 @@ export const defaultThresholds: Thresholds = { PRECTOTCORR: [10, 20, 30], T2M: [
 export const REFERENCE: Range = [1981, 2010]
 export const HORIZONS = { corto: 3, mediano: 10 }
 export const ALERT_ORDER: AlertLevel[] = ['verde', 'amarillo', 'naranja', 'rojo']
-export const ALERT_LABEL: Record<AlertLevel, string> = { verde: 'Verde', amarillo: 'Amarillo', naranja: 'Naranja', rojo: 'Rojo' }
+/** Con getters: siempre en el idioma activo. */
+export const ALERT_LABEL: Record<AlertLevel, string> = {
+  get verde() { return t('Verde', 'Green') }, get amarillo() { return t('Amarillo', 'Yellow') },
+  get naranja() { return t('Naranja', 'Orange') }, get rojo() { return t('Rojo', 'Red') },
+}
 
-export const fmt = (value: number, digits = 1) =>
-  new Intl.NumberFormat('es-CR', { maximumFractionDigits: digits }).format(value)
+export const fmt = (value: number, digits = 1) => lazyNumberFormat({ maximumFractionDigits: digits }).format(value)
 
 type Usable = { year: number; value: number }
 
@@ -64,14 +68,15 @@ export function confidence(continuityPct: number, coveragePct: number, stations:
 /** Estaciones o fuentes locales: la del pronóstico experimental más las cargadas por comisiones (sin validar). */
 export function stationsLinked(climate?: Climate, localStations: string[] = []) {
   const status = climate?.forecast.status
-  const base = !climate ? { count: 0, note: 'Sin zona con datos' }
-    : status === 'local_data_pending' ? { count: 0, note: 'Datos de estaciones del IMN pendientes' }
-    : status === 'station_data_invalid' ? { count: 0, note: 'Datos de estación inválidos' }
-    : { count: 1, note: 'Estación local usada en el pronóstico experimental' }
+  const base = !climate ? { count: 0, note: t('Sin zona con datos', 'No area with data') }
+    : status === 'local_data_pending' ? { count: 0, note: t('Datos de estaciones del IMN pendientes', 'IMN station data pending') }
+    : status === 'station_data_invalid' ? { count: 0, note: t('Datos de estación inválidos', 'Invalid station data') }
+    : { count: 1, note: t('Estación local usada en el pronóstico experimental', 'Local station used in the experimental forecast') }
   if (!localStations.length) return base
   return {
     count: base.count + localStations.length,
-    note: `${base.note}. ${localStations.length} ${localStations.length === 1 ? 'fuente local cargada' : 'fuentes locales cargadas'} por comisiones, todavía sin validar contra NASA.`,
+    note: t(`${base.note}. ${localStations.length} ${localStations.length === 1 ? 'fuente local cargada' : 'fuentes locales cargadas'} por comisiones, todavía sin validar contra NASA.`,
+      `${base.note}. ${localStations.length} local ${localStations.length === 1 ? 'source' : 'sources'} loaded by commissions, not yet validated against NASA.`),
   }
 }
 
@@ -149,10 +154,12 @@ export type SynthesisInput = {
   local?: { temp?: LocalStat; precip?: LocalStat }
 }
 
-const CONFIDENCE_LABEL: Record<Confidence, string> = { 'sin-datos': 'sin datos', baja: 'baja', media: 'media', alta: 'alta' }
+const CONFIDENCE_LABEL: Record<Confidence, string> = {
+  get 'sin-datos'() { return t('sin datos', 'no data') }, get baja() { return t('baja', 'low') }, get media() { return t('media', 'medium') }, get alta() { return t('alta', 'high') },
+}
 export const confidenceLabel = (value: Confidence) => CONFIDENCE_LABEL[value]
 
-/** Redacción por plantillas a partir de las cifras del panel. No usa un modelo de lenguaje. */
+/** Redacción por plantillas a partir de las cifras del panel. No usa un modelo de lenguaje. El nivel «técnico» no se usa en la interfaz actual y queda en español. */
 export function synthesis(input: SynthesisInput): string[] {
   const { level, zone, range, precip, temp, enso } = input
   const basic = level === 'basico'
@@ -163,45 +170,54 @@ export function synthesis(input: SynthesisInput): string[] {
     const places = [...new Set(water.affected.flatMap(item => item.localities))].slice(0, 6).join(', ')
     extras.push(basic
       ? water.affected.length
-        ? `En ${zone}, ${water.affected.length} de ${water.total} operadores de agua reportan afectación por El Niño (${names})${places ? `. Localidades afectadas: ${places}` : ''}.`
-        : `En ${zone}, ${water.reported} de ${water.total} operadores de agua enviaron su reporte y ninguno indica afectación por El Niño.`
+        ? t(`En ${zone}, ${water.affected.length} de ${water.total} operadores de agua reportan afectación por El Niño (${names})${places ? `. Localidades afectadas: ${places}` : ''}.`,
+          `In ${zone}, ${water.affected.length} of ${water.total} water operators report impacts from El Niño (${names})${places ? `. Affected localities: ${places}` : ''}.`)
+        : t(`En ${zone}, ${water.reported} de ${water.total} operadores de agua enviaron su reporte y ninguno indica afectación por El Niño.`,
+          `In ${zone}, ${water.reported} of ${water.total} water operators sent their report and none indicates impacts from El Niño.`)
       : `Reportes de operadores en ${zone}: ${water.reported} de ${water.total} con reporte; ${water.affected.length} con afectación por El Niño${names ? ` (${names})` : ''}${places ? `; localidades: ${places}` : ''}. Autorreporte sin verificación independiente.`)
   }
   for (const [name, unit, stat, digits] of [['temperatura', '°C', input.local?.temp, 1], ['lluvia', 'mm', input.local?.precip, 0]] as const) {
     if (!stat) continue
-    const span = stat.from === stat.to ? stat.from : `${stat.from} a ${stat.to}`
+    const span = stat.from === stat.to ? stat.from : `${stat.from} ${t('a', 'to')} ${stat.to}`
+    const nameEn = name === 'lluvia' ? 'rainfall' : 'temperature'
     extras.push(basic
-      ? `Además hay ${stat.n} ${stat.n === 1 ? 'registro local' : 'registros locales'} de ${name} cargados por comisiones (promedio ${fmt(stat.mean, digits)} ${unit}, ${span}). Todavía no se comparan con los datos de NASA.`
+      ? t(`Además hay ${stat.n} ${stat.n === 1 ? 'registro local' : 'registros locales'} de ${name} cargados por comisiones (promedio ${fmt(stat.mean, digits)} ${unit}, ${span}). Todavía no se comparan con los datos de NASA.`,
+        `There ${stat.n === 1 ? 'is' : 'are'} also ${stat.n} local ${nameEn} ${stat.n === 1 ? 'record' : 'records'} loaded by commissions (average ${fmt(stat.mean, digits)} ${unit}, ${span}). They are not yet compared with the NASA data.`)
       : `Registros locales ${name === 'lluvia' ? 'PRECTOTCORR' : 'T2M'}: n = ${stat.n}, media ${fmt(stat.mean, digits)} ${unit}, ${span}; sin conciliar con la serie MERRA-2.`)
   }
   if (!precip && !temp) {
     return [basic
-      ? `Para ${zone} todavía no hay datos de NASA POWER asociados, así que no se puede explicar cómo cambió el clima ahí. Podés pedir la información con el botón de la tarjeta del mapa.`
+      ? t(`Para ${zone} todavía no hay datos de NASA POWER asociados, así que no se puede explicar cómo cambió el clima ahí. Podés pedir la información con el botón de la tarjeta del mapa.`,
+        `For ${zone} there is no NASA POWER data associated yet, so we cannot explain how the climate changed there. You can request the information with the button on the map card.`)
       : `${zone}: sin datos NASA POWER asociados (cantón sin sector climático ni celda seleccionada). No se genera síntesis de serie; solicitar la información a las comisiones.`, ...extras]
   }
   const paragraphs: string[] = []
-  const years = `${range[0]} y ${range[1]}`
+  const years = t(`${range[0]} y ${range[1]}`, `${range[0]} and ${range[1]}`)
   if (basic) {
     const parts: string[] = []
     if (precip?.slope != null && precip.mean != null) {
-      parts.push(Math.abs(precip.slope) < 0.02 * precip.mean ? 'la lluvia anual casi no cambió'
-        : `la lluvia anual ${precip.slope > 0 ? 'subió' : 'bajó'} unos ${fmt(Math.abs(precip.slope), 0)} mm cada 10 años`)
+      parts.push(Math.abs(precip.slope) < 0.02 * precip.mean ? t('la lluvia anual casi no cambió', 'annual rainfall barely changed')
+        : t(`la lluvia anual ${precip.slope > 0 ? 'subió' : 'bajó'} unos ${fmt(Math.abs(precip.slope), 0)} mm cada 10 años`,
+          `annual rainfall ${precip.slope > 0 ? 'rose' : 'fell'} by about ${fmt(Math.abs(precip.slope), 0)} mm every 10 years`))
     }
     if (temp?.slope != null) {
-      parts.push(Math.abs(temp.slope) < 0.05 ? 'la temperatura casi no cambió'
-        : `la temperatura ${temp.slope > 0 ? 'subió' : 'bajó'} cerca de ${fmt(Math.abs(temp.slope), 2)} °C cada 10 años`)
+      parts.push(Math.abs(temp.slope) < 0.05 ? t('la temperatura casi no cambió', 'temperature barely changed')
+        : t(`la temperatura ${temp.slope > 0 ? 'subió' : 'bajó'} cerca de ${fmt(Math.abs(temp.slope), 2)} °C cada 10 años`,
+          `temperature ${temp.slope > 0 ? 'rose' : 'fell'} by about ${fmt(Math.abs(temp.slope), 2)} °C every 10 years`))
     }
-    paragraphs.push(parts.length ? `En ${zone}, entre ${years}, ${parts.join(' y ')}.`
-      : `En ${zone} no hay años suficientes entre ${years} para ver una tendencia. Ampliá el rango.`)
+    paragraphs.push(parts.length ? t(`En ${zone}, entre ${years}, ${parts.join(' y ')}.`, `In ${zone}, between ${years}, ${parts.join(' and ')}.`)
+      : t(`En ${zone} no hay años suficientes entre ${years} para ver una tendencia. Ampliá el rango.`, `In ${zone} there are not enough years between ${years} to see a trend. Widen the range.`))
     if (enso?.start) {
-      const rain = enso.precip == null ? '' : Math.abs(enso.precip) < 1 ? 'llovió casi lo habitual'
-        : `llovió ${fmt(Math.abs(enso.precip), 0)} mm al mes ${enso.precip < 0 ? 'menos' : 'más'} de lo habitual`
-      const heat = enso.temp == null ? '' : Math.abs(enso.temp) < 0.05 ? 'la temperatura fue casi la habitual'
-        : `la temperatura estuvo ${fmt(Math.abs(enso.temp), 1)} °C ${enso.temp < 0 ? 'por debajo' : 'por encima'} de lo habitual`
-      const joined = [rain, heat].filter(Boolean).join(' y ')
-      if (joined) paragraphs.push(`Durante El Niño de ${enso.start} a ${enso.end}, en esta zona ${joined}. Es una comparación descriptiva: no prueba que El Niño sea la causa.`)
+      const rain = enso.precip == null ? '' : Math.abs(enso.precip) < 1 ? t('llovió casi lo habitual', 'it rained about the usual amount')
+        : t(`llovió ${fmt(Math.abs(enso.precip), 0)} mm al mes ${enso.precip < 0 ? 'menos' : 'más'} de lo habitual`, `it rained ${fmt(Math.abs(enso.precip), 0)} mm per month ${enso.precip < 0 ? 'less' : 'more'} than usual`)
+      const heat = enso.temp == null ? '' : Math.abs(enso.temp) < 0.05 ? t('la temperatura fue casi la habitual', 'temperature was about the usual')
+        : t(`la temperatura estuvo ${fmt(Math.abs(enso.temp), 1)} °C ${enso.temp < 0 ? 'por debajo' : 'por encima'} de lo habitual`, `temperature was ${fmt(Math.abs(enso.temp), 1)} °C ${enso.temp < 0 ? 'below' : 'above'} the usual`)
+      const joined = [rain, heat].filter(Boolean).join(t(' y ', ' and '))
+      if (joined) paragraphs.push(t(`Durante El Niño de ${enso.start} a ${enso.end}, en esta zona ${joined}. Es una comparación descriptiva: no prueba que El Niño sea la causa.`,
+        `During El Niño from ${enso.start} to ${enso.end}, in this area ${joined}. It is a descriptive comparison: it does not prove that El Niño is the cause.`))
     }
-    paragraphs.push(`Qué tan seguros estamos: confianza ${CONFIDENCE_LABEL[input.confidence]}. Los datos vienen de satélites y modelos de NASA, no de estaciones locales${input.stations === 0 ? ' (todavía no hay estaciones vinculadas)' : ''}.`)
+    paragraphs.push(t(`Qué tan seguros estamos: confianza ${CONFIDENCE_LABEL[input.confidence]}. Los datos vienen de satélites y modelos de NASA, no de estaciones locales${input.stations === 0 ? ' (todavía no hay estaciones vinculadas)' : ''}.`,
+      `How sure we are: ${CONFIDENCE_LABEL[input.confidence]} confidence. The data come from NASA satellites and models, not from local stations${input.stations === 0 ? ' (there are no linked stations yet)' : ''}.`))
   } else {
     const line = (name: string, unit: string, stats: VarStats, digits: number) => {
       const own = stats.slope == null ? 'sin pendiente (n insuficiente)' : `pendiente OLS descriptiva ${fmt(stats.slope, digits)} ${unit}/década`

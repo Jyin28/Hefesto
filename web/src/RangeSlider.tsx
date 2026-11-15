@@ -1,3 +1,5 @@
+import { t } from './i18n'
+
 export const MIN_YEAR = 1981
 export const MAX_YEAR = 2024
 
@@ -14,9 +16,9 @@ export function RangeSlider({ value, onChange, title, min = MIN_YEAR, max = MAX_
     <div className="range-label"><span>{min}</span><span>{from} — {to}</span><span>{max}</span></div>
     <div className="range-track">
       <div className="range-fill" style={{ left: `${left}%`, width: `${right - left}%` }} />
-      <input type="range" aria-label="Año inicial" min={min} max={max} value={from}
+      <input type="range" aria-label={t('Año inicial', 'Start year')} min={min} max={max} value={from}
         onChange={event => onChange([Math.min(Number(event.target.value), to), to])} />
-      <input type="range" aria-label="Año final" min={min} max={max} value={to}
+      <input type="range" aria-label={t('Año final', 'End year')} min={min} max={max} value={to}
         onChange={event => onChange([from, Math.max(Number(event.target.value), from)])} />
     </div>
   </div>

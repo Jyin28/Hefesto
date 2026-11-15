@@ -2,6 +2,7 @@ import { useId, useState } from 'react'
 import type { KeyboardEvent, PointerEvent } from 'react'
 import { fmt, usable } from './analysis'
 import type { Point, Range } from './analysis'
+import { t } from './i18n'
 
 const W = 480, H = 220
 const M = { top: 14, right: 14, bottom: 30, left: 52 }
@@ -18,7 +19,7 @@ export function SeriesChart({ series, range, unit, tone, label, projection, digi
   const [active, setActive] = useState<number | null>(null)
   const inside = series.filter(point => point.year >= range[0] && point.year <= range[1])
   const valid = usable(inside)
-  if (valid.length < 2) return <p className="empty" role="status">Sin datos suficientes en {range[0]}–{range[1]}. Ampliá el rango.</p>
+  if (valid.length < 2) return <p className="empty" role="status">{t(`Sin datos suficientes en ${range[0]}–${range[1]}. Ampliá el rango.`, `Not enough data in ${range[0]}–${range[1]}. Widen the range.`)}</p>
 
   const extra = projection ?? []
   const years = [...inside.map(point => point.year), ...extra.map(point => point.year)]
@@ -74,7 +75,7 @@ export function SeriesChart({ series, range, unit, tone, label, projection, digi
   const digits = forcedDigits ?? (Math.abs(y1) >= 100 ? 0 : 1)
 
   return <div className="series-chart" tabIndex={0} onKeyDown={onKey} onBlur={() => setActive(null)}
-    aria-label={`${label}, ${range[0]} a ${range[1]}. Usá las flechas izquierda y derecha para leer cada año.`}>
+    aria-label={t(`${label}, ${range[0]} a ${range[1]}. Usá las flechas izquierda y derecha para leer cada año.`, `${label}, ${range[0]} to ${range[1]}. Use the left and right arrow keys to read each year.`)}>
     <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${label} (${unit}), ${range[0]}–${range[1]}`}
       onPointerMove={nearest} onPointerLeave={() => setActive(null)}>
       <defs>
@@ -101,7 +102,7 @@ export function SeriesChart({ series, range, unit, tone, label, projection, digi
       </g>}
     </svg>
     <p className="chart-readout" aria-live="polite">{current
-      ? <>{current.year}: <strong>{fmt(current.value, digits === 0 ? 0 : Math.max(2, digits))} {unit}</strong>{current.projected ? ' · proyección de tendencia' : ''}</>
-      : <span className="muted">Pasá el cursor o usá las flechas para leer un año.{extra.length ? ' Línea punteada: proyección de tendencia.' : ''}</span>}</p>
+      ? <>{current.year}: <strong>{fmt(current.value, digits === 0 ? 0 : Math.max(2, digits))} {unit}</strong>{current.projected ? t(' · proyección de tendencia', ' · trend projection') : ''}</>
+      : <span className="muted">{t('Pasá el cursor o usá las flechas para leer un año.', 'Hover or use the arrow keys to read a year.')}{extra.length ? t(' Línea punteada: proyección de tendencia.', ' Dotted line: trend projection.') : ''}</span>}</p>
   </div>
 }

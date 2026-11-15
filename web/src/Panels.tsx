@@ -105,7 +105,7 @@ export function ClimatePanel({ variable, level, climate, remote, queryKey, regio
       <div className="exports" aria-label="Descargas">
         <button type="button" className="pill pill-ghost" onClick={printCard}>Imprimir ficha</button>
         {remote && <>
-          <a download="ficha-detective-tico.json" href={`/api/ficha/${queryKey}`}>JSON</a>
+          <a download="ficha-aguaalerta.json" href={`/api/ficha/${queryKey}`}>JSON</a>
           {['series', 'results', 'sources', 'enso',
             ...(remote.water_coverage.length ? ['water'] : []),
             ...(remote.distribution.length ? ['distribution'] : []),

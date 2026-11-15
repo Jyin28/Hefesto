@@ -1,6 +1,7 @@
 import { normalizeText } from './localData'
 import type { Operator } from './data'
 import type { AsadaReport } from './data/cantonData'
+import { locale, t } from './i18n'
 
 /** Reporte más reciente por fecha de medición (si empatan, el último guardado). */
 export function latestReports(reports: AsadaReport[]): Map<string, AsadaReport> {
@@ -31,7 +32,7 @@ export function summarizeCantons(operators: Operator[], latest: Map<string, Asad
   return result
 }
 
-export const flowText = (value: number | null) => value == null ? 'sin dato' : `${value.toLocaleString('es-CR', { maximumFractionDigits: 2 })} L/s`
+export const flowText = (value: number | null) => value == null ? t('sin dato', 'no data') : `${value.toLocaleString(locale(), { maximumFractionDigits: 2 })} L/s`
 
 /** Búsqueda por palabras sueltas, sin tildes ni mayúsculas: «tamarindo cruz» encuentra «Playa Tamarindo de Santa Cruz». */
 export function matchesAll(haystack: string, query: string) {

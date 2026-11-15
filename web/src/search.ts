@@ -2,18 +2,25 @@ import { matchesAll, operatorHaystack } from './asadas'
 import type { MapMode } from './copy'
 import type { Canton, Operator } from './data'
 import { normalizeText } from './localData'
+import { collate, t } from './i18n'
 
-/** Una sugerencia del buscador: un cantón o (solo en el mapa de cuencas) una ASADA. */
+/** Una sugerencia del buscador: un cantón o (solo donde se buscan caudales) una ASADA. */
 export type Entry =
   | { key: string; kind: 'canton'; code: string; name: string; province: string }
   | { key: string; kind: 'asada'; operator: Operator }
 
-/** Las ASADAs solo se buscan en «Datos nacionales»; los otros dos mapas buscan únicamente cantones. */
-export const searchesAsadas = (mode: MapMode) => mode === 'cantones'
+/** Dónde vive el buscador: uno de los tres mapas o la página de predicciones. */
+export type SearchContext = MapMode | 'predicciones'
+
+/**
+ * Los cantones se buscan en todas partes. Las ASADAs (el caudal) solo en «Datos nacionales» y en «Predicciones»;
+ * los mapas NASA POWER y CDS buscan únicamente cantones.
+ */
+export const searchesAsadas = (context: SearchContext) => context === 'cantones' || context === 'predicciones'
 
 export const entryName = (entry: Entry) => entry.kind === 'canton' ? entry.name : entry.operator.name
 export const entrySub = (entry: Entry) => entry.kind === 'canton'
-  ? `Cantón · ${entry.province}`
+  ? `${t('Cantón', 'Canton')} · ${entry.province}`
   : `${entry.operator.type} · ${entry.operator.district}, ${entry.operator.canton}`
 
 /** 0 = el nombre empieza con lo escrito, 1 = una palabra del nombre empieza con eso, 2 = lo contiene (o coincide por otro campo). */
@@ -24,8 +31,6 @@ function rank(name: string, query: string) {
   if (text.split(/[\s\-(),.]+/).some(word => word.startsWith(wanted))) return 1
   return text.includes(wanted) ? 2 : 3
 }
-
-const collator = new Intl.Collator('es-CR')
 
 /**
  * Sugerencias para lo escrito, mejores primero. Cantones: por nombre o código. ASADAs (solo si `withAsadas`): por nombre,
@@ -45,7 +50,7 @@ export function searchEntries(query: string, choices: Map<string, Canton>, asada
       scored.push({ entry: { key: `a${operator.id}`, kind: 'asada', operator }, score: rank(operator.name, query) * 2 + 1, name: operator.name })
     }
   }
-  return scored.sort((a, b) => a.score - b.score || collator.compare(a.name, b.name)).slice(0, limit).map(item => item.entry)
+  return scored.sort((a, b) => a.score - b.score || collate(a.name, b.name)).slice(0, limit).map(item => item.entry)
 }
 
 /**

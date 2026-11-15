@@ -7,7 +7,9 @@ import { CantonAsadaTiles } from './AsadaPanels'
 import { latestReports, summarizeCantons } from './asadas'
 import { ChartsPanel } from './ChartsPanel'
 import { Header } from './Header'
+import { locale, t, useLang } from './i18n'
 import { Landing } from './Landing'
+import { Methodology } from './Methodology'
 import { Predictions } from './Predictions'
 import type { LayerMode } from './layers'
 import { normalizeText } from './localData'
@@ -31,18 +33,21 @@ const MAP_PARAMS = ['pagina', 'modo', 'canton', 'vista', 'capa', 'anio', 'asada'
 const readParams = () => new URLSearchParams(window.location.search)
 /** Un enlace con cualquier parámetro del mapa abre el mapa directo; sin parámetros se ve la página de inicio. */
 const wantsMap = () => MAP_PARAMS.some(key => readParams().has(key))
-type Page = 'inicio' | 'mapa' | 'predicciones'
-/** `?pagina=predicciones` abre las predicciones; cualquier otro parámetro del mapa abre el mapa; sin parámetros, el inicio. */
-const pageFromUrl = (): Page => readParams().get('pagina') === 'predicciones' ? 'predicciones' : wantsMap() ? 'mapa' : 'inicio'
+type Page = 'inicio' | 'mapa' | 'predicciones' | 'metodologia'
+/** `?pagina=predicciones` abre las predicciones, `?pagina=metodologia` su explicación completa; cualquier otro parámetro del mapa abre el mapa; sin parámetros, el inicio. */
+const pageFromUrl = (): Page => {
+  const page = readParams().get('pagina')
+  return page === 'predicciones' || page === 'metodologia' ? page : wantsMap() ? 'mapa' : 'inicio'
+}
 const modeFromUrl = (): MapMode => {
   const wanted = readParams().get('modo')
   return (Object.keys(MODE_PARAM) as MapMode[]).find(mode => MODE_PARAM[mode] === wanted) ?? 'grid'
 }
-/** «POWER:9.5:-84.375» → «Celda 9,5° N · 84,375° O». */
+/** «POWER:9.5:-84.375» → «Celda 9,5° N · 84,375° O» (en inglés, «Cell 9.5° N · 84.375° W»). */
 function cellLabel(id: string) {
   const [, lat, lon] = id.split(':')
-  const degrees = (value: number) => Math.abs(value).toLocaleString('es-CR', { maximumFractionDigits: 3 })
-  return `Celda ${degrees(Number(lat))}° N · ${degrees(Number(lon))}° O`
+  const degrees = (value: number) => Math.abs(value).toLocaleString(locale(), { maximumFractionDigits: 3 })
+  return `${t('Celda', 'Cell')} ${degrees(Number(lat))}° N · ${degrees(Number(lon))}° ${t('O', 'W')}`
 }
 const emptyLocal: Local = { cantons: {}, notices: [], operators: [] }
 // Nivel de lectura fijo: público general (el selector de escolaridad se retiró).
@@ -58,6 +63,8 @@ function initialSection(params: URLSearchParams): Section {
 }
 
 function App({ initialMode, goHome, openPredictions }: { initialMode: MapMode; goHome: () => void; openPredictions: () => void }) {
+  // Se vuelve a dibujar al cambiar el idioma; `lang` también invalida lo que se calcula con useMemo y lleva textos.
+  const lang = useLang()
   // Se leen al montar: el mapa se vuelve a montar cada vez que se entra desde el inicio.
   const [params] = useState(readParams)
   const [snapshot, setSnapshot] = useState<Snapshot>()
@@ -157,10 +164,10 @@ function App({ initialMode, goHome, openPredictions }: { initialMode: MapMode; g
   const cantonCells = (mapMode === 'cds' ? cdsGeo?.cantonCells : geo?.cantonCells) ?? {}
   // Secciones que no aplican en el mapa activo, con su motivo (sirve de tooltip). En «Datos CDS» el UV depende de que
   // exista su capa en cds.json: sin el archivo de ERA5 se desactiva y, al cargarlo, se reactiva sola.
-  const noClimate = 'No aplica en el mapa de datos nacionales: este mapa no tiene datos climáticos.'
+  const noClimate = t('No aplica en el mapa de datos nacionales: este mapa no tiene datos climáticos.', 'Does not apply to the national data map: this map has no climate data.')
   const disabled: Partial<Record<Section, string>> = mapMode === 'cantones'
     ? { general: noClimate, temp: noClimate, precip: noClimate, uv: noClimate, humedad: noClimate }
-    : mapMode === 'cds' && !cds?.layers.UV ? { uv: 'La radiación UV todavía no está disponible en el mapa de CDS.' } : {}
+    : mapMode === 'cds' && !cds?.layers.UV ? { uv: t('La radiación UV todavía no está disponible en el mapa de CDS.', 'UV radiation is not available yet on the CDS map.') } : {}
   // Una sección desactivada (p. ej. UV que llega por la URL o desde el mapa de NASA) cae a «general».
   const activeSection: Section = disabled[section] ? 'general' : section
   const variable: Variable = activeSection === 'temp' ? 'T2M' : 'PRECTOTCORR'
@@ -207,6 +214,13 @@ function App({ initialMode, goHome, openPredictions }: { initialMode: MapMode; g
     updateUrl(url => url.searchParams.set('asada', operator.id))
   }
 
+  /** Hacer clic en la barra de búsqueda cierra la ASADA elegida (por la guía «Buscar por lugar» o por el buscador): queda el cantón con todas sus ASADAs. */
+  function closeAsada() {
+    if (!asadaId) return
+    setAsadaId('')
+    updateUrl(url => url.searchParams.delete('asada'))
+  }
+
   /** Elegir una provincia en el ayudante de búsqueda acerca el mapa a ella. */
   function selectProvince(name: string) {
     const wanted = normalizeText(name)
@@ -241,14 +255,14 @@ function App({ initialMode, goHome, openPredictions }: { initialMode: MapMode; g
   function onLogin(next: Session) {
     setSession(next)
     setModal(null)
-    setToast(`Modo administrador activo: ${next.name}. Seguís en el mapa; el formulario de tu ASADA está en la sección Admin.`)
+    setToast(t(`Modo administrador activo: ${next.name}. Seguís en el mapa; el formulario de tu ASADA está en la sección Admin.`, `Administrator mode active: ${next.name}. You are still on the map; your ASADA's form is in the Admin section.`))
   }
 
   function onLogout() {
     endSession()
     setSession(null)
     if (requestedSection === 'admin') setSection('general')
-    setToast('Sesión de administrador cerrada.')
+    setToast(t('Sesión de administrador cerrada.', 'Administrator session closed.'))
   }
 
   /** Acepta el código de tres dígitos o el nombre del cantón (sin tildes ni mayúsculas). */
@@ -267,7 +281,7 @@ function App({ initialMode, goHome, openPredictions }: { initialMode: MapMode; g
 
   // Si la celda es la propia del cantón, el título sigue siendo el cantón; una celda distinta se nombra por sus provincias.
   const ownCell = !!selected && cell === cantonCells[selected]
-  const zoneName = cell && !ownCell ? `Celda ${cell}` : canton?.name ?? 'Costa Rica'
+  const zoneName = cell && !ownCell ? `${t('Celda', 'Cell')} ${cell}` : canton?.name ?? 'Costa Rica'
   const inGrid = mapMode !== 'cantones'
   // Encabezado del panel: en los mapas de malla, la celda va pequeña arriba y debajo sus provincias y cantones.
   const cellCodes = (inGrid && cell ? (mapMode === 'cds' ? cdsGeo?.cellCantons : geo?.cellCantons)?.[cell] : undefined) ?? []
@@ -277,12 +291,12 @@ function App({ initialMode, goHome, openPredictions }: { initialMode: MapMode; g
     if (cellTag && !ownCell) {
       const provinces = [...new Set(cellCodes.map(code => choices.get(code)?.province).filter((name): name is string => !!name))]
       const names = cellCodes.map(code => choices.get(code)?.name).filter((name): name is string => !!name)
-      return { cellTag, title: provinces.join(' · ') || 'Fuera del territorio nacional', cantons: names.join(', ') || undefined }
+      return { cellTag, title: provinces.join(' · ') || t('Fuera del territorio nacional', 'Outside the national territory'), cantons: names.join(', ') || undefined }
     }
     // Mapa de cuencas con una ASADA elegida: solo su provincia y su cantón (la ASADA va en su tarjeta).
     if (mapMode === 'cantones' && asadaOperator) return { kicker: asadaOperator.province, title: asadaOperator.canton }
     return { cellTag, kicker: canton ? canton.province : undefined, title: canton?.name ?? 'Costa Rica' }
-  }, [inGrid, mapMode, asadaOperator, cell, ownCell, cellCodes, choices, canton])
+  }, [inGrid, mapMode, asadaOperator, cell, ownCell, cellCodes, choices, canton, lang])
 
   // Tarjetas de gráfica: usan el snapshot de la celda o del sector (sin esperar a la API).
   const pick = (name: Variable) => region ? (cell ? snapshot?.cells?.[region]?.[cell]?.[name] : snapshot?.climate[region]?.[name]) : undefined
@@ -312,20 +326,20 @@ function App({ initialMode, goHome, openPredictions }: { initialMode: MapMode; g
     <div className="body">
       <Sidebar level={level} section={activeSection} setSection={setSection} admin={!!session} disabled={disabled} />
       <div className={collapsed ? 'stage collapsed' : 'stage'}>
-        <section className="map-wrap" aria-label="Mapa">
+        <section className="map-wrap" aria-label={t('Mapa', 'Map')}>
           <Map boundaries={boundaries} geo={geo} snapshot={snapshot} cds={cds} cdsGeo={cdsGeo} cdsMissing={cdsMissing} waterways={waterways} mode={mapMode} variable={mapVar}
             layerMode={layerMode} range={range} year={year} level={level} selected={selected} selectedCell={cell} alerts={alerts}
             cantonStatus={summaries} focus={focus} select={select} selectCell={selectCell} />
           <button className="drawer-toggle glass" aria-expanded={!collapsed} aria-controls="ficha"
-            aria-label={collapsed ? 'Mostrar el panel de información' : 'Ocultar el panel de información'}
-            title={collapsed ? 'Mostrar el panel' : 'Ocultar el panel'} onClick={() => setCollapsed(value => !value)}>
+            aria-label={collapsed ? t('Mostrar el panel de información', 'Show the information panel') : t('Ocultar el panel de información', 'Hide the information panel')}
+            title={collapsed ? t('Mostrar el panel', 'Show the panel') : t('Ocultar el panel', 'Hide the panel')} onClick={() => setCollapsed(value => !value)}>
             <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               {collapsed ? <path d="M20 12H4M10 6l-6 6 6 6" /> : <path d="M4 12h16M14 6l6 6-6 6" />}
             </svg>
           </button>
         </section>
         <InfoPanel choices={choices} asadas={asadas} mode={mapMode} loading={loading} blank={blank} back={goBack}
-          select={select} selectAsada={selectAsada} selectProvince={selectProvince}
+          select={select} selectAsada={selectAsada} selectProvince={selectProvince} closeAsada={closeAsada}
           selected={selected} cell={cell} header={header}
           collapsed={collapsed} mapTip={copy[level].mapTip[mapMode]}>
           {blank ? null : section === 'admin' && session
@@ -344,6 +358,7 @@ function App({ initialMode, goHome, openPredictions }: { initialMode: MapMode; g
 
 /** Elige entre la página de inicio y el mapa. Cada cambio queda en el historial: «Atrás» vuelve a la página anterior. */
 function Root() {
+  useLang() // al cambiar el idioma, Root se vuelve a dibujar y arrastra a todo el árbol (los textos salen de `t()`)
   const [page, setPage] = useState<Page>(pageFromUrl)
   const [mode, setMode] = useState<MapMode>(modeFromUrl)
   // Cambia cada vez que se entra al mapa, para que se monte de cero con la URL nueva.
@@ -390,6 +405,7 @@ function Root() {
 
   if (page === 'mapa') return <App key={visit} initialMode={mode} goHome={goHome} openPredictions={openPredictions} />
   if (page === 'predicciones') return <Predictions openMap={openMap} goHome={goHome} />
+  if (page === 'metodologia') return <Methodology goBack={openPredictions} />
   return <Landing openMap={openMap} openPredictions={openPredictions} />
 }
 

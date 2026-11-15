@@ -8,6 +8,7 @@ import { metaFor, seriesPoints } from './layers'
 import type { LayerMode, Source } from './layers'
 import { MAX_YEAR, MIN_YEAR, RangeSlider } from './RangeSlider'
 import { SeriesChart } from './SeriesChart'
+import { t } from './i18n'
 
 const TONE: Record<LayerVar, 'water' | 'emerald'> = { T2M: 'emerald', PRECTOTCORR: 'water', UV: 'water', RH2M: 'emerald' }
 
@@ -16,11 +17,11 @@ function LayerChartCard({ variable, layer, cell, range, source = 'nasa' }: {
   variable: LayerVar; layer?: Layer; cell: string; range: [number, number]; source?: Source
 }) {
   const meta = metaFor(variable, source)
-  if (!layer) return <Tile title={meta.name}><p className="empty">Todavía no se cargó esta capa {source === 'cds' ? 'del CDS de Copernicus' : 'de NASA POWER'}.</p></Tile>
+  if (!layer) return <Tile title={meta.name}><p className="empty">{source === 'cds' ? t('Todavía no se cargó esta capa del CDS de Copernicus.', 'This layer has not been loaded yet from the Copernicus CDS.') : t('Todavía no se cargó esta capa de NASA POWER.', 'This layer has not been loaded yet from NASA POWER.')}</p></Tile>
   const points = seriesPoints(layer, cell || undefined)
-  const unit = variable === 'PRECTOTCORR' ? 'mm por año' : variable === 'UV' && source === 'nasa' ? 'índice UV' : meta.unit
+  const unit = variable === 'PRECTOTCORR' ? t('mm por año', 'mm per year') : variable === 'UV' && source === 'nasa' ? t('índice UV', 'UV index') : meta.unit
   return <Tile title={meta.name}>
-    <SeriesChart series={points} range={range} unit={unit} tone={TONE[variable]} label={`${meta.name} anual`} digits={meta.digits} />
+    <SeriesChart series={points} range={range} unit={unit} tone={TONE[variable]} label={t(`${meta.name} anual`, `Annual ${meta.name.toLowerCase()}`)} digits={meta.digits} />
     <p className="muted">{meta.about}</p>
   </Tile>
 }
@@ -38,18 +39,18 @@ export function ChartsPanel({ mapMode, level, zoneName, climateBy, uvLayer, hume
   layerMode: LayerMode; setLayerMode: (mode: LayerMode) => void; year: number; setYear: (year: number) => void
 }) {
   const shownYear = Math.min(Math.max(year, MIN_YEAR), MAX_YEAR)
-  const controls = <Tile title="Controles del mapa">
-    <div className="segmented" role="group" aria-label="Qué mostrar en el mapa">
+  const controls = <Tile title={t('Controles del mapa', 'Map controls')}>
+    <div className="segmented" role="group" aria-label={t('Qué mostrar en el mapa', 'What to show on the map')}>
       <button aria-pressed={layerMode === 'slope'} onClick={() => setLayerMode('slope')}
-        title="Colorea cuánto subió o bajó cada zona cada 10 años, dentro de los años que elijas.">Cambio en el tiempo</button>
+        title={t('Colorea cuánto subió o bajó cada zona cada 10 años, dentro de los años que elijas.', 'Colors how much each area rose or fell every 10 years, within the years you choose.')}>{t('Cambio en el tiempo', 'Change over time')}</button>
       <button aria-pressed={layerMode === 'value'} onClick={() => setLayerMode('value')}
-        title="Colorea el valor que tuvo cada zona en un año específico.">Valor por año</button>
+        title={t('Colorea el valor que tuvo cada zona en un año específico.', 'Colors the value each area had in a specific year.')}>{t('Valor por año', 'Value by year')}</button>
     </div>
     {layerMode === 'slope'
-      ? <RangeSlider value={range} onChange={setRange} title="Elegí desde qué año hasta qué año se calcula el cambio. El mapa se actualiza al instante." />
-      : <div className="range" title="Elegí el año que querés ver. El mapa se actualiza al instante.">
+      ? <RangeSlider value={range} onChange={setRange} title={t('Elegí desde qué año hasta qué año se calcula el cambio. El mapa se actualiza al instante.', 'Choose from which year to which year the change is calculated. The map updates instantly.')} />
+      : <div className="range" title={t('Elegí el año que querés ver. El mapa se actualiza al instante.', 'Choose the year you want to see. The map updates instantly.')}>
         <div className="range-label"><span>{MIN_YEAR}</span><span className="year-big">{shownYear}</span><span>{MAX_YEAR}</span></div>
-        <input className="year-slider" type="range" aria-label="Año a mostrar" min={MIN_YEAR} max={MAX_YEAR} value={shownYear}
+        <input className="year-slider" type="range" aria-label={t('Año a mostrar', 'Year to show')} min={MIN_YEAR} max={MAX_YEAR} value={shownYear}
           onChange={event => setYear(Number(event.target.value))} />
       </div>}
   </Tile>

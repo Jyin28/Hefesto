@@ -1,3 +1,4 @@
+import { t } from './i18n'
 import type { LocalRecord } from './data/cantonData'
 
 export const MAX_ROWS = 5000
@@ -40,14 +41,14 @@ function toRows(input: string): { rows: Record<string, string>[]; error?: string
   const trimmed = input.trim()
   if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
     let data: unknown
-    try { data = JSON.parse(trimmed) } catch { return { rows: [], error: 'El JSON no es válido.' } }
+    try { data = JSON.parse(trimmed) } catch { return { rows: [], error: t('El JSON no es válido.', 'The JSON is not valid.') } }
     const list = Array.isArray(data) ? data : (data as { records?: unknown })?.records
-    if (!Array.isArray(list)) return { rows: [], error: 'El JSON debe ser una lista de registros o un objeto con «records».' }
+    if (!Array.isArray(list)) return { rows: [], error: t('El JSON debe ser una lista de registros o un objeto con «records».', 'The JSON must be a list of records or an object with "records".') }
     return { rows: list.map(item => Object.fromEntries(Object.entries((item && typeof item === 'object' ? item : {}) as Record<string, unknown>)
       .map(([key, value]) => [normalize(key), value == null ? '' : String(value)]))) }
   }
   const lines = trimmed.split(/\r?\n/).filter(line => line.trim())
-  if (lines.length < 2) return { rows: [], error: 'El CSV necesita una fila de encabezados y al menos un registro.' }
+  if (lines.length < 2) return { rows: [], error: t('El CSV necesita una fila de encabezados y al menos un registro.', 'The CSV needs a header row and at least one record.') }
   const delimiter = [';', '\t', ','].find(item => lines[0].includes(item)) ?? ','
   const headers = splitLine(lines[0], delimiter).map(normalize)
   return { rows: lines.slice(1).map(line => Object.fromEntries(splitLine(line, delimiter).map((cell, index) => [headers[index] ?? `col${index}`, cell]))) }
@@ -72,26 +73,26 @@ function validDate(raw: string) {
  * Nada se guarda aquí: devuelve los registros aceptados y los rechazados con su motivo.
  */
 export function parseLocalData(input: string, resolveCanton: (raw: string) => string | null): ParseResult {
-  if (!input.trim()) return { records: [], rejected: [], total: 0, error: 'Pegá o subí un JSON o CSV.' }
-  if (input.length > MAX_CHARS) return { records: [], rejected: [], total: 0, error: 'El archivo supera 1 MB. Dividilo en partes.' }
+  if (!input.trim()) return { records: [], rejected: [], total: 0, error: t('Pegá o subí un JSON o CSV.', 'Paste or upload a JSON or CSV.') }
+  if (input.length > MAX_CHARS) return { records: [], rejected: [], total: 0, error: t('El archivo supera 1 MB. Dividilo en partes.', 'The file exceeds 1 MB. Split it into parts.') }
   const { rows, error } = toRows(input)
   if (error) return { records: [], rejected: [], total: 0, error }
-  if (rows.length > MAX_ROWS) return { records: [], rejected: [], total: rows.length, error: `Máximo ${MAX_ROWS} registros por carga.` }
+  if (rows.length > MAX_ROWS) return { records: [], rejected: [], total: rows.length, error: t(`Máximo ${MAX_ROWS} registros por carga.`, `Maximum ${MAX_ROWS} records per upload.`) }
   const records: Parsed[] = []
   const rejected: ParseResult['rejected'] = []
   rows.forEach((row, index) => {
     const reject = (reason: string) => rejected.push({ row: index + 1, reason })
     const code = resolveCanton(pick(row, 'canton'))
-    if (!code) return reject(`cantón «${pick(row, 'canton')}» no reconocido`)
+    if (!code) return reject(t(`cantón «${pick(row, 'canton')}» no reconocido`, `canton "${pick(row, 'canton')}" not recognized`))
     const variable = VARIABLES[normalize(pick(row, 'variable'))]
-    if (!variable) return reject(`variable «${pick(row, 'variable')}» no reconocida (usá temperatura o precipitación)`)
+    if (!variable) return reject(t(`variable «${pick(row, 'variable')}» no reconocida (usá temperatura o precipitación)`, `variable "${pick(row, 'variable')}" not recognized (use temperature or precipitation)`))
     const date = pick(row, 'date')
-    if (!validDate(date)) return reject(`fecha «${date}» inválida (usá AAAA, AAAA-MM o AAAA-MM-DD)`)
+    if (!validDate(date)) return reject(t(`fecha «${date}» inválida (usá AAAA, AAAA-MM o AAAA-MM-DD)`, `date "${date}" invalid (use YYYY, YYYY-MM or YYYY-MM-DD)`))
     const rawValue = pick(row, 'value').replace(/\s/g, '')
     const value = /^-?\d+([.,]\d+)?$/.test(rawValue) ? Number(rawValue.replace(',', '.')) : NaN
-    if (!Number.isFinite(value)) return reject(`valor «${pick(row, 'value')}» no es un número`)
+    if (!Number.isFinite(value)) return reject(t(`valor «${pick(row, 'value')}» no es un número`, `value "${pick(row, 'value')}" is not a number`))
     const [low, high] = RANGES[variable]
-    if (value < low || value > high) return reject(`valor ${value} fuera del rango plausible (${low} a ${high})`)
+    if (value < low || value > high) return reject(t(`valor ${value} fuera del rango plausible (${low} a ${high})`, `value ${value} outside the plausible range (${low} to ${high})`))
     records.push({ cantonCode: code, variable, date, value, unit: variable === 'T2M' ? '°C' : 'mm', station: pick(row, 'station').slice(0, 120) })
   })
   return { records, rejected, total: rows.length }

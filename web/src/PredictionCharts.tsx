@@ -1,5 +1,6 @@
+import { t } from './i18n'
 import type { EnsoBlock, ForecastRow, RainAnalogMonth } from './predictionsData'
-import { monthLong, monthOnly, monthShort, num, signed } from './predictionsData'
+import { ensoCategory, monthLong, monthOnly, monthShort, num, signed } from './predictionsData'
 
 /** Gráficos SVG de la página «Predicciones». Se animan cuando su contenedor `.reveal` entra en pantalla (ver style.css, `.pc-*`). */
 
@@ -31,7 +32,8 @@ export function EnsoTimeline({ enso }: { enso: EnsoBlock }) {
   const latest = enso.latest
 
   return <svg className="pc" viewBox={`0 0 ${W} ${H}`} role="img"
-    aria-label={`Línea de tiempo de El Niño. RONI de ${num(latest.value)} en ${monthLong(latest.month)}.${enso.start ? ` Episodio en curso desde ${monthLong(enso.start)}.` : ''}`}>
+    aria-label={t(`Línea de tiempo de El Niño. RONI de ${num(latest.value)} en ${monthLong(latest.month)}.${enso.start ? ` Episodio en curso desde ${monthLong(enso.start)}.` : ''}`,
+      `El Niño timeline. RONI of ${num(latest.value)} in ${monthLong(latest.month)}.${enso.start ? ` Episode under way since ${monthLong(enso.start)}.` : ''}`)}>
     <defs>
       <pattern id="pc-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
         <rect width="7" height="7" fill="#fed7aa" /><line x1="0" y1="0" x2="0" y2="7" stroke="#f97316" strokeWidth="3" />
@@ -46,7 +48,7 @@ export function EnsoTimeline({ enso }: { enso: EnsoBlock }) {
       <text className="pc-axis" x={L - 8} y={y(value) + 4} textAnchor="end">{value}</text>
     </g>)}
     <line className="pc-threshold" x1={L} x2={W - R} y1={y(0.5)} y2={y(0.5)} />
-    <text className="pc-note" x={W - R} y={y(0.5) - 6} textAnchor="end">0,5 = umbral de El Niño</text>
+    <text className="pc-note" x={W - R} y={y(0.5) - 6} textAnchor="end">{t('0,5 = umbral de El Niño', '0.5 = El Niño threshold')}</text>
     <path className="pc-line pc-draw" d={path(series)} pathLength={1} style={delay(150)} />
     {active.length > 1 && <path className="pc-line hot pc-draw" d={path(active)} pathLength={1} style={delay(700)} />}
     {series.length > 0 && <g className="pc-pop" style={delay(1500)}>
@@ -56,26 +58,26 @@ export function EnsoTimeline({ enso }: { enso: EnsoBlock }) {
     <line className="pc-now" x1={x(latest.month)} x2={x(latest.month)} y1={T} y2={tracks.end + 24} />
 
     {enso.start && <g>
-      <text className="pc-label" x={bar(enso.start, latest.month).x} y={tracks.episode - 7}>Episodio en curso · {enso.category}</text>
+      <text className="pc-label" x={bar(enso.start, latest.month).x} y={tracks.episode - 7}>{t('Episodio en curso', 'Episode under way')} · {ensoCategory(enso.category)}</text>
       <rect className="pc-bar hot pc-grow-x" style={delay(900)} rx={7} height={16} y={tracks.episode} {...bar(enso.start, latest.month)}>
-        <title>{`Desde ${monthLong(enso.start)} (${enso.months_so_far} meses con RONI ≥ 0,5)`}</title>
+        <title>{t(`Desde ${monthLong(enso.start)} (${enso.months_so_far} meses con RONI ≥ 0,5)`, `Since ${monthLong(enso.start)} (${enso.months_so_far} months with RONI ≥ 0.5)`)}</title>
       </rect>
     </g>}
     {analog?.peak_window && <g>
       <text className="pc-label" x={bar(analog.peak_window.earliest, analog.peak_window.latest).x} y={tracks.peak - 7}>
-        Pico esperado · {monthShort(analog.peak_window.earliest)} a {monthShort(analog.peak_window.latest)}
+        {t('Pico esperado', 'Expected peak')} · {monthShort(analog.peak_window.earliest)} {t('a', 'to')} {monthShort(analog.peak_window.latest)}
       </text>
       <rect className="pc-bar soft pc-grow-x" style={delay(1200)} rx={7} height={16} y={tracks.peak} {...bar(analog.peak_window.earliest, analog.peak_window.latest)}>
-        <title>{`Pico típico: ${monthLong(analog.peak_window.typical)} (${analog.peak_window.n} episodios fuertes anteriores)`}</title>
+        <title>{t(`Pico típico: ${monthLong(analog.peak_window.typical)} (${analog.peak_window.n} episodios fuertes anteriores)`, `Typical peak: ${monthLong(analog.peak_window.typical)} (${analog.peak_window.n} earlier strong episodes)`)}</title>
       </rect>
       <rect className="pc-mark pc-pop" style={delay(1900)} x={x(analog.peak_window.typical) - 5} y={tracks.peak - 2} width={10} height={20} rx={3} />
     </g>}
     {analog && <g>
       <text className="pc-label" x={bar(analog.end_window.earliest, analog.end_window.latest).x} y={tracks.end - 7}>
-        Fin esperado · {monthShort(analog.end_window.earliest)} a {monthShort(analog.end_window.latest)}
+        {t('Fin esperado', 'Expected end')} · {monthShort(analog.end_window.earliest)} {t('a', 'to')} {monthShort(analog.end_window.latest)}
       </text>
       <rect className="pc-bar hatch pc-grow-x" style={delay(1500)} rx={7} height={16} y={tracks.end} {...bar(analog.end_window.earliest, analog.end_window.latest)} fill="url(#pc-hatch)">
-        <title>{`Fin típico: ${monthLong(analog.end_window.typical)} (${analog.n} episodios fuertes anteriores)`}</title>
+        <title>{t(`Fin típico: ${monthLong(analog.end_window.typical)} (${analog.n} episodios fuertes anteriores)`, `Typical end: ${monthLong(analog.end_window.typical)} (${analog.n} earlier strong episodes)`)}</title>
       </rect>
       <rect className="pc-mark pc-pop" style={delay(2200)} x={x(analog.end_window.typical) - 5} y={tracks.end - 2} width={10} height={20} rx={3} />
     </g>}
@@ -101,7 +103,8 @@ export function TemperatureChart({ rows, unit }: { rows: ForecastRow[]; unit: st
   const line = forecast.map((item, k) => `${k ? 'L' : 'M'}${x(item.i)},${y(item.r.estimate!)}`).join(' ')
 
   return <svg className="pc" viewBox={`0 0 ${W} ${H}`} role="img"
-    aria-label={`Temperatura media mensual estimada frente a lo normal, ${rows[0] ? monthLong(rows[0].target_month) : ''} en adelante. Ver la tabla de abajo.`}>
+    aria-label={t(`Temperatura media mensual estimada frente a lo normal, ${rows[0] ? monthLong(rows[0].target_month) : ''} en adelante. Ver la tabla de abajo.`,
+      `Estimated monthly mean temperature versus normal, from ${rows[0] ? monthLong(rows[0].target_month) : ''} onward. See the table below.`)}>
     {ticks.map(value => <g key={value}>
       <line className="pc-grid" x1={L} x2={W - R} y1={y(value)} y2={y(value)} />
       <text className="pc-axis" x={L - 8} y={y(value) + 4} textAnchor="end">{num(value)}</text>
@@ -112,17 +115,17 @@ export function TemperatureChart({ rows, unit }: { rows: ForecastRow[]; unit: st
     {rows.map((row, i) => <g key={row.target_month}>
       <text className={row.estimate === null ? 'pc-axis dim' : 'pc-axis strong'} x={x(i)} y={H - B + 20} textAnchor="middle">{monthOnly(row.target_month)}</text>
       <text className="pc-axis dim" x={x(i)} y={H - B + 35} textAnchor="middle">{row.target_month.slice(0, 4)}</text>
-      {row.estimate === null && <text className="pc-axis dim" x={x(i)} y={H - B + 51} textAnchor="middle">sin pronóstico</text>}
+      {row.estimate === null && <text className="pc-axis dim" x={x(i)} y={H - B + 51} textAnchor="middle">{t('sin pronóstico', 'no forecast')}</text>}
     </g>)}
     {forecast.map(({ r, i }, k) => <g key={r.target_month}>
       <rect className="pc-whisker pc-grow-y" style={delay(900 + k * 250)} x={x(i) - 11} width={22} rx={11} y={y(r.upper90!)} height={y(r.lower90!) - y(r.upper90!)}>
-        <title>{`${monthLong(r.target_month)}: banda de 90 %, ${num(r.lower90!)} a ${num(r.upper90!)}`}</title>
+        <title>{t(`${monthLong(r.target_month)}: banda de 90 %, ${num(r.lower90!)} a ${num(r.upper90!)}`, `${monthLong(r.target_month)}: 90 % band, ${num(r.lower90!)} to ${num(r.upper90!)}`)}</title>
       </rect>
     </g>)}
     {line && <path className="pc-line amber pc-draw" d={line} pathLength={1} style={delay(800)} />}
     {forecast.map(({ r, i }, k) => <g key={`d${r.target_month}`} className="pc-pop" style={delay(1100 + k * 250)}>
       <circle className="pc-dot amber" cx={x(i)} cy={y(r.estimate!)} r={6.5}>
-        <title>{`${monthLong(r.target_month)}: ${num(r.estimate!)} ${unit} (normal ${num(r.reference.mean)})`}</title>
+        <title>{t(`${monthLong(r.target_month)}: ${num(r.estimate!)} ${unit} (normal ${num(r.reference.mean)})`, `${monthLong(r.target_month)}: ${num(r.estimate!)} ${unit} (normal ${num(r.reference.mean)})`)}</title>
       </circle>
       <text className="pc-label strong" x={x(i)} y={y(r.upper90!) - 8} textAnchor="middle">{num(r.estimate!)}</text>
     </g>)}
@@ -143,23 +146,23 @@ export function RainChart({ rows, analog }: { rows: ForecastRow[]; analog: RainA
   const ticks = Array.from({ length: Math.round(top / unitStep) + 1 }, (_, i) => i * unitStep)
   const analogOf = (month: string) => analog.find(item => item.month === month)
 
-  return <svg className="pc" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Lluvia mensual normal y lluvia en años parecidos de El Niño. Ver la tabla de abajo.">
+  return <svg className="pc" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t('Lluvia mensual normal y lluvia en años parecidos de El Niño. Ver la tabla de abajo.', 'Normal monthly rainfall and rainfall in similar El Niño years. See the table below.')}>
     {ticks.map(value => <g key={value}>
       <line className="pc-grid" x1={L} x2={W - R} y1={y(value)} y2={y(value)} />
       <text className="pc-axis" x={L - 8} y={y(value) + 4} textAnchor="end">{num(value, 0)}</text>
     </g>)}
-    <text className="pc-note" x={L} y={14}>mm por mes</text>
+    <text className="pc-note" x={L} y={14}>{t('mm por mes', 'mm per month')}</text>
     {rows.map((row, i) => {
       const found = analogOf(row.target_month)
       const dry = found && found.anomaly_pct < -5
       return <g key={row.target_month}>
         <rect className="pc-range pc-grow-y" style={delay(150 + i * 110)} x={x(i) - 17} width={34} rx={9} y={y(row.reference.p90)} height={y(row.reference.p10) - y(row.reference.p90)}>
-          <title>{`${monthLong(row.target_month)}: normal ${num(row.reference.mean, 0)} mm; en 8 de cada 10 años entre ${num(row.reference.p10, 0)} y ${num(row.reference.p90, 0)} mm`}</title>
+          <title>{t(`${monthLong(row.target_month)}: normal ${num(row.reference.mean, 0)} mm; en 8 de cada 10 años entre ${num(row.reference.p10, 0)} y ${num(row.reference.p90, 0)} mm`, `${monthLong(row.target_month)}: normal ${num(row.reference.mean, 0)} mm; in 8 out of 10 years between ${num(row.reference.p10, 0)} and ${num(row.reference.p90, 0)} mm`)}</title>
         </rect>
         <line className="pc-tick pc-pop" style={delay(450 + i * 110)} x1={x(i) - 22} x2={x(i) + 22} y1={y(row.reference.mean)} y2={y(row.reference.mean)} />
         {found && <g className="pc-pop" style={delay(900 + i * 110)}>
           <path className={dry ? 'pc-diamond dry' : 'pc-diamond'} d={`M${x(i)},${y(found.mean_mm) - 9} L${x(i) + 9},${y(found.mean_mm)} L${x(i)},${y(found.mean_mm) + 9} L${x(i) - 9},${y(found.mean_mm)} Z`}>
-            <title>{`${monthLong(row.target_month)}: en ${found.n_years} años parecidos llovió ${num(found.mean_mm, 0)} mm en promedio (${signed(found.anomaly_pct, 0)} % frente a lo normal)`}</title>
+            <title>{t(`${monthLong(row.target_month)}: en ${found.n_years} años parecidos llovió ${num(found.mean_mm, 0)} mm en promedio (${signed(found.anomaly_pct, 0)} % frente a lo normal)`, `${monthLong(row.target_month)}: in ${found.n_years} similar years it rained ${num(found.mean_mm, 0)} mm on average (${signed(found.anomaly_pct, 0)} % versus normal)`)}</title>
           </path>
           <text className="pc-label strong" x={x(i) + 24} y={y(found.mean_mm) + 4}>{signed(found.anomaly_pct, 0)} %</text>
         </g>}
