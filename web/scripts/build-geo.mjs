@@ -118,3 +118,55 @@ writeFileSync(resolve(root, '../data/web/national_cells.json'), JSON.stringify(n
 const used = new Set(Object.values(cantonCells))
 console.log(`celdas: ${cells.length}, con tierra: ${national.length}, usadas por cantones: ${used.size}`)
 console.log(`cantones asignados: ${Object.keys(cantonCells).length}, sin celda: ${Object.values(cantonCells).filter(v => !v).length}`)
+
+// --- Malla ERA5-Land del Copernicus CDS: 0,1° × 0,1°, centros en múltiplos de 0,1° (≈11 km) ---
+// Solo se conservan las celdas con al menos 1 % de tierra. Las celdas totalmente interiores no guardan polígono
+// de tierra (el cliente usa su caja) para que el archivo no crezca.
+const CDS_STEP = 0.1, CDS_LAT0 = 8.0, CDS_LAT_N = 34, CDS_LON0 = -86.0, CDS_LON_N = 36
+const tenth = n => Math.round(n * 10) / 10
+const bboxOfGeometry = geometry => {
+  let west = Infinity, south = Infinity, east = -Infinity, north = -Infinity
+  const visit = value => {
+    if (typeof value[0] === 'number') {
+      west = Math.min(west, value[0]); east = Math.max(east, value[0]); south = Math.min(south, value[1]); north = Math.max(north, value[1])
+    } else value.forEach(visit)
+  }
+  visit(geometry.coordinates)
+  return [west, south, east, north]
+}
+const overlaps = (a, b) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1]
+const countryBox = bboxOfGeometry(country.geometry)
+const cdsCells = []
+for (let i = 0; i < CDS_LAT_N; i++) {
+  for (let j = 0; j < CDS_LON_N; j++) {
+    const lat = tenth(CDS_LAT0 + i * CDS_STEP)
+    const lon = tenth(CDS_LON0 + j * CDS_STEP)
+    const bbox = [lon - CDS_STEP / 2, lat - CDS_STEP / 2, lon + CDS_STEP / 2, lat + CDS_STEP / 2].map(round)
+    if (!overlaps(bbox, countryBox)) continue
+    const cell = box(...bbox)
+    const land = intersect(featureCollection([cell, country]))
+    const landFraction = land ? Math.round((area(land) / area(cell)) * 1e4) / 1e4 : 0
+    if (landFraction < 0.01) continue
+    cdsCells.push({
+      id: `ERA5L:${lat}:${lon}`, lat, lon, bbox, landFraction,
+      land: landFraction >= 0.999 ? null : { type: land.geometry.type, coordinates: walk(land.geometry.coordinates) }, cell,
+    })
+  }
+}
+const cdsCantonCells = {}
+for (const f of cantons.features) {
+  const featureBox = bboxOfGeometry(f.geometry)
+  let best = { id: '', value: 0 }
+  for (const c of cdsCells) {
+    if (!overlaps(featureBox, c.bbox)) continue
+    const shared = intersect(featureCollection([f, c.cell]))
+    const value = shared ? area(shared) : 0
+    if (value > best.value) best = { id: c.id, value }
+  }
+  cdsCantonCells[f.properties.code] = best.id
+}
+writeFileSync(resolve(root, 'public/data/geo-cds.json'),
+  JSON.stringify({ cells: cdsCells.map(({ cell, ...rest }) => rest), cantonCells: cdsCantonCells }))
+writeFileSync(resolve(root, '../data/web/cds_cells.json'),
+  JSON.stringify(cdsCells.map(c => ({ lat: c.lat, lon: c.lon, land_fraction: c.landFraction })), null, 2) + '\n')
+console.log(`celdas CDS con tierra: ${cdsCells.length}, cantones asignados: ${Object.keys(cdsCantonCells).length}, sin celda: ${Object.values(cdsCantonCells).filter(v => !v).length}`)

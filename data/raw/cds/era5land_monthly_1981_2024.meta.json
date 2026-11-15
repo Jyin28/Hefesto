@@ -1,0 +1,10 @@
+{
+  "dataset": "reanalysis-era5-land-monthly-means",
+  "title": "ERA5-Land monthly averaged data from 1950 to present",
+  "doi": "10.24381/cds.68d2bb30",
+  "url": "https://cds.climate.copernicus.eu/datasets/reanalysis-era5-land-monthly-means",
+  "request": null,
+  "downloaded_manually": true,
+  "sha256": "2a4209ae5511388df2289a9b3dceaeb3cfd52b597c9b47f59a4d1dc6877a45d9",
+  "retrieved_at": "2026-11-15T05:54:34Z"
+}
