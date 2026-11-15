@@ -88,7 +88,7 @@ Serializa el mismo `ServiceResponse` que muestra el sitio; no recalcula.
 - `build_evidence_card_ext`: campos v2 de la ficha más `product`, `availability`, `source_mode`, `query_effective`, `geographic_context`, `data_coverage` y los tres `*_metadata`. Resumen por plantilla determinista. `presentable_as_real` solo es true con `source_mode=real` y `synthetic=false`.
 - `build_export` devuelve `manifest.json` (tablas presentes y ausentes con razón), `evidence.json`, `provenance.json` (si existe), `ficha.md` y los CSV del producto: `series`, `cells`, `event_series`, `forecast`, `water_distribution`, `water_records`, `service_coverage`.
 - CSV: UTF-8, coma, punto decimal, ausente = celda vacía, anidados = JSON compacto, booleanos `true/false`. Cada fila lleva `result_id`, `product` y sus claves de unión. Sin datos no hay CSV: la tabla va a `tables_absent`.
-- Ejemplos reproducibles para Kevin: `docs/jacky/examples/` (14 casos), generados con `python scripts/build_examples_f2.py`.
+- Ejemplos reproducibles para Kevin: `docs/team/jacky/examples/` (14 casos), generados con `python scripts/build_examples_f2.py`.
 
 ## Identidad de resultado
 

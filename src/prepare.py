@@ -21,7 +21,7 @@ valor valido, nunca se interpreta como faltante. Si la entrada real viene en
 formato DataFrame de Samuel (columna `time` en vez de year/month, `value`
 NaN en vez de `None`), pasarla primero por `adapt_cell_rows()`.
 
-Politica de cobertura incompleta (PROVISIONAL, ver docs/emanuel/decisions.md
+Politica de cobertura incompleta (PROVISIONAL, ver docs/team/emanuel/decisions.md
 fila "Cobertura y año completo"): una region-mes solo produce un valor si
 TODAS las celdas de la mascara de esa region tienen valor ese mes (cobertura
 ponderada == 1.0, `COVERAGE_THRESHOLD`). Pendiente de confirmar con Jacky y
@@ -462,7 +462,7 @@ def prepare_regional_series(
 
 
 # --------------------------------------------------------------------------- #
-# Pendiente de confirmar con Jacky (ver tambien docs/emanuel/decisions.md):
+# Pendiente de confirmar con Jacky (ver tambien docs/team/emanuel/decisions.md):
 #
 # 1. Umbral de cobertura: hoy COVERAGE_THRESHOLD=1.0 exige el 100% del peso de
 #    la mascara presente para publicar un valor regional-mes. Con datos reales

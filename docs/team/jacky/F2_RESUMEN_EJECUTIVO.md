@@ -11,11 +11,11 @@ El mock completo y la especificación de adaptadores de F2 están listos. Cubren
 | ID | Entregable | Dónde | Estado |
 |---|---|---|---|
 | J2.1 | Mock con 6 estados (`available`, `partial`, `unavailable`, `unsupported`, `stale`, `error`) | `src/service_mock_f2.py`, `src/contracts_ext.py` | Hecho |
-| J2.2 | Especificación de adaptadores, errores esperados y caché | `docs/jacky/F2_ESPEC_ADAPTADORES.md` | Hecho |
+| J2.2 | Especificación de adaptadores, errores esperados y caché | `docs/team/jacky/F2_ESPEC_ADAPTADORES.md` | Hecho |
 | J2.3 | Catálogo y consultas: `list_zones`, `list_cells`, `get_capabilities`, `get_data_coverage`, `get_series`, `get_map`, `get_event_series` | `src/service_mock_f2.py` | Hecho |
 | J2.4 | `get_local_forecast`, `get_water_distribution`, `get_service_coverage` | `src/service_mock_f2.py` | Hecho |
 | J2.5 | Clave de caché, matriz de invalidación, store y snapshots en disco | `src/snapshots.py` | Hecho |
-| J2.6 | Ficha, CSV y JSON; 14 ejemplos reproducibles | `src/export_f2.py`, `scripts/build_examples_f2.py`, `docs/jacky/examples/` | Hecho |
+| J2.6 | Ficha, CSV y JSON; 14 ejemplos reproducibles | `src/export_f2.py`, `scripts/build_examples_f2.py`, `docs/team/jacky/examples/` | Hecho |
 
 Verificación: 97 tests OK con `.venv` (`python -m unittest discover -s tests -t .`). Los ejemplos se generan idénticos en dos corridas seguidas.
 
@@ -71,13 +71,13 @@ Verificación: 97 tests OK con `.venv` (`python -m unittest discover -s tests -t
 
 ## Borradores de handoff (preparados, no enviados)
 
-**Kevin:** "Los ejemplos de `docs/jacky/examples/` muestran cada producto y estado con su export completo. Cada respuesta trae `availability.status` y `reason_code` para decidir qué habilitar y qué texto mostrar. Dime si consumes funciones o un bundle, y si los CSV necesitan columnas de procedencia."
+**Kevin:** "Los ejemplos de `docs/team/jacky/examples/` muestran cada producto y estado con su export completo. Cada respuesta trae `availability.status` y `reason_code` para decidir qué habilitar y qué texto mostrar. Dime si consumes funciones o un bundle, y si los CSV necesitan columnas de procedencia."
 
 **Emanuel y Samuel:** "`F2_ESPEC_ADAPTADORES.md` lista lo que el servicio real necesita de ustedes y los errores esperados. Emanuel: target, horizonte, validación y formato del pronóstico. Samuel: registros de agua versionados, crosswalk y denominador de hogares."
 
 **Joshua:** "Cada producto puede devolver `partial`, `unavailable`, `unsupported`, `stale` o `error`, con una razón. Necesito tus textos para esos casos; los códigos están en la especificación."
 
-**Diego:** "Los 14 casos de `docs/jacky/examples/` pueden ser la base de la matriz contractual. Falta definir qué productos entran a la demo real."
+**Diego:** "Los 14 casos de `docs/team/jacky/examples/` pueden ser la base de la matriz contractual. Falta definir qué productos entran a la demo real."
 
 ## Siguiente paso recomendado
 

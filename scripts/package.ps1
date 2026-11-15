@@ -1,12 +1,12 @@
 # Crea dist\hefesto-mvp.zip con lo necesario para correr el producto (sin .venv ni módulos fuera de alcance).
 $ErrorActionPreference = "Stop"
-Set-Location $PSScriptRoot
-$out = Join-Path $PSScriptRoot "dist"
+$root = Split-Path $PSScriptRoot -Parent
+Set-Location $root
+$out = Join-Path $root "dist"
 $stage = Join-Path $out "hefesto-mvp"
 if (Test-Path $out) { Remove-Item $out -Recurse -Force }
 New-Item -ItemType Directory -Path $stage | Out-Null
-$items = "app.py","run.ps1","requirements.txt","README.md","RELEASE.md","LICENSE","THIRD_PARTY.md","AI_USAGE.md",
-         "DATA_SOURCES.md","TEAM_AGREEMENT.md",".streamlit","config","src","scripts","docs"
+$items = "app.py","requirements.txt","README.md","LICENSE","THIRD_PARTY.md",".streamlit","config","src","scripts","docs"
 foreach ($i in $items) { Copy-Item $i -Destination $stage -Recurse }
 New-Item -ItemType Directory -Path "$stage\data" | Out-Null
 Copy-Item "data\processed" "$stage\data\processed" -Recurse
