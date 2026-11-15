@@ -1,8 +1,9 @@
-"""Avisos por Telegram: solo se arman si los datos los respaldan, y nunca filtran el token ni los @usuarios al sitio."""
+"""Mensajes de Telegram: solo se arman si los datos los respaldan, en español e inglés, y nunca filtran el token."""
 import copy
 import json
 import tempfile
 import unittest
+from datetime import date
 from pathlib import Path
 from unittest import mock
 
@@ -10,11 +11,9 @@ import requests
 
 from src import predictions, telegram_alerts as tg
 
-RECIPIENTS = [
-    {"username": "Calor1", "alert": "heat", "canton_code": "501", "canton": "Liberia", "province": "Guanacaste", "zone": "Pacífico Norte", "region": "CR_PN"},
-    {"username": "Lluvia1", "alert": "rain", "canton_code": "701", "canton": "Limón", "province": "Limón", "zone": "Caribe", "region": "CR_CAR"},
-    {"username": "Nino1", "alert": "nino", "canton_code": "210", "canton": "San Carlos", "province": "Alajuela", "zone": "Zona Norte", "region": "CR"},
-]
+LIBERIA = {"asada": "ASADA de Liberia", "canton": "Liberia", "province": "Guanacaste", "region": "CR_PN"}
+LIMON = {"asada": "ASADA de Limón", "canton": "Limón", "province": "Limón", "region": "CR_CAR"}
+SAN_CARLOS = {"asada": "ASADA de San Carlos", "canton": "San Carlos", "province": "Alajuela", "region": "CR"}
 TOKEN = "123456:SECRET-TOKEN"
 
 
@@ -33,55 +32,93 @@ class BuildTests(unittest.TestCase):
     def setUpClass(cls):
         cls.payload = predictions.build()
 
-    def test_three_alerts_with_data_figures(self):
-        alerts = tg.build_alerts(self.payload, RECIPIENTS)
-        self.assertEqual([a["kind"] for a in alerts], ["heat", "rain", "nino"])
-        for alert in alerts:
-            self.assertIn("No es un aviso oficial", alert["text"])
-            self.assertLess(len(alert["text"]), 4096)
-        self.assertIn("24,9 °C", alerts[0]["text"])
-        self.assertIn("277 mm", alerts[1]["text"])
-        self.assertIn("mayo de 2026", alerts[2]["text"])
+    def test_alerts_carry_data_figures_in_spanish(self):
+        heat, rain, nino = tg.heat_alert(self.payload, LIBERIA), tg.rain_alert(self.payload, LIMON), tg.nino_alert(self.payload, SAN_CARLOS)
+        for text in (heat, rain, nino):
+            self.assertIn("No es un aviso oficial", text)
+            self.assertLess(len(text), 4096)
+        self.assertIn("24,9 °C", heat)
+        self.assertIn("277 mm", rain)
+        self.assertIn("mayo de 2026", nino)
+        self.assertIn("ASADA de Liberia", heat)
+
+    def test_alerts_in_english_use_english_numbers_and_months(self):
+        heat, rain, nino = (tg.heat_alert(self.payload, LIBERIA, "en"), tg.rain_alert(self.payload, LIMON, "en"), tg.nino_alert(self.payload, SAN_CARLOS, "en"))
+        self.assertIn("24.9 °C", heat)
+        self.assertIn("277 mm", rain)
+        self.assertIn("since May 2026", nino)
+        self.assertIn("very strong", nino)
+        for text in (heat, rain, nino):
+            self.assertIn("not an official notice", text)
+            self.assertNotIn("Aviso", text)
 
     def test_rain_alert_admits_it_is_not_a_validated_forecast(self):
-        text = tg.build_alerts(self.payload, RECIPIENTS)[1]["text"]
-        self.assertIn("No hay un pronóstico de lluvia validado", text)
+        self.assertIn("No hay un pronóstico de lluvia validado", tg.rain_alert(self.payload, LIMON))
+        self.assertIn("no validated rain forecast", tg.rain_alert(self.payload, LIMON, "en"))
 
     def test_heat_alert_rejected_without_warm_anomaly(self):
         payload = copy.deepcopy(self.payload)
         row = payload["variables"]["T2M"]["regions"]["CR_PN"]["rows"][0]
         row["estimate"] = row["reference"]["mean"] + 0.1
         with self.assertRaises(tg.AlertNotSupported):
-            tg.build_alerts(payload, RECIPIENTS)
+            tg.heat_alert(payload, LIBERIA)
 
     def test_nino_alert_rejected_without_active_episode(self):
         payload = copy.deepcopy(self.payload)
         payload["enso"]["status"] = "none"
         with self.assertRaises(tg.AlertNotSupported):
-            tg.build_alerts(payload, RECIPIENTS)
+            tg.nino_alert(payload, SAN_CARLOS)
 
     def test_rain_alert_rejected_in_a_dry_region(self):
-        dry = [dict(RECIPIENTS[1], region="CR_PN", zone="Pacífico Norte")]
         with self.assertRaises(tg.AlertNotSupported):
-            tg.build_alerts(self.payload, dry)
+            tg.rain_alert(self.payload, LIBERIA)
+
+    def test_supported_alerts_returns_only_what_the_data_back(self):
+        kinds = [alert.kind for alert in tg.supported_alerts(self.payload, LIBERIA)]
+        self.assertIn("heat", kinds)
+        self.assertNotIn("rain", kinds)
+
+    def calm_payload(self):
+        payload = copy.deepcopy(self.payload)
+        payload["enso"]["status"] = "none"
+        for region in payload["variables"]["T2M"]["regions"].values():
+            for row in region["rows"]:
+                if row["estimate"] is not None:
+                    row["estimate"] = row["reference"]["mean"]
+        for region in payload["rain_analog"].values():
+            for month in region["months"]:
+                month["share_above_100mm"] = 0.1
+        return payload
+
+    def test_daily_summary_with_risks_lists_them_and_the_tips(self):
+        text, risky = tg.daily_summary(self.payload, LIBERIA, "es", date(2026, 11, 15))
+        self.assertTrue(risky)
+        self.assertIn("Resumen diario (15 de noviembre de 2026)", text)
+        self.assertIn("Los datos advierten:", text)
+        self.assertIn("Qué podés hacer:", text)
+        self.assertNotIn("No hubo cambios significativos", text)
+
+    def test_daily_summary_without_risks_says_there_were_no_significant_changes(self):
+        text, risky = tg.daily_summary(self.calm_payload(), LIBERIA, "es", date(2026, 11, 15))
+        self.assertFalse(risky)
+        self.assertIn("No hubo cambios significativos", text)
+        english, _ = tg.daily_summary(self.calm_payload(), LIBERIA, "en", date(2026, 11, 15))
+        self.assertIn("No significant changes", english)
+        self.assertIn("Daily summary (November 15, 2026)", english)
+
+    def test_bot_texts_name_the_chosen_option(self):
+        self.assertIn("alertas y sugerencias", tg.welcome_text("alertas", LIBERIA))
+        self.assertIn("daily summary", tg.welcome_text("resumen", LIBERIA, "en"))
+        self.assertIn("/stop", tg.welcome_text("resumen", LIBERIA))
 
 
-class SendTests(unittest.TestCase):
-    alerts = [{"kind": "heat", "username": "Calor1", "canton": "Liberia", "province": "Guanacaste", "zone": "Pacífico Norte", "region": "CR_PN", "text": "hola"},
-              {"kind": "rain", "username": "Lluvia1", "canton": "Limón", "province": "Limón", "zone": "Caribe", "region": "CR_CAR", "text": "hola 2"}]
-
-    def test_sends_only_to_known_chats_and_reports_pending(self):
-        session = FakeSession([{"ok": True, "result": {}}])
-        results = tg.send(TOKEN, self.alerts, {"calor1": 42}, session)
-        self.assertEqual([r["status"] for r in results], ["sent", "pending"])
-        self.assertEqual(len(session.calls), 1)
-        self.assertEqual(session.calls[0][1]["chat_id"], 42)
-
+class TelegramApiTests(unittest.TestCase):
     def test_telegram_error_is_reported_without_the_token(self):
         session = FakeSession([{"ok": False, "description": "Forbidden: bot was blocked by the user", "error_code": 403}])
-        results = tg.send(TOKEN, self.alerts[:1], {"calor1": 42}, session)
-        self.assertEqual(results[0]["status"], "failed")
-        self.assertNotIn(TOKEN, json.dumps(results))
+        with self.assertRaises(tg.TelegramError) as caught:
+            tg.send_message(TOKEN, 42, "hola", session)
+        self.assertNotIn(TOKEN, str(caught.exception))
+        self.assertIn("403", str(caught.exception))
 
     def test_network_error_never_shows_the_url(self):
         session = mock.Mock()
@@ -90,20 +127,11 @@ class SendTests(unittest.TestCase):
             tg.call(TOKEN, "getMe", session=session)
         self.assertNotIn(TOKEN, str(caught.exception))
 
-    def test_discover_maps_usernames_case_insensitively_and_ignores_others(self):
-        updates = [{"message": {"from": {"username": "CALOR1"}, "chat": {"id": 7, "type": "private"}}},
-                   {"message": {"from": {"username": "alguien"}, "chat": {"id": 8, "type": "private"}}},
-                   {"message": {"from": {"username": "Lluvia1"}, "chat": {"id": -9, "type": "group"}}}]
-        with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / "chats.json"
-            found = tg.discover(TOKEN, RECIPIENTS, path, FakeSession([{"ok": True, "result": updates}]))
-            self.assertEqual(found, {"calor1": 7})
-            self.assertEqual(json.loads(path.read_text()), {"calor1": 7})
-
-    def test_public_view_hides_usernames_and_chat_ids(self):
-        view = tg.public_view([{**self.alerts[0], "status": "sent", "sent_at": "x", "chat_id": 42}])
-        self.assertNotIn("username", view[0])
-        self.assertNotIn("chat_id", view[0])
+    def test_send_message_posts_to_the_chat(self):
+        session = FakeSession([{"ok": True, "result": {}}])
+        tg.send_message(TOKEN, 42, "hola", session)
+        self.assertEqual(session.calls[0][1]["chat_id"], 42)
+        self.assertTrue(session.calls[0][1]["disable_web_page_preview"])
 
 
 class TokenTests(unittest.TestCase):
@@ -114,6 +142,12 @@ class TokenTests(unittest.TestCase):
             self.assertEqual(tg.load_token({"TELEGRAM_BOT_TOKEN": "env:tok"}, dotenv), "env:tok")
             self.assertEqual(tg.load_token({}, dotenv), "abc:def")
             self.assertIsNone(tg.load_token({}, Path(tmp) / "no-existe"))
+
+    def test_empty_token_in_dotenv_counts_as_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dotenv = Path(tmp) / ".env"
+            dotenv.write_text("TELEGRAM_BOT_TOKEN=\n", encoding="utf-8")
+            self.assertIsNone(tg.load_token({}, dotenv))
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ Qué NO hace, a propósito (ver `docs/predicciones.md`):
     son descriptivos (qué pasó otras veces), con pocos años.
   * No genera nada por cantón: todo es regional (Costa Rica, Pacífico Norte, Caribe).
 
-Uso (desde la raíz de Hefesto):
+Uso (desde la raíz del proyecto):
     python -m src.predictions
 """
 from __future__ import annotations
@@ -169,6 +169,16 @@ def rain_analog(monthly_mm: pd.Series, roni: pd.Series, base_year: int, targets:
 
 # --- Ensamble ---
 
+def region_cells() -> dict[str, list[str]]:
+    """Celdas NASA POWER de cada sector, con el mismo formato de id que `geo.json` (`POWER:10.5:-85`).
+
+    Sirve a la página para saber qué región usar con un cantón: se toma la celda que más lo cubre y se busca aquí.
+    Lo que no esté en ninguna lista usa el promedio de todo el país.
+    """
+    from src.regions import VERIFIED_LAND_CELLS
+    return {region: [f"POWER:{lat:g}:{lon:g}" for lat, lon in cells] for region, cells in VERIFIED_LAND_CELLS.items()}
+
+
 def build(engine: ForecastEngine | None = None, now: datetime | None = None) -> dict:
     engine = engine or ForecastEngine()
     now = now or datetime.now(ZoneInfo("America/Costa_Rica"))
@@ -201,7 +211,7 @@ def build(engine: ForecastEngine | None = None, now: datetime | None = None) -> 
         "schema": 1, "generated_at": now.isoformat(), "forecast_start": start,
         "calibration_date": engine.policy["calibration_date"],
         "data_through": variables["T2M"]["data_through"], "roni_through": month_label(roni.index[-1]),
-        "region_names": REGION_NAMES, "enso": enso_block(roni), "variables": variables,
+        "region_names": REGION_NAMES, "region_cells": region_cells(), "enso": enso_block(roni), "variables": variables,
         "rain_analog": analog, "temperature_validation": policy,
         "limits": [
             "Todo es regional (Costa Rica, Pacífico Norte y Caribe): no hay predicciones por cantón, celda ni ASADA.",

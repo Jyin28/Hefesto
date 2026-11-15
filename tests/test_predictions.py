@@ -41,6 +41,18 @@ class PublishedTests(unittest.TestCase):
             has = any(row["estimate"] is not None for region in block["regions"].values() for row in region["rows"])
             self.assertEqual(has, variable == "T2M", variable)
 
+    def test_region_cells_match_geo_ids(self):
+        """La página decide la zona de un cantón buscando su celda aquí: los ids deben tener el formato de geo.json."""
+        cells = self.payload["region_cells"]
+        self.assertEqual(set(cells), {"CR_PN", "CR_CAR"})
+        self.assertEqual([len(cells[region]) for region in ("CR_PN", "CR_CAR")], [5, 5])
+        self.assertIn("POWER:10.5:-85", cells["CR_PN"])  # sin «.0»: así lo escribe build-geo.mjs
+        self.assertIn("POWER:10:-85.625", cells["CR_PN"])
+        geo = json.load(open("web/public/data/geo.json", encoding="utf-8"))
+        known = {cell["id"] for cell in geo["cells"]}
+        for ids in cells.values():
+            self.assertLessEqual(set(ids), known)
+
     def test_regional_only(self):
         self.assertEqual(set(self.payload["variables"]["T2M"]["regions"]), {"CR", "CR_PN", "CR_CAR"})
 

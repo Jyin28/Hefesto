@@ -9,6 +9,10 @@ dist/
 web/node_modules/
 web/dist/
 
-# Telegram: personas de prueba y sus Chat ID (datos personales)
-config/telegram_recipients.json
+# Telegram: Chat ID de las personas suscritas (datos personales)
 data/telegram_chats.json
+
+# Newsletter de Telegram: suscripciones (Excel con usuarios), chats y estado de envíos (datos personales)
+data/suscripciones/
+data/telegram_sent.json
+data/newsletter.log

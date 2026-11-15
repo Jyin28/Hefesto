@@ -1,42 +1,37 @@
-"""Avisos de prueba por Telegram a partir de las predicciones del sitio.
+"""Mensajes de Telegram de AguaAlerta (alertas, resumen diario y avisos del bot), en español e inglés.
 
-Genera tres avisos (calor, probabilidad de lluvia, zona afectada por El Niño) con las cifras de `predicciones.json`, los
-asigna a las personas de prueba de `config/telegram_recipients.json` y los envía con un bot de Telegram.
+Arma los textos con las cifras de `predicciones.json` y habla con la API del bot. No guarda personas ni envía por sí
+mismo: las suscripciones están en `src/newsletter.py` y el envío en `src/telegram_newsletter.py`.
 
-Cada aviso solo se arma si los datos lo respaldan; si no, se rechaza con un motivo. Son avisos EXPERIMENTALES de una
-estimación regional: no reemplazan los avisos del IMN, el AyA ni de la ASADA, y los textos lo dicen.
+Cada alerta solo se arma si los datos la respaldan; si no, se rechaza con un motivo (`AlertNotSupported`). Son avisos
+EXPERIMENTALES de una estimación regional: no reemplazan los avisos del IMN, el AyA ni de la ASADA, y los textos lo dicen.
 
 Reglas de Telegram que condicionan el envío:
   * Un bot no puede escribirle primero a una persona ni buscarla por @usuario: cada persona debe abrir el bot y enviar /start.
-    `discover` lee esos mensajes y guarda el Chat ID de cada @usuario en `data/telegram_chats.json` (no se versiona).
   * El token del bot es secreto: va en la variable de entorno TELEGRAM_BOT_TOKEN o en el archivo `.env` (no se versiona).
 
-Uso (desde la raíz de Hefesto):
-    python -m src.telegram_alerts preview      # muestra los avisos y actualiza la vista previa del sitio (no envía nada)
-    python -m src.telegram_alerts discover     # lee los /start recibidos y guarda los Chat ID
-    python -m src.telegram_alerts send --yes   # envía los avisos
+Una «persona suscrita» (`subscriber`) es un dict con `asada`, `canton`, `province`, `region` (CR, CR_PN o CR_CAR) y, si se
+quiere, `lang` («es» o «en»).
 """
 from __future__ import annotations
 
-import argparse
-import json
 import os
-import sys
-from datetime import datetime, timezone
+from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import requests
 
 ROOT = Path(__file__).resolve().parents[1]
-PREDICTIONS = ROOT / "web" / "public" / "data" / "predicciones.json"
-RECIPIENTS = ROOT / "config" / "telegram_recipients.json"
-CHATS = ROOT / "data" / "telegram_chats.json"
-PUBLIC_ALERTS = ROOT / "web" / "public" / "data" / "alertas.json"
 DOTENV = ROOT / ".env"
 
-MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
-DISCLAIMER = "Es una estimación regional experimental, sin validar con estaciones locales. No es un aviso oficial: seguí los avisos del IMN, el AyA y tu ASADA."
+LANGS = ("es", "en")
+MONTHS = {
+    "es": ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"],
+    "en": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+}
+CATEGORY_EN = {"débil": "weak", "moderado": "moderate", "fuerte": "strong", "muy fuerte": "very strong"}
 ALERT_KINDS = ("heat", "rain", "nino")
 # Umbrales con los que un aviso se considera respaldado por los datos.
 HEAT_MIN_ANOMALY = 0.5      # °C sobre el promedio 1991-2020 del mes
@@ -52,43 +47,89 @@ class TelegramError(RuntimeError):
     """Falla de la API de Telegram. Nunca incluye el token."""
 
 
-# --- Formato ---
-
-def num(value: float, digits: int = 1) -> str:
-    """Coma decimal y espacio fino de miles, como en el resto del sitio (es-CR)."""
-    text = f"{value:,.{digits}f}".replace(",", " ").replace(".", ",")
-    return text
+def tr(lang: str, es: str, en: str) -> str:
+    return en if lang == "en" else es
 
 
-def month_text(label: str) -> str:
+def disclaimer(lang: str) -> str:
+    return tr(lang,
+              "Es una estimación regional experimental, sin validar con estaciones locales. No es un aviso oficial: seguí los avisos del IMN, el AyA y tu ASADA.",
+              "This is an experimental regional estimate, not validated against local stations. It is not an official notice: follow the notices from the IMN, AyA and your ASADA.")
+
+
+# --- Formato (es: coma decimal; en: punto decimal) ---
+
+def num(value: float, digits: int = 1, lang: str = "es") -> str:
+    text = f"{value:,.{digits}f}"
+    if lang == "en":
+        return text
+    return text.replace(",", " ").replace(".", ",")
+
+
+def month_text(label: str, lang: str = "es") -> str:
     year, month = label.split("-")
-    return f"{MONTHS[int(month) - 1]} de {year}"
+    name = MONTHS[lang][int(month) - 1]
+    return f"{name} {year}" if lang == "en" else f"{name} de {year}"
 
 
-def month_short(label: str) -> str:
+def month_short(label: str, lang: str = "es") -> str:
     year, month = label.split("-")
-    return f"{MONTHS[int(month) - 1]} {year}"
+    return f"{MONTHS[lang][int(month) - 1]} {year}"
+
+
+def month_name(label: str, lang: str = "es") -> str:
+    return MONTHS[lang][int(label[5:]) - 1]
+
+
+def date_text(day: date, lang: str = "es") -> str:
+    name = MONTHS[lang][day.month - 1]
+    return f"{name} {day.day}, {day.year}" if lang == "en" else f"{day.day} de {name} de {day.year}"
 
 
 # --- Datos ---
-
-def load_json(path: Path) -> Any:
-    return json.loads(path.read_text(encoding="utf-8-sig"))
-
 
 def first_row(payload: dict, variable: str, region: str) -> dict:
     return payload["variables"][variable]["regions"][region]["rows"][0]
 
 
-def place(recipient: dict) -> str:
+def place(subscriber: dict) -> str:
     """«Liberia, Guanacaste»; si cantón y provincia se llaman igual, solo «Limón»."""
-    return recipient["canton"] if recipient["canton"] == recipient["province"] else f"{recipient['canton']}, {recipient['province']}"
+    canton, province = subscriber["canton"], subscriber["province"]
+    return canton if canton == province else f"{canton}, {province}"
 
 
-# --- Avisos ---
+def zone_name(region: str, lang: str = "es") -> str:
+    return {"CR_PN": tr(lang, "Pacífico Norte", "North Pacific"), "CR_CAR": tr(lang, "Caribe", "Caribbean")}.get(region, tr(lang, "todo el país", "whole country"))
 
-def heat_alert(payload: dict, recipient: dict) -> str:
-    region = recipient["region"]
+
+def area(region: str, lang: str = "es") -> str:
+    """Cómo se nombra la zona dentro de una frase."""
+    if region == "CR":
+        return tr(lang, "el promedio del país", "the national average")
+    return tr(lang, f"el sector {zone_name(region, lang)}", f"the {zone_name(region, lang)} sector")
+
+
+def where_line(subscriber: dict, lang: str) -> str:
+    zone = zone_name(subscriber["region"], lang)
+    zone_text = zone if subscriber["region"] == "CR" else tr(lang, f"sector {zone}", f"{zone} sector")
+    asada = f"{subscriber['asada']} · " if subscriber.get("asada") else ""
+    return f"📍 {asada}{place(subscriber)} ({zone_text})"
+
+
+# --- Alertas ---
+
+@dataclass
+class Alert:
+    kind: str
+    icon: str
+    title: str
+    lines: list[str]     # cuerpo completo del aviso
+    short: str           # una línea, para el resumen diario
+    tip: str             # qué hacer
+
+
+def _heat(payload: dict, sub: dict, lang: str) -> Alert:
+    region = sub["region"]
     rows = payload["variables"]["T2M"]["regions"][region]["rows"]
     row = rows[0]
     if row["estimate"] is None:
@@ -97,23 +138,30 @@ def heat_alert(payload: dict, recipient: dict) -> str:
     anomaly = row["estimate"] - ref["mean"]
     if anomaly < HEAT_MIN_ANOMALY:
         raise AlertNotSupported(f"{region}: la temperatura estimada solo supera lo normal en {num(anomaly)} °C (mínimo {HEAT_MIN_ANOMALY}).")
-    lines = [
-        "🌡️ Hefesto · Aviso experimental de calor",
-        f"📍 {place(recipient)} (sector {recipient['zone']})",
-        "",
-        f"Para {month_text(row['target_month'])} se estima una temperatura media de {num(row['estimate'])} °C en el sector "
-        f"(banda de 90 %: {num(row['lower90'])} a {num(row['upper90'])} °C). Lo normal en ese mes (1991–2020) es {num(ref['mean'])} °C: "
-        f"unos {num(round(row['estimate'], 1) - round(ref['mean'], 1))} °C más caliente" + (", por encima del 90 % de los años de referencia." if row["estimate"] > ref["p90"] else "."),
-    ]
+    diff = num(round(row["estimate"], 1) - round(ref["mean"], 1), 1, lang)
+    above = row["estimate"] > ref["p90"]
+    body = tr(lang,
+              f"Para {month_text(row['target_month'], lang)} se estima una temperatura media de {num(row['estimate'], 1, lang)} °C en {area(region, lang)} "
+              f"(banda de 90 %: {num(row['lower90'], 1, lang)} a {num(row['upper90'], 1, lang)} °C). Lo normal en ese mes (1991–2020) es {num(ref['mean'], 1, lang)} °C: "
+              f"unos {diff} °C más caliente" + (", por encima del 90 % de los años de referencia." if above else "."),
+              f"For {month_text(row['target_month'], lang)} an average temperature of {num(row['estimate'], 1, lang)} °C is estimated for {area(region, lang)} "
+              f"(90 % band: {num(row['lower90'], 1, lang)} to {num(row['upper90'], 1, lang)} °C). The normal for that month (1991–2020) is {num(ref['mean'], 1, lang)} °C: "
+              f"about {diff} °C warmer" + (", above 90 % of the reference years." if above else "."))
+    lines = [body]
     second = rows[1] if len(rows) > 1 else None
     if second and second["estimate"] is not None:
-        lines.append(f"{month_short(second['target_month']).capitalize()}: {num(second['estimate'])} °C (normal {num(second['reference']['mean'])} °C).")
-    lines += ["", "Qué podés hacer: hidratate seguido, evitá el sol de 10 a. m. a 2 p. m. y cuidá a niños y personas mayores.", "", DISCLAIMER]
-    return "\n".join(lines)
+        name = month_short(second["target_month"], lang)
+        lines.append(tr(lang, f"{name.capitalize()}: {num(second['estimate'], 1, lang)} °C (normal {num(second['reference']['mean'], 1, lang)} °C).",
+                        f"{name}: {num(second['estimate'], 1, lang)} °C (normal {num(second['reference']['mean'], 1, lang)} °C)."))
+    tip = tr(lang, "hidratate seguido, evitá el sol de 10 a. m. a 2 p. m. y cuidá a niños y personas mayores.",
+             "drink water often, avoid the sun from 10 a.m. to 2 p.m. and look after children and older people.")
+    short = tr(lang, f"🌡️ Calor: en {month_text(row['target_month'], lang)} se estiman {num(row['estimate'], 1, lang)} °C, unos {diff} °C más que lo normal.",
+               f"🌡️ Heat: {month_text(row['target_month'], lang)} is estimated at {num(row['estimate'], 1, lang)} °C, about {diff} °C above normal.")
+    return Alert("heat", "🌡️", tr(lang, "Aviso experimental de calor", "Experimental heat alert"), lines, short, tip)
 
 
-def rain_alert(payload: dict, recipient: dict) -> str:
-    region = recipient["region"]
+def _rain(payload: dict, sub: dict, lang: str) -> Alert:
+    region = sub["region"]
     row = first_row(payload, "PRECTOTCORR", region)
     analog = next((m for m in payload["rain_analog"].get(region, {}).get("months", []) if m["month"] == row["target_month"]), None)
     if analog is None:
@@ -124,61 +172,190 @@ def rain_alert(payload: dict, recipient: dict) -> str:
     n = analog["n_years"]
     rainy = round(analog["share_above_100mm"] * n)
     drier = analog["anomaly_pct"] < -5
-    lines = [
-        "🌧️ Hefesto · Aviso de lluvia",
-        f"📍 {place(recipient)} (sector {recipient['zone']})",
-        "",
-        f"Alta probabilidad de lluvia en {month_text(row['target_month'])}: es uno de los meses más lluviosos del sector "
-        f"(lo normal son unos {num(ref['mean'], 0)} mm y en 9 de cada 10 años llovió más de {num(ref['p10'], 0)} mm). "
-        f"En {rainy} de {n} años con un Niño como el actual llovió al menos 100 mm.",
-    ]
+    month = month_text(row["target_month"], lang)
+    lines = [tr(lang,
+                f"Alta probabilidad de lluvia en {month}: es uno de los meses más lluviosos de {area(region, lang)} "
+                f"(lo normal son unos {num(ref['mean'], 0, lang)} mm y en 9 de cada 10 años llovió más de {num(ref['p10'], 0, lang)} mm). "
+                f"En {rainy} de {n} años con un Niño como el actual llovió al menos 100 mm.",
+                f"High chance of rain in {month}: it is one of the rainiest months in {area(region, lang)} "
+                f"(normal is about {num(ref['mean'], 0, lang)} mm and in 9 out of 10 years it rained more than {num(ref['p10'], 0, lang)} mm). "
+                f"In {rainy} of {n} years with an El Niño like the current one, at least 100 mm fell.")]
     if drier:
-        lines += ["", f"Ojo: en esos años llovió cerca de {num(abs(analog['anomaly_pct']), 0)} % menos que lo normal (unos {num(analog['mean_mm'], 0)} mm). "
-                      "Es más probable un mes con menos lluvia de la habitual que con más."]
-    lines += ["", "No hay un pronóstico de lluvia validado: esto combina la lluvia histórica del mes con lo que pasó en años parecidos.", "", DISCLAIMER]
-    return "\n".join(lines)
+        lines += ["", tr(lang,
+                         f"Ojo: en esos años llovió cerca de {num(abs(analog['anomaly_pct']), 0, lang)} % menos que lo normal (unos {num(analog['mean_mm'], 0, lang)} mm). "
+                         "Es más probable un mes con menos lluvia de la habitual que con más.",
+                         f"Careful: in those years it rained about {num(abs(analog['anomaly_pct']), 0, lang)} % less than normal (about {num(analog['mean_mm'], 0, lang)} mm). "
+                         "A month with less rain than usual is more likely than one with more.")]
+    lines += ["", tr(lang, "No hay un pronóstico de lluvia validado: esto combina la lluvia histórica del mes con lo que pasó en años parecidos.",
+                      "There is no validated rain forecast: this combines the month's historical rainfall with what happened in similar years.")]
+    tip = tr(lang, "tené a mano lo necesario para días de lluvia y no cruces ríos crecidos.", "keep what you need for rainy days at hand and do not cross swollen rivers.")
+    short = tr(lang, f"🌧️ Lluvia: alta probabilidad de lluvia en {month} (en {rainy} de {n} años parecidos llovió 100 mm o más).",
+               f"🌧️ Rain: high chance of rain in {month} (in {rainy} of {n} similar years at least 100 mm fell).")
+    return Alert("rain", "🌧️", tr(lang, "Aviso de lluvia", "Rain alert"), lines, short, tip)
 
 
-def nino_alert(payload: dict, recipient: dict) -> str:
+def _nino(payload: dict, sub: dict, lang: str) -> Alert:
     enso = payload["enso"]
     if enso["status"] != "active":
         raise AlertNotSupported("No hay un episodio de El Niño en curso en los datos de RONI.")
-    region = recipient["region"]
+    region = sub["region"]
     months = payload["rain_analog"].get(region, {}).get("months", [])
     deficits = [m for m in months[:2] if m["anomaly_pct"] <= NINO_MIN_DEFICIT]
     if not deficits:
         raise AlertNotSupported(f"{region}: en los años análogos la lluvia no bajó {abs(NINO_MIN_DEFICIT):g} % ni más en los primeros meses.")
+    category = tr(lang, enso["category"], CATEGORY_EN.get(enso["category"], enso["category"]))
+    lines = [tr(lang,
+                f"El Niño está en curso desde {month_text(enso['start'], lang)} y ya es {category} (RONI de {num(enso['latest']['value'], 1, lang)} en {month_short(enso['latest']['month'], lang)}).",
+                f"El Niño has been under way since {month_text(enso['start'], lang)} and is now {category} (RONI of {num(enso['latest']['value'], 1, lang)} in {month_short(enso['latest']['month'], lang)}).")]
     analog = enso.get("analog")
-    lines = [
-        "⚠️ Hefesto · Aviso de El Niño",
-        f"📍 {place(recipient)} ({recipient['zone']})",
-        "",
-        f"El Niño está en curso desde {month_text(enso['start'])} y ya es {enso['category']} (RONI de {num(enso['latest']['value'])} en {month_short(enso['latest']['month'])}).",
-    ]
     if analog:
         window = analog["end_window"]
-        lines.append(f"Según episodios fuertes anteriores, podría seguir hasta entre {month_short(window['earliest'])} y {month_short(window['latest'])} "
-                     f"(lo más típico: {month_short(window['typical'])}).")
-    where = "el promedio del país" if region == "CR" else f"el sector {recipient['zone']}"
-    lines += ["", f"En años parecidos, en {where} llovió "
-                  + " y ".join(f"cerca de {num(abs(m['anomaly_pct']), 0)} % menos en {MONTHS[int(m['month'][5:]) - 1]}" for m in deficits) + " de lo normal.",
-              "Con menos lluvia bajan los caudales: ahorrá agua, revisá fugas y seguí los avisos de tu ASADA o del AyA.", "", DISCLAIMER]
+        lines.append(tr(lang,
+                        f"Según episodios fuertes anteriores, podría seguir hasta entre {month_short(window['earliest'], lang)} y {month_short(window['latest'], lang)} "
+                        f"(lo más típico: {month_short(window['typical'], lang)}).",
+                        f"According to earlier strong episodes, it could last until between {month_short(window['earliest'], lang)} and {month_short(window['latest'], lang)} "
+                        f"(most typical: {month_short(window['typical'], lang)})."))
+    drops = tr(lang, " y ", " and ").join(
+        tr(lang, f"cerca de {num(abs(m['anomaly_pct']), 0, lang)} % menos en {month_name(m['month'], lang)}",
+           f"about {num(abs(m['anomaly_pct']), 0, lang)} % less in {month_name(m['month'], lang)}") for m in deficits)
+    lines += ["", tr(lang, f"En años parecidos, en {area(region, lang)} llovió {drops} de lo normal.",
+                      f"In similar years, in {area(region, lang)} it rained {drops} than normal."),
+              tr(lang, "Con menos lluvia bajan los caudales: ahorrá agua, revisá fugas y seguí los avisos de tu ASADA o del AyA.",
+                 "With less rain, flows drop: save water, check for leaks and follow the notices from your ASADA or the AyA.")]
+    tip = tr(lang, "ahorrá agua, revisá fugas y seguí los avisos de tu ASADA o del AyA.", "save water, check for leaks and follow the notices from your ASADA or the AyA.")
+    short = tr(lang, f"⚠️ El Niño: en curso desde {month_text(enso['start'], lang)}; en años parecidos llovió {drops} de lo normal.",
+               f"⚠️ El Niño: under way since {month_text(enso['start'], lang)}; in similar years it rained {drops} than normal.")
+    return Alert("nino", "⚠️", tr(lang, "Aviso de El Niño", "El Niño alert"), lines, short, tip)
+
+
+BUILDERS: dict[str, Callable[[dict, dict, str], Alert]] = {"heat": _heat, "rain": _rain, "nino": _nino}
+
+
+def render_alert(alert: Alert, sub: dict, lang: str) -> str:
+    """Texto completo de un aviso: título, lugar, cuerpo, qué hacer y aclaración."""
+    lines = [f"{alert.icon} AguaAlerta · {alert.title}", where_line(sub, lang), "", *alert.lines]
+    if alert.kind != "nino":  # el de El Niño ya termina con su recomendación
+        lines += ["", tr(lang, "Qué podés hacer: ", "What you can do: ") + alert.tip]
+    lines += ["", disclaimer(lang)]
     return "\n".join(lines)
 
 
-BUILDERS = {"heat": heat_alert, "rain": rain_alert, "nino": nino_alert}
+def supported_alerts(payload: dict, sub: dict, lang: str = "es") -> list[Alert]:
+    """Los avisos que los datos respaldan para esta persona (puede ser ninguno)."""
+    found = []
+    for kind in ALERT_KINDS:
+        try:
+            found.append(BUILDERS[kind](payload, sub, lang))
+        except AlertNotSupported:
+            continue
+    return found
 
 
-def build_alerts(payload: dict, recipients: list[dict]) -> list[dict]:
-    """Un aviso por persona. Lanza `AlertNotSupported` si los datos no respaldan alguno: no se envía nada a medias."""
-    alerts = []
-    for recipient in recipients:
-        kind = recipient["alert"]
-        if kind not in BUILDERS:
-            raise ValueError(f"Tipo de aviso desconocido: {kind}")
-        alerts.append({"kind": kind, "username": recipient["username"], "canton": recipient["canton"], "province": recipient["province"],
-                       "zone": recipient["zone"], "region": recipient["region"], "text": BUILDERS[kind](payload, recipient)})
-    return alerts
+def heat_alert(payload: dict, sub: dict, lang: str = "es") -> str:
+    return render_alert(_heat(payload, sub, lang), sub, lang)
+
+
+def rain_alert(payload: dict, sub: dict, lang: str = "es") -> str:
+    return render_alert(_rain(payload, sub, lang), sub, lang)
+
+
+def nino_alert(payload: dict, sub: dict, lang: str = "es") -> str:
+    return render_alert(_nino(payload, sub, lang), sub, lang)
+
+
+# --- Resumen diario ---
+
+def data_lines(payload: dict, sub: dict, lang: str) -> list[str]:
+    """Las cifras del día, haya o no riesgo: El Niño, calor y lluvia de la zona."""
+    region, lines = sub["region"], []
+    enso = payload["enso"]
+    if enso["status"] == "active" and enso.get("start"):
+        category = tr(lang, enso["category"], CATEGORY_EN.get(enso["category"], enso["category"]))
+        lines.append(tr(lang, f"🌊 El Niño: en curso desde {month_text(enso['start'], lang)} ({category}).",
+                        f"🌊 El Niño: under way since {month_text(enso['start'], lang)} ({category})."))
+    else:
+        lines.append(tr(lang, "🌊 El Niño: ahora no hay un episodio en curso.", "🌊 El Niño: there is no episode under way right now."))
+    row = next((r for r in payload["variables"]["T2M"]["regions"][region]["rows"] if r["estimate"] is not None), None)
+    if row:
+        delta = round(row["estimate"], 1) - round(row["reference"]["mean"], 1)
+        sign = "+" if delta >= 0 else "−"
+        lines.append(tr(lang, f"🌡️ Calor ({month_short(row['target_month'], lang)}): {num(row['estimate'], 1, lang)} °C estimados, {sign}{num(abs(delta), 1, lang)} °C frente a lo normal.",
+                        f"🌡️ Heat ({month_short(row['target_month'], lang)}): {num(row['estimate'], 1, lang)} °C estimated, {sign}{num(abs(delta), 1, lang)} °C versus normal."))
+    rain_row = first_row(payload, "PRECTOTCORR", region)
+    analog = next((m for m in payload["rain_analog"].get(region, {}).get("months", []) if m["month"] == rain_row["target_month"]), None)
+    if analog:
+        pct = analog["anomaly_pct"]
+        less = tr(lang, "menos", "less") if pct < 0 else tr(lang, "más", "more")
+        lines.append(tr(lang, f"🌧️ Lluvia ({month_short(analog['month'], lang)}): en años parecidos llovió cerca de {num(abs(pct), 0, lang)} % {less} que lo normal (no es un pronóstico).",
+                        f"🌧️ Rain ({month_short(analog['month'], lang)}): in similar years it rained about {num(abs(pct), 0, lang)} % {less} than normal (not a forecast)."))
+    return lines
+
+
+def daily_summary(payload: dict, sub: dict, lang: str = "es", today: date | None = None) -> tuple[str, bool]:
+    """Resumen diario con sugerencias. Devuelve (texto, hay_riesgos). Sin riesgos dice que no hubo cambios significativos."""
+    today = today or date.today()
+    alerts = supported_alerts(payload, sub, lang)
+    lines = [tr(lang, f"📰 AguaAlerta · Resumen diario ({date_text(today, lang)})", f"📰 AguaAlerta · Daily summary ({date_text(today, lang)})"),
+             where_line(sub, lang), "", *data_lines(payload, sub, lang), ""]
+    if alerts:
+        lines += [tr(lang, "Los datos advierten:", "The data warn of:"), *[alert.short for alert in alerts], "",
+                  tr(lang, "Qué podés hacer:", "What you can do:"), *[f"• {alert.tip[0].upper()}{alert.tip[1:]}" for alert in alerts]]
+    else:
+        lines += [tr(lang, "No hubo cambios significativos: los datos no advierten riesgos de calor, de lluvia ni por El Niño en tu zona.",
+                     "No significant changes: the data do not warn of heat, rain or El Niño risks in your area."),
+                  tr(lang, "De todos modos, seguí los avisos de tu ASADA y del AyA.", "Even so, follow the notices from your ASADA and the AyA.")]
+    lines += ["", disclaimer(lang)]
+    return "\n".join(lines), bool(alerts)
+
+
+# --- Mensajes del bot ---
+
+SUBSCRIPTION_LABEL = {
+    "alertas": {"es": "alertas y sugerencias", "en": "alerts and suggestions"},
+    "resumen": {"es": "resumen diario", "en": "daily summary"},
+}
+
+
+def welcome_text(kind: str, sub: dict, lang: str = "es") -> str:
+    label = SUBSCRIPTION_LABEL[kind][lang]
+    return tr(lang,
+              f"✅ Listo, quedaste suscrito/a a {label} de AguaAlerta para {sub['asada']} ({place(sub)}).\n\n"
+              "Para dejar de recibir mensajes, escribí /stop en este chat.\n\n" + disclaimer(lang),
+              f"✅ Done, you are subscribed to AguaAlerta {label} for {sub['asada']} ({place(sub)}).\n\n"
+              "To stop receiving messages, send /stop in this chat.\n\n" + disclaimer(lang))
+
+
+def test_intro_text(kind: str, lang: str = "es") -> str:
+    """Encabezado del mensaje de prueba que se envía solo al activarse la suscripción."""
+    label = SUBSCRIPTION_LABEL[kind][lang]
+    return tr(lang,
+              f"🧪 Mensaje de prueba: así te va a llegar tu {label}. Esto es lo que dicen los datos hoy:",
+              f"🧪 Test message: this is how your {label} will reach you. This is what the data say today:")
+
+
+def no_alerts_now_text(lang: str = "es") -> str:
+    return tr(lang,
+              "Por ahora los datos no advierten riesgos de calor, de lluvia ni por El Niño en tu zona, así que no hay ninguna alerta que mostrarte. "
+              "Cuando haya una, te va a llegar por acá.",
+              "Right now the data do not warn of heat, rain or El Niño risks in your area, so there is no alert to show you. "
+              "When there is one, it will reach you here.")
+
+
+def not_subscribed_text() -> str:
+    """Respuesta a un /start de alguien que no tiene una suscripción pendiente (no se conoce su idioma: va en los dos)."""
+    return ("Hola 👋 Para recibir mensajes de AguaAlerta, primero suscribite desde la página de Predicciones (buscá tu ASADA) y después enviá /start otra vez.\n\n"
+            "Hi 👋 To receive AguaAlerta messages, first subscribe on the Predictions page (search for your ASADA) and then send /start again.")
+
+
+def resend_start_text(lang: str = "es") -> str:
+    """Ya hay una suscripción, pero este /start llegó antes de ella: no prueba nada, hay que enviarlo otra vez."""
+    return tr(lang, "Recibimos tu suscripción. Para activarla, enviá /start una vez más (el anterior llegó antes de suscribirte).",
+              "We received your subscription. To activate it, send /start once more (the previous one arrived before you subscribed).")
+
+
+def goodbye_text(lang: str = "es") -> str:
+    return tr(lang, "Listo, ya no vas a recibir mensajes de AguaAlerta. Si querés volver, suscribite de nuevo en el sitio.",
+              "Done, you will no longer receive AguaAlerta messages. If you want to come back, subscribe again on the site.")
 
 
 # --- Telegram ---
@@ -207,104 +384,5 @@ def call(token: str, method: str, payload: dict | None = None, session: Any = re
     return body["result"]
 
 
-def discover(token: str, recipients: list[dict], chats_path: Path = CHATS, session: Any = requests) -> dict[str, int]:
-    """Guarda el Chat ID de cada @usuario de prueba que ya le escribió al bot (chats privados)."""
-    wanted = {recipient["username"].lower() for recipient in recipients}
-    chats = load_json(chats_path) if chats_path.is_file() else {}
-    for update in call(token, "getUpdates", {"timeout": 0, "allowed_updates": ["message"]}, session):
-        message = update.get("message") or {}
-        sender, chat = message.get("from") or {}, message.get("chat") or {}
-        username = (sender.get("username") or "").lower()
-        if chat.get("type") == "private" and username in wanted:
-            chats[username] = chat["id"]
-    chats_path.parent.mkdir(parents=True, exist_ok=True)
-    chats_path.write_text(json.dumps(chats, indent=2) + "\n", encoding="utf-8")
-    return {name: chats[name] for name in sorted(wanted) if name in chats}
-
-
-def send(token: str, alerts: list[dict], chats: dict[str, int], session: Any = requests, now: datetime | None = None) -> list[dict]:
-    """Envía cada aviso a su chat. Devuelve el resultado por aviso; los que no tienen Chat ID quedan pendientes."""
-    now = now or datetime.now(timezone.utc)
-    results = []
-    for alert in alerts:
-        chat_id = chats.get(alert["username"].lower())
-        if chat_id is None:
-            results.append({**alert, "status": "pending", "detail": "La persona todavía no le escribió al bot (/start)."})
-            continue
-        try:
-            call(token, "sendMessage", {"chat_id": chat_id, "text": alert["text"], "disable_web_page_preview": True}, session)
-            results.append({**alert, "status": "sent", "sent_at": now.isoformat(timespec="seconds")})
-        except TelegramError as error:
-            results.append({**alert, "status": "failed", "detail": str(error)})
-    return results
-
-
-def public_view(results: list[dict]) -> list[dict]:
-    """Lo que ve el sitio: el texto y su estado, sin @usuarios ni Chat ID (son datos de personas)."""
-    return [{key: item[key] for key in ("kind", "canton", "province", "zone", "region", "text", "status", "sent_at") if key in item} for item in results]
-
-
-def write_public(results: list[dict], target: Path = PUBLIC_ALERTS) -> None:
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps({"updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "alerts": public_view(results)},
-                                 ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-
-
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Avisos de prueba por Telegram a partir de las predicciones del sitio.")
-    parser.add_argument("command", choices=("preview", "discover", "send"))
-    parser.add_argument("--yes", action="store_true", help="Confirma el envío real (sin esto, `send` solo muestra qué enviaría).")
-    args = parser.parse_args(argv)
-    for stream in (sys.stdout, sys.stderr):
-        stream.reconfigure(encoding="utf-8", errors="replace")
-
-    if not RECIPIENTS.is_file():
-        print(f"Falta {RECIPIENTS.relative_to(ROOT)}. Copiá config/telegram_recipients.example.json y completalo.", file=sys.stderr)
-        return 2
-    recipients = load_json(RECIPIENTS)["recipients"]
-    try:
-        alerts = build_alerts(load_json(PREDICTIONS), recipients)
-    except AlertNotSupported as error:
-        print(f"Aviso no respaldado por los datos, no se envía nada: {error}", file=sys.stderr)
-        return 3
-
-    chats = load_json(CHATS) if CHATS.is_file() else {}
-    if args.command == "preview":
-        for alert in alerts:
-            print(f"--- {alert['kind']} → @{alert['username']} · {alert['canton']} ---\n{alert['text']}\n")
-        write_public([{**a, "status": "preview"} for a in alerts])
-        print(f"Vista previa del sitio actualizada: {PUBLIC_ALERTS.relative_to(ROOT)}")
-        return 0
-
-    token = load_token()
-    if not token:
-        print("Falta el token del bot: definí TELEGRAM_BOT_TOKEN o escribilo en .env (TELEGRAM_BOT_TOKEN=...).", file=sys.stderr)
-        return 2
-    try:
-        if args.command == "discover":
-            bot = call(token, "getMe")
-            found = discover(token, recipients)
-            print(f"Bot: @{bot['username']} (https://t.me/{bot['username']}). Chat ID encontrados: {len(found)} de {len(recipients)}.")
-            for recipient in recipients:
-                state = "listo" if recipient["username"].lower() in found else "pendiente: abrir el bot y enviar /start"
-                print(f"  @{recipient['username']}: {state}")
-            return 0
-        if not args.yes:
-            print("Esto enviaría:")
-            for alert in alerts:
-                state = "con Chat ID" if alert["username"].lower() in chats else "SIN Chat ID (pendiente)"
-                print(f"  {alert['kind']} → @{alert['username']} ({alert['canton']}) · {state}")
-            print("Repetí con --yes para enviar.")
-            return 0
-        results = send(token, alerts, chats)
-    except TelegramError as error:
-        print(error, file=sys.stderr)
-        return 1
-    write_public(results)
-    for item in results:
-        print(f"  {item['kind']} → @{item['username']}: {item['status']}" + (f" ({item['detail']})" if item.get("detail") else ""))
-    return 0 if all(item["status"] == "sent" for item in results) else 1
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+def send_message(token: str, chat_id: int, text: str, session: Any = requests) -> None:
+    call(token, "sendMessage", {"chat_id": chat_id, "text": text, "disable_web_page_preview": True}, session)

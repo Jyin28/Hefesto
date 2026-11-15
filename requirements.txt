@@ -10,6 +10,7 @@ charset-normalizer==3.5.2
 click==8.5.1
 colorama==0.4.6
 ecmwf-datastores-client==0.6.0
+et_xmlfile==2.0.0
 fastapi==0.163.0
 formulaic==1.2.2
 h11==0.16.0
@@ -25,6 +26,7 @@ multiurl==0.3.10
 narwhals==2.28.0
 netCDF4==1.7.5.1.post1
 numpy==2.5.4
+openpyxl==3.1.5
 opentelemetry-api==1.45.2
 packaging==26.3
 pandas==3.1.1

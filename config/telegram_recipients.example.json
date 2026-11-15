@@ -1,8 +1,0 @@
-{
-  "_nota": "Copiá este archivo como telegram_recipients.json (no se versiona) y poné los @usuarios reales, sin la arroba. Cada persona debe abrir el bot y enviar /start para poder recibir avisos.",
-  "recipients": [
-    { "username": "usuario_calor", "alert": "heat", "canton_code": "501", "canton": "Liberia", "province": "Guanacaste", "zone": "Pacífico Norte", "region": "CR_PN" },
-    { "username": "usuario_lluvia", "alert": "rain", "canton_code": "701", "canton": "Limón", "province": "Limón", "zone": "Caribe", "region": "CR_CAR" },
-    { "username": "usuario_nino", "alert": "nino", "canton_code": "210", "canton": "San Carlos", "province": "Alajuela", "zone": "Zona Norte", "region": "CR" }
-  ]
-}

@@ -118,6 +118,10 @@ const geo = {
 }
 writeFileSync(resolve(root, 'public/data/geo.json'), JSON.stringify(geo))
 
+// Índice liviano para la página «Predicciones»: cada cantón con su celda NASA POWER (sin cargar las geometrías).
+const cantonIndex = cantons.features.map(f => ({ code: f.properties.code, name: f.properties.name, province: f.properties.province ?? '', cell: cantonCells[f.properties.code] ?? '' }))
+writeFileSync(resolve(root, 'public/data/cantones-indice.json'), JSON.stringify(cantonIndex))
+
 const national = cells.filter(c => c.landFraction >= 0.01).map(c => ({ lat: c.lat, lon: c.lon, land_fraction: c.landFraction }))
 writeFileSync(resolve(root, '../data/web/national_cells.json'), JSON.stringify(national, null, 2) + '\n')
 
