@@ -1,0 +1,820 @@
+{
+  "calibration_date": "2026-11-15",
+  "first_target": "2026-12",
+  "input_sha256": {
+    "monthly_regional.csv": "5d189ef6cf13520d8948abf8d22b6fb359b1f68d7bded1055019472bd5cccac2",
+    "roni_noaa.csv": "9229b89bbebacbb0f3779d75c552352f6e4d4db5df1c3eea68d2f096cc6a3b40"
+  },
+  "series": {
+    "CDS/CR/T2M": {
+      "model": "trend20_ar1",
+      "max_contiguous_horizon": 3,
+      "horizons": {
+        "1": {
+          "q90": 1.2523808334686013,
+          "test_skill": 0.40872202,
+          "recent_skill": 0.22396606,
+          "test_mae": 0.27317453,
+          "coverage90_recent": 0.9545454545,
+          "skill_uncertain": false,
+          "skill_ci95": [
+            0.1250090197,
+            0.5351983444
+          ]
+        },
+        "2": {
+          "q90": 1.269137000464491,
+          "test_skill": 0.36149441,
+          "recent_skill": 0.19405485,
+          "test_mae": 0.29835129,
+          "coverage90_recent": 0.9523809524,
+          "skill_uncertain": false,
+          "skill_ci95": [
+            0.1665979627,
+            0.4801334691
+          ]
+        },
+        "3": {
+          "q90": 1.5708588753690176,
+          "test_skill": 0.23375306,
+          "recent_skill": 0.05035009,
+          "test_mae": 0.36464361,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": false,
+          "skill_ci95": [
+            0.0537200645,
+            0.3532914262
+          ]
+        },
+        "4": {
+          "q90": 1.7615645355299316,
+          "test_skill": 0.17532523,
+          "recent_skill": -0.06481061,
+          "test_mae": 0.39203519,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            -0.0752741075,
+            0.3497441207
+          ]
+        },
+        "5": {
+          "q90": 1.9572949464555192,
+          "test_skill": 0.15629321,
+          "recent_skill": -0.08331101,
+          "test_mae": 0.40097637,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": false,
+          "skill_ci95": [
+            0.0062350761,
+            0.3120555105
+          ]
+        },
+        "6": {
+          "q90": 2.1460362306596124,
+          "test_skill": 0.09726933,
+          "recent_skill": -0.08693479,
+          "test_mae": 0.43518554,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            -0.0876078694,
+            0.2427085411
+          ]
+        },
+        "7": {
+          "q90": 2.320991868659448,
+          "test_skill": 0.0663293,
+          "recent_skill": -0.05143127,
+          "test_mae": 0.45548691,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            -0.1321000458,
+            0.2082789682
+          ]
+        }
+      }
+    },
+    "CDS/CR/RH2M": {
+      "model": "clim30",
+      "max_contiguous_horizon": 0,
+      "horizons": {
+        "1": {
+          "q90": 2.486121529546998,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 1.55859311,
+          "coverage90_recent": 0.9090909091,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "q90": 2.486121529546998,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 1.57843353,
+          "coverage90_recent": 0.9047619048,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "q90": 2.486121529546998,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 1.59005399,
+          "coverage90_recent": 0.9,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "4": {
+          "q90": 2.486121529546998,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 1.61663838,
+          "coverage90_recent": 0.8947368421,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "5": {
+          "q90": 2.486121529546998,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 1.54311516,
+          "coverage90_recent": 0.8888888889,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "6": {
+          "q90": 2.486121529546998,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 1.5666394,
+          "coverage90_recent": 0.8823529412,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "7": {
+          "q90": 2.486121529546998,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 1.56875259,
+          "coverage90_recent": 0.875,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    "CDS/CR/PRECTOTCORR": {
+      "model": "clim30",
+      "max_contiguous_horizon": 0,
+      "horizons": {
+        "1": {
+          "q90": 2.4493971339316833,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 103.62582605,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "q90": 2.4493971339316833,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 105.2456091,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "q90": 2.4493971339316833,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 107.42673399,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "4": {
+          "q90": 2.4493971339316833,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 109.66638773,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "5": {
+          "q90": 2.4493971339316833,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 110.93943214,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "6": {
+          "q90": 2.4493971339316833,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 111.40487721,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "7": {
+          "q90": 2.4493971339316833,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 113.57097974,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    "CDS/CR_PN/T2M": {
+      "model": "trend20_ar1",
+      "max_contiguous_horizon": 3,
+      "horizons": {
+        "1": {
+          "q90": 1.4742249487340051,
+          "test_skill": 0.30071991,
+          "recent_skill": 0.1638611,
+          "test_mae": 0.346663,
+          "coverage90_recent": 0.9090909091,
+          "skill_uncertain": false,
+          "skill_ci95": [
+            0.0573525084,
+            0.4381546051
+          ]
+        },
+        "2": {
+          "q90": 1.6576389561179217,
+          "test_skill": 0.21187327,
+          "recent_skill": 0.17178515,
+          "test_mae": 0.39645136,
+          "coverage90_recent": 0.9523809524,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            -0.0675429935,
+            0.3033153473
+          ]
+        },
+        "3": {
+          "q90": 1.9840290180507938,
+          "test_skill": 0.11751441,
+          "recent_skill": 0.05706621,
+          "test_mae": 0.45244502,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            -0.0028963828,
+            0.1860926568
+          ]
+        },
+        "4": {
+          "q90": 2.117460374874809,
+          "test_skill": 0.09111828,
+          "recent_skill": -0.02307186,
+          "test_mae": 0.46809195,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            -0.0606101902,
+            0.2167326157
+          ]
+        },
+        "5": {
+          "q90": 2.0351624750454236,
+          "test_skill": 0.07764224,
+          "recent_skill": 0.00966384,
+          "test_mae": 0.46891917,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            -0.0422076374,
+            0.2280153894
+          ]
+        },
+        "6": {
+          "q90": 2.2429525489058943,
+          "test_skill": 0.03523276,
+          "recent_skill": -0.02164259,
+          "test_mae": 0.50089154,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            -0.0775407492,
+            0.1543301113
+          ]
+        },
+        "7": {
+          "q90": 2.225265682885703,
+          "test_skill": 0.02174562,
+          "recent_skill": 0.01064122,
+          "test_mae": 0.51962857,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            -0.0872923149,
+            0.1369169598
+          ]
+        }
+      }
+    },
+    "CDS/CR_PN/RH2M": {
+      "model": "trend20_enso_direct",
+      "max_contiguous_horizon": 1,
+      "horizons": {
+        "1": {
+          "q90": 2.0984705614207346,
+          "test_skill": 0.09113154,
+          "recent_skill": 0.30839279,
+          "test_mae": 1.87833602,
+          "coverage90_recent": 0.9090909091,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            -0.0176959572,
+            0.2049142659
+          ]
+        },
+        "2": {
+          "q90": 2.2592040524825094,
+          "test_skill": 0.03199343,
+          "recent_skill": 0.03100417,
+          "test_mae": 1.99836233,
+          "coverage90_recent": 0.9047619048,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            -0.0815020301,
+            0.1495345937
+          ]
+        },
+        "3": {
+          "q90": 2.298111251352238,
+          "test_skill": 0.01184367,
+          "recent_skill": -0.05025971,
+          "test_mae": 2.07657556,
+          "coverage90_recent": 0.85,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            -0.0655181313,
+            0.1186893113
+          ]
+        },
+        "4": {
+          "q90": 2.2572033626281054,
+          "test_skill": -0.00830896,
+          "recent_skill": -0.02896817,
+          "test_mae": 2.14991879,
+          "coverage90_recent": 0.8421052632,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            -0.0893502868,
+            0.0702908302
+          ]
+        },
+        "5": {
+          "q90": 2.3406261134293134,
+          "test_skill": -0.08050941,
+          "recent_skill": 0.00795455,
+          "test_mae": 2.18672842,
+          "coverage90_recent": 0.8333333333,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            -0.1753907208,
+            0.0236881202
+          ]
+        },
+        "6": {
+          "q90": 2.327046372927234,
+          "test_skill": -0.0368004,
+          "recent_skill": -0.02299114,
+          "test_mae": 2.08825935,
+          "coverage90_recent": 0.8235294118,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            -0.1645381445,
+            0.070147195
+          ]
+        },
+        "7": {
+          "q90": 2.341333178003944,
+          "test_skill": -0.05482548,
+          "recent_skill": 0.02198689,
+          "test_mae": 2.10182439,
+          "coverage90_recent": 0.8125,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            -0.1754214098,
+            0.0395058085
+          ]
+        }
+      }
+    },
+    "CDS/CR_PN/PRECTOTCORR": {
+      "model": "clim30",
+      "max_contiguous_horizon": 0,
+      "horizons": {
+        "1": {
+          "q90": 2.3990991814088525,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 78.12063508,
+          "coverage90_recent": 0.9545454545,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "q90": 2.3990991814088525,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 79.50953637,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "q90": 2.3990991814088525,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 81.05237797,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "4": {
+          "q90": 2.3990991814088525,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 82.6833445,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "5": {
+          "q90": 2.3990991814088525,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 83.49102743,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "6": {
+          "q90": 2.3990991814088525,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 82.27971076,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "7": {
+          "q90": 2.3990991814088525,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 82.83474013,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    "CDS/CR_CAR/T2M": {
+      "model": "trend20_enso_direct",
+      "max_contiguous_horizon": 4,
+      "horizons": {
+        "1": {
+          "q90": 1.313062035709021,
+          "test_skill": 0.42075736,
+          "recent_skill": 0.25669247,
+          "test_mae": 0.25693128,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": false,
+          "skill_ci95": [
+            0.0612237116,
+            0.5470197979
+          ]
+        },
+        "2": {
+          "q90": 1.3397076559038845,
+          "test_skill": 0.46945772,
+          "recent_skill": 0.2905539,
+          "test_mae": 0.23909958,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": false,
+          "skill_ci95": [
+            0.2832920222,
+            0.6241439631
+          ]
+        },
+        "3": {
+          "q90": 1.6222833431292316,
+          "test_skill": 0.37592209,
+          "recent_skill": 0.15343541,
+          "test_mae": 0.28452619,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": false,
+          "skill_ci95": [
+            0.2274323011,
+            0.5333081219
+          ]
+        },
+        "4": {
+          "q90": 1.957592916290576,
+          "test_skill": 0.32812564,
+          "recent_skill": 0.06136478,
+          "test_mae": 0.30579969,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": false,
+          "skill_ci95": [
+            0.1496147741,
+            0.5050188978
+          ]
+        },
+        "5": {
+          "q90": 2.3103138114720245,
+          "test_skill": 0.22040832,
+          "recent_skill": -0.02050932,
+          "test_mae": 0.35836153,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": false,
+          "skill_ci95": [
+            0.0572009246,
+            0.403117857
+          ]
+        },
+        "6": {
+          "q90": 2.443498819939427,
+          "test_skill": 0.1653812,
+          "recent_skill": -0.07093515,
+          "test_mae": 0.38567678,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": false,
+          "skill_ci95": [
+            0.0078920071,
+            0.319853385
+          ]
+        },
+        "7": {
+          "q90": 2.5667223060185616,
+          "test_skill": 0.12628523,
+          "recent_skill": -0.04323365,
+          "test_mae": 0.40587163,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            -0.0258844668,
+            0.2783701253
+          ]
+        }
+      }
+    },
+    "CDS/CR_CAR/RH2M": {
+      "model": "clim10",
+      "max_contiguous_horizon": 0,
+      "horizons": {
+        "1": {
+          "q90": 2.4471435195024793,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 1.63453479,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "q90": 2.4471435195024793,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 1.64446955,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "q90": 2.4471435195024793,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 1.6494583,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "4": {
+          "q90": 2.4471435195024793,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 1.68180355,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "5": {
+          "q90": 2.4471435195024793,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 1.65758346,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "6": {
+          "q90": 2.4471435195024793,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 1.69300969,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "7": {
+          "q90": 2.4471435195024793,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 1.71124334,
+          "coverage90_recent": 1.0,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    "CDS/CR_CAR/PRECTOTCORR": {
+      "model": "clim30",
+      "max_contiguous_horizon": 0,
+      "horizons": {
+        "1": {
+          "q90": 2.3820748019632436,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 122.5953888,
+          "coverage90_recent": 0.9545454545,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "2": {
+          "q90": 2.3820748019632436,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 123.48164853,
+          "coverage90_recent": 0.9523809524,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "3": {
+          "q90": 2.3820748019632436,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 126.08901441,
+          "coverage90_recent": 0.95,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "4": {
+          "q90": 2.3820748019632436,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 128.8272943,
+          "coverage90_recent": 0.9473684211,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "5": {
+          "q90": 2.3820748019632436,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 130.88550425,
+          "coverage90_recent": 0.9444444444,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "6": {
+          "q90": 2.3820748019632436,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 132.26026059,
+          "coverage90_recent": 0.9411764706,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        },
+        "7": {
+          "q90": 2.3820748019632436,
+          "test_skill": 0.0,
+          "recent_skill": 0.0,
+          "test_mae": 134.47736407,
+          "coverage90_recent": 0.9375,
+          "skill_uncertain": true,
+          "skill_ci95": [
+            0.0,
+            0.0
+          ]
+        }
+      }
+    }
+  }
+}

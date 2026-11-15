@@ -1,0 +1,212 @@
+[
+  {
+    "key": "POWER/CR/T2M",
+    "model": "trend20_enso_direct",
+    "baseline": "clim10",
+    "selection_mae": 0.33148973,
+    "selection_baseline_mae": 0.35435662,
+    "selection_period": "2011-2016",
+    "calibration_period": "2017-2020",
+    "test_period": "2021-2024"
+  },
+  {
+    "key": "POWER/CR_PN/T2M",
+    "model": "trend20_enso_direct",
+    "baseline": "clim30",
+    "selection_mae": 0.47658034,
+    "selection_baseline_mae": 0.48768219,
+    "selection_period": "2011-2016",
+    "calibration_period": "2017-2020",
+    "test_period": "2021-2024"
+  },
+  {
+    "key": "POWER/CR_CAR/T2M",
+    "model": "trend20_enso_direct",
+    "baseline": "clim10",
+    "selection_mae": 0.26306116,
+    "selection_baseline_mae": 0.28502333,
+    "selection_period": "2011-2016",
+    "calibration_period": "2017-2020",
+    "test_period": "2021-2024"
+  },
+  {
+    "key": "POWER/CR/RH2M",
+    "model": "clim10",
+    "baseline": "clim10",
+    "selection_mae": 1.39220297,
+    "selection_baseline_mae": 1.39220297,
+    "selection_period": "2011-2016",
+    "calibration_period": "2017-2020",
+    "test_period": "2021-2024"
+  },
+  {
+    "key": "POWER/CR_PN/RH2M",
+    "model": "clim10",
+    "baseline": "clim10",
+    "selection_mae": 2.63324663,
+    "selection_baseline_mae": 2.63324663,
+    "selection_period": "2011-2016",
+    "calibration_period": "2017-2020",
+    "test_period": "2021-2024"
+  },
+  {
+    "key": "POWER/CR_CAR/RH2M",
+    "model": "clim10",
+    "baseline": "clim10",
+    "selection_mae": 1.17404655,
+    "selection_baseline_mae": 1.17404655,
+    "selection_period": "2011-2016",
+    "calibration_period": "2017-2020",
+    "test_period": "2021-2024"
+  },
+  {
+    "key": "POWER/CR/PRECTOTCORR",
+    "model": "clim10",
+    "baseline": "clim10",
+    "selection_mae": 37.38147416,
+    "selection_baseline_mae": 37.38147416,
+    "selection_period": "2011-2016",
+    "calibration_period": "2017-2020",
+    "test_period": "2021-2024"
+  },
+  {
+    "key": "POWER/CR_PN/PRECTOTCORR",
+    "model": "clim10",
+    "baseline": "clim10",
+    "selection_mae": 51.61135429,
+    "selection_baseline_mae": 51.61135429,
+    "selection_period": "2011-2016",
+    "calibration_period": "2017-2020",
+    "test_period": "2021-2024"
+  },
+  {
+    "key": "POWER/CR_CAR/PRECTOTCORR",
+    "model": "trend20_enso_direct",
+    "baseline": "clim10",
+    "selection_mae": 57.10382923,
+    "selection_baseline_mae": 57.12321515,
+    "selection_period": "2011-2016",
+    "calibration_period": "2017-2020",
+    "test_period": "2021-2024"
+  },
+  {
+    "key": "POWER/CR/UV",
+    "model": "clim30",
+    "baseline": "clim30",
+    "selection_mae": 0.06152953,
+    "selection_baseline_mae": 0.06152953,
+    "selection_period": "2011-2016",
+    "calibration_period": "2017-2020",
+    "test_period": "2021-2024"
+  },
+  {
+    "key": "POWER/CR_PN/UV",
+    "model": "clim10",
+    "baseline": "clim10",
+    "selection_mae": 0.06180046,
+    "selection_baseline_mae": 0.06180046,
+    "selection_period": "2011-2016",
+    "calibration_period": "2017-2020",
+    "test_period": "2021-2024"
+  },
+  {
+    "key": "POWER/CR_CAR/UV",
+    "model": "clim30",
+    "baseline": "clim30",
+    "selection_mae": 0.0817128,
+    "selection_baseline_mae": 0.0817128,
+    "selection_period": "2011-2016",
+    "calibration_period": "2017-2020",
+    "test_period": "2021-2024"
+  },
+  {
+    "key": "CDS/CR/T2M",
+    "model": "trend20_ar1",
+    "baseline": "clim10",
+    "selection_mae": 0.26184216,
+    "selection_baseline_mae": 0.34459243,
+    "selection_period": "2011-2016",
+    "calibration_period": "2017-2020",
+    "test_period": "2021-2024"
+  },
+  {
+    "key": "CDS/CR/RH2M",
+    "model": "clim30",
+    "baseline": "clim30",
+    "selection_mae": 0.97663894,
+    "selection_baseline_mae": 0.97663894,
+    "selection_period": "2011-2016",
+    "calibration_period": "2017-2020",
+    "test_period": "2021-2024"
+  },
+  {
+    "key": "CDS/CR/PRECTOTCORR",
+    "model": "clim30",
+    "baseline": "clim30",
+    "selection_mae": 45.43420239,
+    "selection_baseline_mae": 45.43420239,
+    "selection_period": "2011-2016",
+    "calibration_period": "2017-2020",
+    "test_period": "2021-2024"
+  },
+  {
+    "key": "CDS/CR_PN/T2M",
+    "model": "trend20_ar1",
+    "baseline": "clim10",
+    "selection_mae": 0.31135303,
+    "selection_baseline_mae": 0.39109626,
+    "selection_period": "2011-2016",
+    "calibration_period": "2017-2020",
+    "test_period": "2021-2024"
+  },
+  {
+    "key": "CDS/CR_PN/RH2M",
+    "model": "trend20_enso_direct",
+    "baseline": "clim30",
+    "selection_mae": 1.52968988,
+    "selection_baseline_mae": 1.57613126,
+    "selection_period": "2011-2016",
+    "calibration_period": "2017-2020",
+    "test_period": "2021-2024"
+  },
+  {
+    "key": "CDS/CR_PN/PRECTOTCORR",
+    "model": "clim30",
+    "baseline": "clim30",
+    "selection_mae": 34.85682122,
+    "selection_baseline_mae": 34.85682122,
+    "selection_period": "2011-2016",
+    "calibration_period": "2017-2020",
+    "test_period": "2021-2024"
+  },
+  {
+    "key": "CDS/CR_CAR/T2M",
+    "model": "trend20_enso_direct",
+    "baseline": "clim10",
+    "selection_mae": 0.24239887,
+    "selection_baseline_mae": 0.30659189,
+    "selection_period": "2011-2016",
+    "calibration_period": "2017-2020",
+    "test_period": "2021-2024"
+  },
+  {
+    "key": "CDS/CR_CAR/RH2M",
+    "model": "clim10",
+    "baseline": "clim10",
+    "selection_mae": 1.04277564,
+    "selection_baseline_mae": 1.04277564,
+    "selection_period": "2011-2016",
+    "calibration_period": "2017-2020",
+    "test_period": "2021-2024"
+  },
+  {
+    "key": "CDS/CR_CAR/PRECTOTCORR",
+    "model": "clim30",
+    "baseline": "clim30",
+    "selection_mae": 60.29245394,
+    "selection_baseline_mae": 60.29245394,
+    "selection_period": "2011-2016",
+    "calibration_period": "2017-2020",
+    "test_period": "2021-2024"
+  }
+]

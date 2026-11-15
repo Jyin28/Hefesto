@@ -1,0 +1,506 @@
+[
+  {
+    "key":"CDS\/CR\/T2M",
+    "horizon":1,
+    "skill_ci95_low":0.1250090197,
+    "skill_ci95_high":0.5351983444,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR\/T2M",
+    "horizon":2,
+    "skill_ci95_low":0.1665979627,
+    "skill_ci95_high":0.4801334691,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR\/T2M",
+    "horizon":3,
+    "skill_ci95_low":0.0537200645,
+    "skill_ci95_high":0.3532914262,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR\/T2M",
+    "horizon":4,
+    "skill_ci95_low":-0.0752741075,
+    "skill_ci95_high":0.3497441207,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR\/T2M",
+    "horizon":5,
+    "skill_ci95_low":0.0062350761,
+    "skill_ci95_high":0.3120555105,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR\/T2M",
+    "horizon":6,
+    "skill_ci95_low":-0.0876078694,
+    "skill_ci95_high":0.2427085411,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR\/T2M",
+    "horizon":7,
+    "skill_ci95_low":-0.1321000458,
+    "skill_ci95_high":0.2082789682,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR\/RH2M",
+    "horizon":1,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR\/RH2M",
+    "horizon":2,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR\/RH2M",
+    "horizon":3,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR\/RH2M",
+    "horizon":4,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR\/RH2M",
+    "horizon":5,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR\/RH2M",
+    "horizon":6,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR\/RH2M",
+    "horizon":7,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR\/PRECTOTCORR",
+    "horizon":1,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR\/PRECTOTCORR",
+    "horizon":2,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR\/PRECTOTCORR",
+    "horizon":3,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR\/PRECTOTCORR",
+    "horizon":4,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR\/PRECTOTCORR",
+    "horizon":5,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR\/PRECTOTCORR",
+    "horizon":6,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR\/PRECTOTCORR",
+    "horizon":7,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_PN\/T2M",
+    "horizon":1,
+    "skill_ci95_low":0.0573525084,
+    "skill_ci95_high":0.4381546051,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_PN\/T2M",
+    "horizon":2,
+    "skill_ci95_low":-0.0675429935,
+    "skill_ci95_high":0.3033153473,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_PN\/T2M",
+    "horizon":3,
+    "skill_ci95_low":-0.0028963828,
+    "skill_ci95_high":0.1860926568,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_PN\/T2M",
+    "horizon":4,
+    "skill_ci95_low":-0.0606101902,
+    "skill_ci95_high":0.2167326157,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_PN\/T2M",
+    "horizon":5,
+    "skill_ci95_low":-0.0422076374,
+    "skill_ci95_high":0.2280153894,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_PN\/T2M",
+    "horizon":6,
+    "skill_ci95_low":-0.0775407492,
+    "skill_ci95_high":0.1543301113,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_PN\/T2M",
+    "horizon":7,
+    "skill_ci95_low":-0.0872923149,
+    "skill_ci95_high":0.1369169598,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_PN\/RH2M",
+    "horizon":1,
+    "skill_ci95_low":-0.0176959572,
+    "skill_ci95_high":0.2049142659,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_PN\/RH2M",
+    "horizon":2,
+    "skill_ci95_low":-0.0815020301,
+    "skill_ci95_high":0.1495345937,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_PN\/RH2M",
+    "horizon":3,
+    "skill_ci95_low":-0.0655181313,
+    "skill_ci95_high":0.1186893113,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_PN\/RH2M",
+    "horizon":4,
+    "skill_ci95_low":-0.0893502868,
+    "skill_ci95_high":0.0702908302,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_PN\/RH2M",
+    "horizon":5,
+    "skill_ci95_low":-0.1753907208,
+    "skill_ci95_high":0.0236881202,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_PN\/RH2M",
+    "horizon":6,
+    "skill_ci95_low":-0.1645381445,
+    "skill_ci95_high":0.070147195,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_PN\/RH2M",
+    "horizon":7,
+    "skill_ci95_low":-0.1754214098,
+    "skill_ci95_high":0.0395058085,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_PN\/PRECTOTCORR",
+    "horizon":1,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_PN\/PRECTOTCORR",
+    "horizon":2,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_PN\/PRECTOTCORR",
+    "horizon":3,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_PN\/PRECTOTCORR",
+    "horizon":4,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_PN\/PRECTOTCORR",
+    "horizon":5,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_PN\/PRECTOTCORR",
+    "horizon":6,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_PN\/PRECTOTCORR",
+    "horizon":7,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_CAR\/T2M",
+    "horizon":1,
+    "skill_ci95_low":0.0612237116,
+    "skill_ci95_high":0.5470197979,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_CAR\/T2M",
+    "horizon":2,
+    "skill_ci95_low":0.2832920222,
+    "skill_ci95_high":0.6241439631,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_CAR\/T2M",
+    "horizon":3,
+    "skill_ci95_low":0.2274323011,
+    "skill_ci95_high":0.5333081219,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_CAR\/T2M",
+    "horizon":4,
+    "skill_ci95_low":0.1496147741,
+    "skill_ci95_high":0.5050188978,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_CAR\/T2M",
+    "horizon":5,
+    "skill_ci95_low":0.0572009246,
+    "skill_ci95_high":0.403117857,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_CAR\/T2M",
+    "horizon":6,
+    "skill_ci95_low":0.0078920071,
+    "skill_ci95_high":0.319853385,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_CAR\/T2M",
+    "horizon":7,
+    "skill_ci95_low":-0.0258844668,
+    "skill_ci95_high":0.2783701253,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_CAR\/RH2M",
+    "horizon":1,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_CAR\/RH2M",
+    "horizon":2,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_CAR\/RH2M",
+    "horizon":3,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_CAR\/RH2M",
+    "horizon":4,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_CAR\/RH2M",
+    "horizon":5,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_CAR\/RH2M",
+    "horizon":6,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_CAR\/RH2M",
+    "horizon":7,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_CAR\/PRECTOTCORR",
+    "horizon":1,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_CAR\/PRECTOTCORR",
+    "horizon":2,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_CAR\/PRECTOTCORR",
+    "horizon":3,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_CAR\/PRECTOTCORR",
+    "horizon":4,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_CAR\/PRECTOTCORR",
+    "horizon":5,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_CAR\/PRECTOTCORR",
+    "horizon":6,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  },
+  {
+    "key":"CDS\/CR_CAR\/PRECTOTCORR",
+    "horizon":7,
+    "skill_ci95_low":0.0,
+    "skill_ci95_high":0.0,
+    "n_year_blocks":4,
+    "note":"Only four held-out year blocks; uncertain skill estimate. Experimental, not operational."
+  }
+]

@@ -8,3 +8,7 @@ __pycache__/
 dist/
 web/node_modules/
 web/dist/
+
+# Telegram: personas de prueba y sus Chat ID (datos personales)
+config/telegram_recipients.json
+data/telegram_chats.json

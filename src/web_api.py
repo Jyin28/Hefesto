@@ -5,12 +5,16 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 
+from hefesto_forecast.api import router as predictions_router
+
 from .contracts import COVERAGE_END_YEAR, COVERAGE_START_YEAR
 from .web_data import ROOT, local_catalog
 from .export import csv_tables, evidence_card, format_csv
 
 app = FastAPI(title="Detective Tico", version="0.1.0")
 logger = logging.getLogger(__name__)
+# Predicciones regionales experimentales (/api/predicciones). Va antes del montaje de estáticos para que este no la capture.
+app.include_router(predictions_router)
 
 
 @app.get("/api/local")
