@@ -7,13 +7,16 @@ diagnósticos y una **Ficha de detective** reproducible (Markdown/JSON/CSV).
 Es exploración histórica: **no pronostica** sequías, inundaciones ni disponibilidad de agua.
 
 ## Cómo abrir el sitio (Windows, PowerShell)
+
+Usa Python 3.12 o posterior. Abre una terminal en la carpeta donde está `run.ps1`.
+
 ```powershell
-cd <carpeta del repositorio>
-git switch MVP
 .\run.ps1
 ```
-`run.ps1` crea `.venv` si falta, instala `requirements.txt`, verifica los datos y abre Streamlit. Luego entra a
-**http://localhost:8501** (se abre solo en el navegador). Manual:
+`run.ps1` crea `.venv` e instala las dependencias si hacen falta. Después verifica los datos e inicia Streamlit.
+Abre **http://localhost:8501** en el navegador cuando aparezca la dirección en la terminal.
+
+Si ya tienes el entorno listo, puedes iniciar Streamlit directamente.
 ```powershell
 .\.venv\Scripts\python.exe -m streamlit run app.py
 ```
@@ -30,6 +33,9 @@ Modo desarrollo sintético (banner permanente): `$env:HEFESTO_USE_MOCK = "1"` an
   producto, no como lluvia observada. Ver `docs/limitations.md`.
 
 ## Verificación
+
+Ejecuta estos comandos desde el repositorio de Git. El ZIP de distribución incluye lo necesario para abrir la aplicación.
+
 ```powershell
 .\.venv\Scripts\python.exe scripts\verify_data.py      # datos accesibles y consistentes
 .\.venv\Scripts\python.exe -m pytest -q                 # pruebas (incluye statsmodels, AppTest offline)

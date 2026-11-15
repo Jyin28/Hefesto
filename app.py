@@ -50,7 +50,7 @@ def go_to(stage: str) -> None:
 def start_tour(topic: str) -> None:
     cov = service.get_coverage()
     st.session_state.update(topic=topic, region="CR_PN", years=(cov["start_year"], cov["end_year"]),
-                            stage="confirmation", card=None, bundle=None)
+                            stage="confirmation", hypothesis="", card=None, bundle=None)
 
 
 def banner() -> None:
@@ -68,23 +68,34 @@ def sidebar() -> None:
         st.button("🔥 Investiga el calor", width="stretch", on_click=start_tour, args=("heat",))
         st.button("🌧️ Investiga la lluvia", width="stretch", on_click=start_tour, args=("rain",))
         st.divider()
-        st.button("↺ Nueva investigación", width="stretch", on_click=go_to, args=("questions",))
+        st.button("↺ Nueva investigación", key="new_from_sidebar", width="stretch",
+                  on_click=go_to, args=("questions",))
         st.caption("Sin cuentas, sin nombres, sin ubicación personal. Telemetría desactivada.")
 
 
 def questions_step() -> None:
     cov = service.get_coverage()
     st.header("Tres preguntas para empezar")
-    st.radio("1 · ¿Qué quieres investigar?", list(TOPICS), format_func=TOPICS.get, key="topic")
-    rec = contracts.recommend_variable(st.session_state["topic"])["recommendation"]
+    topics = list(TOPICS)
+    topic = st.radio("1 · ¿Qué quieres investigar?", topics, index=topics.index(st.session_state["topic"]),
+                     format_func=TOPICS.get, key="topic_input")
+    st.session_state["topic"] = topic
+    rec = contracts.recommend_variable(topic)["recommendation"]
     with st.container(border=True):
         st.markdown(f"**Variable recomendada: `{rec['variable']}`** — {rec['definition']}")
         st.write(rec["reason"])
         for item in rec["not_measured"]:
             st.caption(f"• {item}")
         st.caption("Recomendación determinista (reglas en config/discovery.json); no depende de ningún valor p.")
-    st.radio("2 · ¿En qué sector? (el otro se compara)", list(SECTORS), format_func=SECTORS.get, key="region")
-    st.slider("3 · ¿Qué período?", cov["start_year"], cov["end_year"], key="years")
+    sectors = list(SECTORS)
+    st.session_state["region"] = st.radio(
+        "2 · ¿En qué sector? (el otro se compara)", sectors, index=sectors.index(st.session_state["region"]),
+        format_func=SECTORS.get, key="region_input",
+    )
+    st.session_state["years"] = st.slider(
+        "3 · ¿Qué período?", cov["start_year"], cov["end_year"],
+        value=st.session_state["years"], key="years_input",
+    )
     st.button("Continuar →", type="primary", on_click=go_to, args=("confirmation",))
 
 
@@ -102,7 +113,9 @@ def confirmation_step() -> None:
         st.write(f"**Variable:** `{rec['variable']}` — {rec['definition']}")
         st.write(f"**Sector principal:** {SECTORS[region]} · **comparación:** {SECTORS[other_region(region)]}")
         st.write(f"**Período:** {start}–{end}")
-        if end - start + 1 < 30:
+        if end - start + 1 < 10:
+            st.warning("Se necesitan al menos 10 años válidos para estimar una pendiente.")
+        elif end - start + 1 < 30:
             st.warning("Menos de 30 años consecutivos: solo se mostrará magnitud descriptiva, sin significancia.")
     st.text_area("Hipótesis opcional (no cambia el análisis; máx. 280 caracteres)", key="hypothesis", max_chars=280,
                  placeholder="Ej.: Creo que la temperatura ha aumentado.")
@@ -156,7 +169,7 @@ def results_step() -> None:
         rule = {"not_measured": contracts.recommend_variable(topic)["recommendation"]["not_measured"]}
         views.render_limits(card, rule)
     views.render_downloads(bundle, card)
-    st.button("↺ Nueva investigación", on_click=go_to, args=("questions",))
+    st.button("↺ Nueva investigación", key="new_from_results", on_click=go_to, args=("questions",))
 
 
 def main() -> None:
