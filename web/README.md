@@ -7,7 +7,7 @@ React consulta datos climáticos de NASA POWER de Pacífico Norte y Caribe. El b
 Desde la raíz de `Hefesto`, en una terminal PowerShell con Python y Node.js instalados:
 
 ```powershell
-python -m pip install -r requirements-web.txt
+python -m pip install -r requirements.txt
 python -m src.web_data
 python -m uvicorn src.web_api:app --reload
 ```

@@ -18,7 +18,7 @@
 | statsmodels / scipy | solo para pruebas de contraste de la estadística propia | BSD-3 |
 | pytest | pruebas | MIT |
 
-`src/web_api.py`, `web/` y `requirements-web.txt` (FastAPI/React) no forman parte del producto MVP.
+`src/web_api.py` y `web/` (FastAPI/React) no forman parte del producto MVP.
 
 ## Fuentes de contexto
 UCR (ENOS en Costa Rica, 2023); statsmodels (HAC, multipletests); Streamlit docs.
