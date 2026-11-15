@@ -1,6 +1,6 @@
 export type Level = 'basico' | 'tecnico'
-export type Section = 'general' | 'temp' | 'precip' | 'uv' | 'humedad' | 'avisos' | 'admin'
-export type MapMode = 'grid' | 'cantones'
+export type Section = 'general' | 'temp' | 'precip' | 'uv' | 'humedad' | 'admin'
+export type MapMode = 'grid' | 'cds' | 'cantones'
 export type Alert = 'active' | 'expired' | 'none'
 
 type Copy = {
@@ -38,11 +38,11 @@ const basico: Copy = {
     precip: 'Cómo ha cambiado la lluvia en la zona.',
     uv: 'Radiación UV: cuánta radiación del sol llega a la zona (tonos violetas en el mapa).',
     humedad: 'Humedad del aire en la zona (tonos verdes en el mapa).',
-    avisos: 'Avisos publicados y consejos para tu cantón.',
     admin: 'Reportar el caudal de tu ASADA y cargar datos locales (solo administradores de ASADA).',
   },
   mapTip: {
     grid: 'Cada cuadro es un pedazo de Costa Rica de unos 55 km por 70 km donde NASA mide el clima desde el espacio. Con el interruptor del mapa elegís ver cuánto cambió con los años o cómo fue un año en particular.',
+    cds: 'Cada cuadro es un pedazo de Costa Rica de unos 11 km por 11 km, con datos del servicio de clima de Copernicus (Unión Europea), que mezcla satélites y estaciones en un modelo del clima. Con el interruptor del mapa elegís ver cuánto cambió con los años o cómo fue un año en particular.',
     cantones: 'Cada zona es un cantón. Naranja: hay operadores de agua afectados por El Niño; verde: reportaron sin afectación. También se ven los ríos y quebradas.',
   },
   variableTitle: { T2M: 'Temperatura del aire', PRECTOTCORR: 'Lluvia acumulada por año' },
@@ -85,11 +85,11 @@ const tecnico: Copy = {
     precip: 'PRECTOTCORR (NASA POWER): serie anual, ventanas A/B y tendencia.',
     uv: 'ALLSKY_SFC_UV_INDEX (NASA POWER, 2001–2024, malla nativa 1°): serie anual y pendiente descriptiva.',
     humedad: 'RH2M (NASA POWER): humedad relativa a 2 m, serie anual y pendiente descriptiva.',
-    avisos: 'Comunicados activos, estado por cantón y medidas preventivas.',
     admin: 'Reporte de caudal y afectación por El Niño de la ASADA asignada; importación de registros locales.',
   },
   mapTip: {
     grid: 'Malla MERRA-2 de NASA POWER: 0,5° de latitud × 0,625° de longitud. Color = pendiente por década en el rango elegido, o valor de un año.',
+    cds: 'Malla ERA5-Land del CDS de Copernicus: 0,1° × 0,1° (~11 km). Temperatura, lluvia y humedad (derivada de T y punto de rocío) de ERA5-Land. Color = pendiente por década en el rango elegido, o valor de un año.',
     cantones: 'Capa cantonal (DTA 2026) e hidrografía OSM. Color según reportes de operadores (SAGA) y estado del aviso. Sin malla climática.',
   },
   variableTitle: { T2M: 'Temperatura a 2 m (T2M)', PRECTOTCORR: 'Precipitación corregida (PRECTOTCORR)' },

@@ -2,18 +2,22 @@ import type { Session } from './auth'
 import { copy } from './copy'
 import type { Level, MapMode } from './copy'
 
-export function Header({ level, mapMode, setMapMode, openAdmin, session, logout }: {
+export function Header({ level, mapMode, setMapMode, openAdmin, session, logout, goHome }: {
   level: Level
   mapMode: MapMode; setMapMode: (mode: MapMode) => void; openAdmin: () => void
-  session: Session | null; logout: () => void
+  session: Session | null; logout: () => void; goHome: () => void
 }) {
   const tip = copy[level]
   return <header className="header glass">
-    <h1>El Niño en CR — Monitor Climático y Territorial</h1>
+    <div className="header-title">
+      <button className="pill pill-ghost home-link" onClick={goHome} title="Volver a la página de inicio">← Inicio</button>
+      <h1>El Niño en CR — Monitor Climático y Territorial</h1>
+    </div>
     <div className="header-controls">
       <div className="segmented" role="group" aria-label="Tipo de mapa">
-        <button aria-pressed={mapMode === 'grid'} onClick={() => setMapMode('grid')} title={tip.mapTip.grid}>Mapa Interactivo: Cuadrícula NASA POWER (0.5° × 0.625°)</button>
-        <button aria-pressed={mapMode === 'cantones'} onClick={() => setMapMode('cantones')} title={tip.mapTip.cantones}>Cuencas Cantonales y Afectaciones</button>
+        <button aria-pressed={mapMode === 'grid'} onClick={() => setMapMode('grid')} title={tip.mapTip.grid}>Datos de NASA POWER</button>
+        <button aria-pressed={mapMode === 'cds'} onClick={() => setMapMode('cds')} title={tip.mapTip.cds}>Datos CDS</button>
+        <button aria-pressed={mapMode === 'cantones'} onClick={() => setMapMode('cantones')} title={tip.mapTip.cantones}>Datos nacionales</button>
       </div>
       {session ? <div className="admin-badge" role="status" title={`${session.name} · ${session.username}`}>
         <span className="dot verde" aria-hidden="true" />

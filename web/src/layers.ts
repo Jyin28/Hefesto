@@ -2,7 +2,7 @@ import type { Feature, FeatureCollection, MultiPolygon, Polygon } from 'geojson'
 import type { ExpressionSpecification } from 'maplibre-gl'
 import { fmt, ols, usable } from './analysis'
 import type { Point, Range } from './analysis'
-import type { Geo, Layer, LayerVar } from './data'
+import type { GeoCell, Layer, LayerVar } from './data'
 
 /** «slope» = cuánto cambia cada 10 años dentro de un rango de años; «value» = el valor de un año concreto. */
 export type LayerMode = 'slope' | 'value'
@@ -63,6 +63,16 @@ export const META: Record<LayerVar, Meta> = {
   },
 }
 
+/** De dónde salen los datos del mapa: la malla de NASA POWER o la de ERA5-Land del CDS. Solo cambia el texto del UV. */
+export type Source = 'nasa' | 'cds'
+/** El UV del CDS es energía (W/m² de UV-A + UV-B, promedio de 24 h), no el índice UV de NASA: otra unidad y otra escala. */
+const CDS_UV: Meta = {
+  ...META.UV, unit: 'W/m²', slopeUnit: 'W/m²', digits: 1, slopeDigits: 2, flat: 0.05, same: 0.5,
+  valueTitle: year => `Radiación UV que llega al suelo (promedio del día) en ${year}`,
+  about: 'Energía de radiación ultravioleta (UV-A y UV-B) que llega a cada metro cuadrado del suelo, promediada las 24 horas del día (incluye la noche). Se mide en W/m²; no es el índice UV que se anuncia en las noticias.',
+}
+export const metaFor = (variable: LayerVar, source: Source = 'nasa'): Meta => source === 'cds' && variable === 'UV' ? CDS_UV : META[variable]
+
 export type GridProps = { id: string; region: string; has: number; v: number; nat: number }
 export type LayerGrid = {
   lines: FeatureCollection<Polygon, GridProps>
@@ -95,7 +105,7 @@ export function clampRange(layer: Layer | undefined, range: Range): Range {
 
 export const clampYear = (layer: Layer | undefined, year: number) => layer ? Math.min(Math.max(year, layer.start), layer.end) : year
 
-export function buildLayerGrid(layers: Record<LayerVar, Layer> | undefined, variable: LayerVar, geo: Geo | undefined,
+export function buildLayerGrid(layers: Partial<Record<LayerVar, Layer>> | undefined, variable: LayerVar, gridCells: GeoCell[] | undefined,
   mode: LayerMode, range: Range, year: number): LayerGrid {
   const layer = layers?.[variable]
   const effectiveRange = clampRange(layer, range)
@@ -114,13 +124,16 @@ export function buildLayerGrid(layers: Record<LayerVar, Layer> | undefined, vari
   const lines: Feature<Polygon, GridProps>[] = []
   const land: Feature<Polygon | MultiPolygon, GridProps>[] = []
   let withData = 0
-  for (const cell of geo?.cells ?? []) {
+  for (const cell of gridCells ?? []) {
     const value = measure(layer?.cells[cell.id])
     const properties: GridProps = { id: cell.id, region: 'CR', has: value == null ? 0 : 1, v: value ?? 0, nat: national ?? 0 }
     const [west, south, east, north] = cell.bbox
-    lines.push({ type: 'Feature', properties, geometry: { type: 'Polygon', coordinates: [[[west, south], [east, south], [east, north], [west, north], [west, south]]] } })
-    if (cell.land && cell.landFraction >= 0.01) {
-      land.push({ type: 'Feature', properties, geometry: cell.land })
+    const box: Polygon = { type: 'Polygon', coordinates: [[[west, south], [east, south], [east, north], [west, north], [west, south]]] }
+    lines.push({ type: 'Feature', properties, geometry: box })
+    // Las celdas totalmente de tierra (malla del CDS) no guardan polígono propio: su caja ya es su tierra.
+    const geometry = cell.land ?? (cell.landFraction >= 0.999 ? box : null)
+    if (geometry && cell.landFraction >= 0.01) {
+      land.push({ type: 'Feature', properties, geometry })
       if (value != null) withData += 1
     }
   }
@@ -133,7 +146,7 @@ export function buildLayerGrid(layers: Record<LayerVar, Layer> | undefined, vari
 
 /** Expresión de MapLibre que pinta cada celda con su valor; las celdas sin dato quedan en gris. */
 export function colorExpression(variable: LayerVar, mode: LayerMode, grid: Pick<LayerGrid, 'domain' | 'extent'>): ExpressionSpecification {
-  const meta = META[variable]
+  const meta = META[variable] // los colores no cambian entre fuentes
   const scale: unknown[] = mode === 'slope'
     ? [-grid.extent, meta.slope[0], 0, meta.slope[1], grid.extent, meta.slope[2]]
     : meta.values.flatMap((color, index) => [grid.domain[0] + ((grid.domain[1] - grid.domain[0]) * index) / 3, color])
@@ -145,8 +158,8 @@ export function legendGradient(variable: LayerVar, mode: LayerMode) {
   return `linear-gradient(90deg, ${(mode === 'slope' ? meta.slope : meta.values).join(', ')})`
 }
 
-export function legendTitle(variable: LayerVar, mode: LayerMode, grid: Pick<LayerGrid, 'range' | 'year'>) {
-  const meta = META[variable]
+export function legendTitle(variable: LayerVar, mode: LayerMode, grid: Pick<LayerGrid, 'range' | 'year'>, source: Source = 'nasa') {
+  const meta = metaFor(variable, source)
   return mode === 'slope'
     ? `${meta.slopeTitle} cada 10 años (${grid.range[0]}–${grid.range[1]})${meta.slopeUnit ? ` · ${meta.slopeUnit}` : ''}`
     : `${meta.valueTitle(grid.year)}${meta.unit ? ` (${meta.unit})` : ''}`
@@ -155,8 +168,9 @@ export function legendTitle(variable: LayerVar, mode: LayerMode, grid: Pick<Laye
 const withUnit = (text: string, unit: string) => unit === '%' ? `${text} %` : unit ? `${text} ${unit}` : text
 
 /** Frase para la gente general: «Cambio de temperatura: subió 0,2 °C cada 10 años (1981–2024)». */
-export function describe(variable: LayerVar, mode: LayerMode, value: number, national: number, grid: Pick<LayerGrid, 'range' | 'year'>): string {
-  const meta = META[variable]
+export function describe(variable: LayerVar, mode: LayerMode, value: number, national: number, grid: Pick<LayerGrid, 'range' | 'year'>,
+  source: Source = 'nasa'): string {
+  const meta = metaFor(variable, source)
   if (mode === 'slope') {
     const [from, to] = grid.range
     if (Math.abs(value) < meta.flat) return `${meta.slopeTitle}: casi no cambió entre ${from} y ${to}`

@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
 import { Map as MapLibreMap, Marker, NavigationControl, Popup } from 'maplibre-gl'
 import type { ExpressionSpecification, GeoJSONSource, LngLatBoundsLike } from 'maplibre-gl'
 import type { Feature, FeatureCollection, Geometry, Position } from 'geojson'
 import { fmt } from './analysis'
 import { copy } from './copy'
 import type { Alert, Level, MapMode } from './copy'
-import type { Boundaries, Geo, LayerVar, Region, Snapshot, Waterways } from './data'
-import { buildLayerGrid, colorExpression, describe, legendGradient, legendTitle, META } from './layers'
-import type { LayerMode } from './layers'
+import type { Boundaries, CdsData, Geo, GridGeo, LayerVar, Region, Snapshot, Waterways } from './data'
+import { buildLayerGrid, colorExpression, describe, legendGradient, legendTitle, metaFor } from './layers'
+import type { LayerMode, Source } from './layers'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
 const empty: FeatureCollection = { type: 'FeatureCollection', features: [] }
@@ -76,22 +75,27 @@ function hoverCard(title: string, small?: string, detail?: string) {
 
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`
 
-export function Map({ boundaries, geo, snapshot, waterways, mode, variable, layerMode, range, year, level, selected, selectedCell, alerts,
-  cantonStatus, focus, controls, select, selectCell }: {
-  boundaries?: Boundaries; geo?: Geo; snapshot?: Snapshot; waterways?: Waterways; mode: MapMode
+export function Map({ boundaries, geo, snapshot, cds, cdsGeo, cdsMissing, waterways, mode, variable, layerMode, range, year, level, selected, selectedCell, alerts,
+  cantonStatus, focus, select, selectCell }: {
+  boundaries?: Boundaries; geo?: Geo; snapshot?: Snapshot; cds?: CdsData; cdsGeo?: GridGeo; cdsMissing: boolean
+  waterways?: Waterways; mode: MapMode
   variable: LayerVar; layerMode: LayerMode; range: [number, number]; year: number; level: Level
   selected: string; selectedCell: string; alerts: Record<string, Alert>; cantonStatus: Record<string, CantonStatus>
-  focus: Focus; controls?: ReactNode
+  focus: Focus
   select: (code: string) => void; selectCell: (region: Region, id: string) => void
 }) {
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<MapLibreMap | null>(null)
   const [ready, setReady] = useState(false)
   const [failed, setFailed] = useState(false)
-  const grid = useMemo(() => buildLayerGrid(snapshot?.layers, variable, geo, layerMode, range, year),
-    [snapshot, variable, geo, layerMode, range, year])
-  const latest = useRef({ select, selectCell, mode, level, alerts, cantonStatus, variable, layerMode, grid })
-  latest.current = { select, selectCell, mode, level, alerts, cantonStatus, variable, layerMode, grid }
+  // «Datos CDS» y «NASA POWER» comparten el mismo dibujo de cuadrícula; cambia la malla y las capas de origen.
+  const source: Source = mode === 'cds' ? 'cds' : 'nasa'
+  const grid = useMemo(() => source === 'cds'
+    ? buildLayerGrid(cds?.layers, variable, cdsGeo?.cells, layerMode, range, year)
+    : buildLayerGrid(snapshot?.layers, variable, geo?.cells, layerMode, range, year),
+  [source, cds, cdsGeo, snapshot, variable, geo, layerMode, range, year])
+  const latest = useRef({ select, selectCell, mode, level, alerts, cantonStatus, variable, layerMode, grid, source })
+  latest.current = { select, selectCell, mode, level, alerts, cantonStatus, variable, layerMode, grid, source }
 
   useEffect(() => {
     if (!container.current) return
@@ -136,27 +140,29 @@ export function Map({ boundaries, geo, snapshot, waterways, mode, variable, laye
 
       instance.on('click', event => {
         const { mode: current } = latest.current
-        if (current === 'grid') {
+        if (current !== 'cantones') {
           const cell = instance.queryRenderedFeatures(event.point, { layers: ['grid-fill'] }).find(item => item.properties?.has === 1)
-          if (cell?.properties) { latest.current.selectCell(String(cell.properties.region) as Region, String(cell.properties.id)); return }
+          if (cell?.properties) latest.current.selectCell(String(cell.properties.region) as Region, String(cell.properties.id))
+          return // en los mapas de malla (NASA POWER y CDS) un clic nunca selecciona un cantón
         }
         const code = instance.queryRenderedFeatures(event.point, { layers: ['cantons'] })[0]?.properties?.code
         if (code) latest.current.select(String(code))
       })
       instance.on('mousemove', event => {
-        const { mode: current, level: lvl, alerts: states, cantonStatus: status, variable: variableNow, layerMode: modeNow, grid: now } = latest.current
+        const { mode: current, level: lvl, alerts: states, cantonStatus: status, variable: variableNow, layerMode: modeNow, grid: now, source: sourceNow } = latest.current
         const canton = instance.queryRenderedFeatures(event.point, { layers: ['cantons'] })[0]
         const place = canton?.properties ? `Cantón: ${canton.properties.name}` : 'Costa Rica'
         const province = canton?.properties?.province ? String(canton.properties.province) : undefined
         let content: HTMLElement | undefined
-        if (current === 'grid') {
+        if (current !== 'cantones') {
           const cell = instance.queryRenderedFeatures(event.point, { layers: ['grid-fill'] })[0]
+          const meta = metaFor(variableNow, sourceNow)
           if (cell?.properties?.has === 1) {
-            content = hoverCard(place, province, describe(variableNow, modeNow, Number(cell.properties.v), Number(cell.properties.nat), now))
+            content = hoverCard(place, province, describe(variableNow, modeNow, Number(cell.properties.v), Number(cell.properties.nat), now, sourceNow))
           } else if (cell || canton) {
             content = hoverCard(place, province, modeNow === 'slope'
-              ? `${META[variableNow].slopeTitle}: sin datos suficientes en este período`
-              : `${META[variableNow].valueTitle(now.year)}: sin dato`)
+              ? `${meta.slopeTitle}: sin datos suficientes en este período`
+              : `${meta.valueTitle(now.year)}: sin dato`)
           }
         } else {
           const box: [[number, number], [number, number]] = [[event.point.x - 4, event.point.y - 4], [event.point.x + 4, event.point.y + 4]]
@@ -221,8 +227,11 @@ export function Map({ boundaries, geo, snapshot, waterways, mode, variable, laye
   useEffect(() => {
     const instance = map.current
     if (!ready || !instance) return
-    const isGrid = mode === 'grid'
+    const isGrid = mode !== 'cantones'
     for (const layer of ['grid-fill', 'grid-line', 'grid-selected']) instance.setLayoutProperty(layer, 'visibility', isGrid ? 'visible' : 'none')
+    // La malla del CDS tiene ~500 cuadros: líneas más finas y tenues para que no tapen el color.
+    instance.setPaintProperty('grid-line', 'line-opacity', mode === 'cds' ? 0.14 : 0.22)
+    instance.setPaintProperty('grid-line', 'line-width', mode === 'cds' ? 0.4 : 0.6)
     for (const layer of WATER_LAYERS) instance.setLayoutProperty(layer, 'visibility', isGrid ? 'none' : 'visible')
     // Lo que reportan las ASADAs manda sobre el estado del aviso: naranja si alguna está afectada, verde si todas reportaron sin afectación.
     const colors = new globalThis.Map<string, string>()
@@ -257,7 +266,7 @@ export function Map({ boundaries, geo, snapshot, waterways, mode, variable, laye
     if (box) instance.fitBounds([[box[0], box[1]], [box[2], box[3]]], { padding: 90, maxZoom: 10, duration: 700 })
   }, [ready, focus, boundaries])
 
-  const meta = META[variable]
+  const meta = metaFor(variable, source)
   const lo = layerMode === 'slope' ? -grid.extent : grid.domain[0]
   const hi = layerMode === 'slope' ? grid.extent : grid.domain[1]
   const digits = layerMode === 'slope' ? meta.slopeDigits : meta.digits
@@ -265,15 +274,16 @@ export function Map({ boundaries, geo, snapshot, waterways, mode, variable, laye
   return <>
     <div className="map" ref={container} aria-label="Mapa de Costa Rica" />
     {!failed && <div className="map-hud">
-      {mode === 'grid' && controls}
       <div className="legend glass" aria-label="Leyenda del mapa">
-        {mode === 'grid' ? <>
-          <strong>{legendTitle(variable, layerMode, grid)}</strong>
+        {mode !== 'cantones' ? <>
+          <strong>{legendTitle(variable, layerMode, grid, source)}</strong>
           <div className="legend-bar" style={{ background: legendGradient(variable, layerMode) }} />
           <div className="legend-scale">
             <span>{legendNumber(lo)}</span>{layerMode === 'slope' && <span>0</span>}<span>{legendNumber(hi)}</span>
           </div>
+          {mode === 'cds' && cdsMissing && <span><strong>Datos CDS todavía no generados.</strong> Corré <code>python -m src.cds</code>.</span>}
           {grid.withData < grid.total && <span>Gris: sin datos suficientes.</span>}
+          {mode === 'cds' && variable === 'UV' && <span>El UV viene en cuadros de 0,25°: varios cuadros vecinos comparten valor.</span>}
           <span>Solo se colorea el territorio nacional.</span>
         </> : <>
           <strong>Operadores de agua y El Niño</strong>
@@ -291,6 +301,7 @@ export function Map({ boundaries, geo, snapshot, waterways, mode, variable, laye
     </div>}
     <p className="map-caption">{failed ? 'El mapa requiere WebGL. Podés seleccionar un cantón desde el buscador.'
       : mode === 'cantones' ? `${boundaries ? `${boundaries.features.length} cantones con polígono propio. ` : 'Cargando la capa cantonal… '}Ríos y quebradas: © colaboradores de OpenStreetMap (ODbL).`
-        : boundaries ? `${boundaries.features.length} cantones con polígono propio.` : 'Cargando la capa cantonal…'}</p>
+        : mode === 'cds' ? (cds ? cds.attribution : cdsMissing ? 'Los datos del CDS de Copernicus todavía no se han generado.' : 'Cargando los datos del CDS…')
+          : boundaries ? `${boundaries.features.length} cantones con polígono propio.` : 'Cargando la capa cantonal…'}</p>
   </>
 }

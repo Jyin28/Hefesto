@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { ALERT_LABEL, ALERT_ORDER, defaultThresholds, fmt, levelFor } from './analysis'
-import type { AlertLevel, Outcome, ProjectionResult, Thresholds } from './analysis'
+import type { AlertLevel, Outcome, ProjectionResult } from './analysis'
 import { Tile } from './Bento'
 import { copy } from './copy'
 import type { Level } from './copy'
@@ -36,21 +36,14 @@ function describe(variable: Variable, outcome: Outcome, level: Level) {
 const isExtreme = (variable: Variable, outcome: Outcome) =>
   variable === 'PRECTOTCORR' ? Math.abs(outcome.deviation) >= 100 : Math.abs(outcome.deviation) >= 3
 
-export function ForecastTile({ level, zoneName, rows, thresholds, setThresholds }: {
-  level: Level; zoneName: string; rows: ForecastRow[]; thresholds: Thresholds; setThresholds: (value: Thresholds) => void
+export function ForecastTile({ level, zoneName, rows }: {
+  level: Level; zoneName: string; rows: ForecastRow[]
 }) {
+  const thresholds = defaultThresholds
   const [contact, setContact] = useState('')
   const [trigger, setTrigger] = useState<AlertLevel>('naranja')
   const [error, setError] = useState('')
   const [preview, setPreview] = useState<string[] | null>(null)
-
-  function setThreshold(variable: Variable, index: number, value: number) {
-    const next = [...thresholds[variable]] as [number, number, number]
-    next[index] = value
-    for (let other = index + 1; other < 3; other++) next[other] = Math.max(next[other], value)
-    for (let other = index - 1; other >= 0; other--) next[other] = Math.min(next[other], value)
-    setThresholds({ ...thresholds, [variable]: next })
-  }
 
   function status(row: ForecastRow) {
     if (!row.projection.ok) return null
@@ -108,17 +101,14 @@ export function ForecastTile({ level, zoneName, rows, thresholds, setThresholds 
       </div>
     })}
     <details>
-      <summary>Configurar umbrales de advertencia</summary>
+      <summary>Umbrales de advertencia</summary>
       {(['PRECTOTCORR', 'T2M'] as Variable[]).filter(variable => rows.some(row => row.variable === variable)).map(variable => <fieldset key={variable} className="thresholds">
         <legend>{VARIABLE_NAME[variable][level]} · {variable === 'PRECTOTCORR' ? 'déficit de lluvia (%)' : 'anomalía térmica (°C)'}</legend>
-        {TRIGGERS.map((name, index) => <label key={name}>
-          <span><span aria-hidden="true" className={`dot ${name}`} /> {ALERT_LABEL[name]} desde {fmt(thresholds[variable][index], variable === 'T2M' ? 1 : 0)}{variable === 'PRECTOTCORR' ? ' %' : ' °C'}</span>
-          <input type="range" min={0} max={variable === 'PRECTOTCORR' ? 60 : 3} step={variable === 'PRECTOTCORR' ? 1 : 0.1}
-            value={thresholds[variable][index]} onChange={event => setThreshold(variable, index, Number(event.target.value))} />
-        </label>)}
+        {TRIGGERS.map((name, index) => <p key={name}>
+          <span aria-hidden="true" className={`dot ${name}`} /> {ALERT_LABEL[name]} desde {fmt(thresholds[variable][index], variable === 'T2M' ? 1 : 0)}{variable === 'PRECTOTCORR' ? ' %' : ' °C'}
+        </p>)}
       </fieldset>)}
-      <button type="button" className="pill pill-ghost" onClick={() => setThresholds(defaultThresholds)}>Restablecer umbrales de ejemplo</button>
-      <p className="muted">Los valores iniciales son de ejemplo. Las comisiones deben definir los umbrales operativos.</p>
+      <p className="muted">Umbrales fijos definidos por las comisiones; no se editan desde este panel.</p>
     </details>
     <form className="telegram" onSubmit={test}>
       <h4>Alertas vía Telegram</h4>

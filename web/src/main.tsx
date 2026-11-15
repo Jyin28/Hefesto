@@ -1,84 +1,83 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { AdminPanel } from './AdminPanel'
-import { confidence as confidenceOf, continuity as continuityOf, defaultThresholds, ensoMean, localStat, project, spatialCoverage,
-  stationsLinked, statsFor, synthesis } from './analysis'
-import type { Thresholds } from './analysis'
 import { logout as endSession, restoreSession } from './auth'
 import type { Session } from './auth'
-import { ChartTile, QualityTile, StatTiles, SynthesisTile, Tile } from './Bento'
-import { ForecastTile } from './Forecast'
-import type { ForecastRow } from './Forecast'
-import { AsadaTile, CantonOperatorsTile } from './AsadaPanels'
-import { currentFlow, latestReports, summarizeCantons } from './asadas'
+import { AsadaTile } from './AsadaPanels'
+import { latestReports, summarizeCantons } from './asadas'
+import { ChartsPanel } from './ChartsPanel'
 import { Header } from './Header'
-import { buildLayerGrid } from './layers'
+import { Landing } from './Landing'
 import type { LayerMode } from './layers'
 import { normalizeText } from './localData'
 import { bboxOf, Map } from './Map'
 import type { Focus } from './Map'
-import { MapControls } from './MapControls'
-import { FloatingSearch, ZoneCard } from './MapOverlay'
+import { InfoPanel } from './InfoPanel'
 import { AdminModal } from './Modals'
-import { ClimatePanel, GeneralPanel, LayerPanel, LocalRecordsTile, NoticesPanel } from './Panels'
-import type { CantonOverview } from './Panels'
 import { useCantonData } from './store'
 import { MAX_YEAR, MIN_YEAR } from './RangeSlider'
 import { Sidebar } from './Sidebar'
 import { copy } from './copy'
 import type { Alert, Level, MapMode, Section } from './copy'
-import { getAsadas, getBoundaries, getGeo, getJson, getSnapshot, getWaterways, regions } from './data'
-import type { Boundaries, Canton, Climate, Geo, LayerVar, Local, Operator, Region, Snapshot, Variable, Waterways } from './data'
+import { getAsadas, getBoundaries, getCds, getCdsGeo, getGeo, getJson, getSnapshot, getWaterways, regions } from './data'
+import type { Boundaries, Canton, CdsData, Climate, Geo, GridGeo, LayerVar, Local, Operator, Region, Snapshot, Variable, Waterways } from './data'
 import './style.css'
 
-const params = new URLSearchParams(window.location.search)
+/** Valor de `?modo=` para cada mapa. */
+const MODE_PARAM: Record<MapMode, string> = { grid: 'nasa', cds: 'cds', cantones: 'nacionales' }
+const MAP_PARAMS = ['pagina', 'modo', 'canton', 'vista', 'capa', 'anio', 'asada']
+const readParams = () => new URLSearchParams(window.location.search)
+/** Un enlace con cualquier parámetro del mapa abre el mapa directo; sin parámetros se ve la página de inicio. */
+const wantsMap = () => MAP_PARAMS.some(key => readParams().has(key))
+const modeFromUrl = (): MapMode => {
+  const wanted = readParams().get('modo')
+  return (Object.keys(MODE_PARAM) as MapMode[]).find(mode => MODE_PARAM[mode] === wanted) ?? 'grid'
+}
 const emptyLocal: Local = { cantons: {}, notices: [], operators: [] }
-const defaultYears = [1981, 2002, 2003, 2024]
 // Nivel de lectura fijo: público general (el selector de escolaridad se retiró).
 const level: Level = 'basico'
-const sections: Section[] = ['general', 'temp', 'precip', 'uv', 'humedad', 'avisos', 'admin']
+const sections: Section[] = ['general', 'temp', 'precip', 'uv', 'humedad', 'admin']
 const DEFAULT_YEAR = MAX_YEAR
-const initialYear = () => { const value = Number(params.get('anio')); return value >= MIN_YEAR && value <= MAX_YEAR ? Math.round(value) : DEFAULT_YEAR }
+const initialYear = (params: URLSearchParams) => { const value = Number(params.get('anio')); return value >= MIN_YEAR && value <= MAX_YEAR ? Math.round(value) : DEFAULT_YEAR }
 
-function initialSection(): Section {
+function initialSection(params: URLSearchParams): Section {
   const view = params.get('vista')
   if (view === 'clima') return 'precip'
-  if (view === 'agua') return 'avisos'
   return sections.find(item => item === view) ?? 'general'
 }
 
-function App() {
+function App({ initialMode, goHome }: { initialMode: MapMode; goHome: () => void }) {
+  // Se leen al montar: el mapa se vuelve a montar cada vez que se entra desde el inicio.
+  const [params] = useState(readParams)
   const [snapshot, setSnapshot] = useState<Snapshot>()
   const [boundaries, setBoundaries] = useState<Boundaries>()
   const [geo, setGeo] = useState<Geo>()
   const [local, setLocal] = useState<Local>()
   const [asadas, setAsadas] = useState<Operator[]>([])
   const [waterways, setWaterways] = useState<Waterways>()
-  const [remote, setRemote] = useState<{ key: string; data: Climate }>()
+  // Mapa «Datos CDS»: capas de Copernicus y su malla de 0,1°. `cdsMissing` = todavía no se corrió `python -m src.cds`.
+  const [cds, setCds] = useState<CdsData>()
+  const [cdsGeo, setCdsGeo] = useState<GridGeo>()
+  const [cdsMissing, setCdsMissing] = useState(false)
   const [loading, setLoading] = useState(true)
   // Sin cantón elegido se ve el país completo; la región por defecto es la malla nacional.
   const [selected, setSelected] = useState(params.get('canton') || '')
   const [session, setSession] = useState<Session | null>(restoreSession)
-  const [requestedSection, setSectionState] = useState<Section>(initialSection)
+  const [requestedSection, setSectionState] = useState<Section>(() => initialSection(params))
   // Sin sesión de administrador, la sección Admin nunca se muestra, aunque llegue por la URL.
   const section: Section = requestedSection === 'admin' && !session ? 'general' : requestedSection
   const data = useCantonData()
-  const [mapMode, setMapMode] = useState<MapMode>('grid')
+  const [mapMode, setMapMode] = useState<MapMode>(initialMode)
   const [layerMode, setLayerModeState] = useState<LayerMode>(params.get('capa') === 'valor' ? 'value' : 'slope')
-  const [year, setYearState] = useState(initialYear)
+  const [year, setYearState] = useState(() => initialYear(params))
   const [asadaId, setAsadaId] = useState(params.get('asada') || '')
   const [regionOverride, setRegionOverride] = useState<Region>()
   const [cell, setCell] = useState('')
-  const [years, setYears] = useState(defaultYears)
-  const [appliedYears, setAppliedYears] = useState(defaultYears)
   const [range, setRange] = useState<[number, number]>([MIN_YEAR, MAX_YEAR])
-  const [appliedRange, setAppliedRange] = useState<[number, number]>([MIN_YEAR, MAX_YEAR])
-  const [requestError, setRequestError] = useState('')
   const [focus, setFocus] = useState<Focus>({ code: '', tick: 0 })
   const [modal, setModal] = useState<'admin' | null>(null)
   const [toast, setToast] = useState('')
   const [collapsed, setCollapsed] = useState(false)
-  const [thresholds, setThresholds] = useState<Thresholds>(defaultThresholds)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -100,10 +99,20 @@ function App() {
     return () => controller.abort()
   }, [mapMode, waterways])
 
+  // Los datos del CDS solo se piden la primera vez que se abre «Datos CDS».
   useEffect(() => {
-    const timer = setTimeout(() => setAppliedRange(range), 350)
-    return () => clearTimeout(timer)
-  }, [range])
+    if (mapMode !== 'cds' || cdsGeo) return
+    const controller = new AbortController()
+    getCdsGeo(controller.signal).then(data => { if (!controller.signal.aborted) setCdsGeo(data) }).catch(() => {})
+    return () => controller.abort()
+  }, [mapMode, cdsGeo])
+  useEffect(() => {
+    if (mapMode !== 'cds' || cds || cdsMissing) return
+    const controller = new AbortController()
+    getCds(controller.signal).then(data => { if (!controller.signal.aborted) setCds(data) })
+      .catch(() => { if (!controller.signal.aborted) setCdsMissing(true) })
+    return () => controller.abort()
+  }, [mapMode, cds, cdsMissing])
 
   useEffect(() => {
     if (!toast) return
@@ -133,39 +142,23 @@ function App() {
 
   const canton = choices.get(selected)
   const region: Region = regionOverride ?? 'CR'
-  const variable: Variable = section === 'temp' ? 'T2M' : 'PRECTOTCORR'
+  // Cada cantón usa la celda que más lo cubre en la malla del mapa activo (NASA POWER 0,5° o ERA5-Land 0,1°).
+  const cantonCells = (mapMode === 'cds' ? cdsGeo?.cantonCells : geo?.cantonCells) ?? {}
+  // Secciones que no aplican en el mapa activo, con su motivo (sirve de tooltip). En «Datos CDS» el UV depende de que
+  // exista su capa en cds.json: sin el archivo de ERA5 se desactiva y, al cargarlo, se reactiva sola.
+  const noClimate = 'No aplica en el mapa de datos nacionales: este mapa no tiene datos climáticos.'
+  const disabled: Partial<Record<Section, string>> = mapMode === 'cantones'
+    ? { general: noClimate, temp: noClimate, precip: noClimate, uv: noClimate, humedad: noClimate }
+    : mapMode === 'cds' && !cds?.layers.UV ? { uv: 'La radiación UV todavía no está disponible en el mapa de CDS.' } : {}
+  // Una sección desactivada (p. ej. UV que llega por la URL o desde el mapa de NASA) cae a «general».
+  const activeSection: Section = disabled[section] ? 'general' : section
+  const variable: Variable = activeSection === 'temp' ? 'T2M' : 'PRECTOTCORR'
   // Capa que pinta el mapa nacional: UV y Humedad tienen su propia sección en la barra lateral.
-  const mapVar: LayerVar = section === 'uv' ? 'UV' : section === 'humedad' ? 'RH2M' : variable
-  const queryParams = new URLSearchParams()
-  if (selected) queryParams.set('canton', selected)
-  if (cell) queryParams.set('celda', cell)
-  const usesDefaults = defaultYears.every((year, index) => appliedYears[index] === year)
-  if (!usesDefaults) ['a_inicio', 'a_fin', 'b_inicio', 'b_fin'].forEach((label, index) => queryParams.set(label, String(appliedYears[index])))
-  const rangeCustom = appliedRange[0] !== MIN_YEAR || appliedRange[1] !== MAX_YEAR
-  if (rangeCustom) { queryParams.set('desde', String(appliedRange[0])); queryParams.set('hasta', String(appliedRange[1])) }
-  const queryKey = `${region}/${variable}?${queryParams}`
-  const matchingRemote = remote?.key === queryKey ? remote.data : undefined
-  const snapshotClimate = region && usesDefaults
-    ? cell ? snapshot?.cells?.[region]?.[cell]?.[variable] : snapshot?.climate[region][variable]
-    : undefined
-  const rangeApprox = !matchingRemote && rangeCustom && !!snapshotClimate
-  const climate = matchingRemote ?? snapshotClimate
-
-  useEffect(() => {
-    if (!region || (section !== 'temp' && section !== 'precip')) return
-    const controller = new AbortController()
-    const { signal } = controller
-    setRequestError('')
-    getJson<Climate>(`/api/clima/${queryKey}`, signal).then(data => {
-      if (!signal.aborted) setRemote({ key: queryKey, data })
-    }).catch(() => {
-      if (!signal.aborted) setRequestError('La API no pudo cargar esta selección.')
-    })
-    return () => controller.abort()
-  }, [region, queryKey, section])
+  const mapVar: LayerVar = activeSection === 'uv' ? 'UV' : activeSection === 'humedad' ? 'RH2M' : variable
 
   function updateUrl(change: (url: URL) => void) {
     const url = new URL(window.location.href)
+    url.searchParams.set('pagina', 'mapa')
     change(url)
     history.replaceState(null, '', url)
   }
@@ -189,8 +182,9 @@ function App() {
     setSelected(code)
     setAsadaId('')
     setRegionOverride(undefined)
-    setCell(code ? geo?.cantonCells[code] ?? '' : '')
+    setCell(code ? cantonCells[code] ?? '' : '')
     setFocus(previous => ({ code, tick: previous.tick + 1 }))
+    if (code) setCollapsed(false)
     updateUrl(url => { if (code) url.searchParams.set('canton', code); else url.searchParams.delete('canton'); url.searchParams.delete('aviso'); url.searchParams.delete('asada') })
   }
 
@@ -215,6 +209,18 @@ function App() {
     setFocus(previous => ({ code: '', bbox, tick: previous.tick + 1 }))
   }
 
+  /** Cambiar de mapa deja atrás cualquier selección (cantón o celda) y aleja la cámara a la vista completa. */
+  function changeMapMode(mode: MapMode) {
+    setMapMode(mode)
+    updateUrl(url => url.searchParams.set('modo', MODE_PARAM[mode]))
+    setSelected('')
+    setAsadaId('')
+    setRegionOverride(undefined)
+    setCell('')
+    updateUrl(url => { url.searchParams.delete('canton'); url.searchParams.delete('aviso'); url.searchParams.delete('asada') })
+    setFocus(previous => ({ code: '', tick: previous.tick + 1 }))
+  }
+
   // Un cantón que llega por la URL toma su celda en cuanto se carga la geometría.
   useEffect(() => {
     if (geo && selected) setCell(previous => previous || geo.cantonCells[selected] || '')
@@ -225,12 +231,6 @@ function App() {
     setSession(next)
     setModal(null)
     setToast(`Modo administrador activo: ${next.name}. Seguís en el mapa; el formulario de tu ASADA está en la sección Admin.`)
-  }
-
-  /** «Enviar formulario de datos»: abre la sección Admin con el formulario puesto en el cantón actual. */
-  function openAdminForm() {
-    setSection('admin')
-    setCollapsed(false)
   }
 
   function onLogout() {
@@ -251,88 +251,35 @@ function App() {
   function selectCell(cellRegion: Region, id: string) {
     setRegionOverride(cellRegion)
     setCell(id)
-    if (section === 'avisos') setSection('general')
+    setCollapsed(false)
   }
 
-  const notices = catalog.notices.filter(item => item.cantonCodes.includes(selected))
-  const operators = catalog.operators.filter(item => item.cantonCodes.includes(selected))
-  const alert = alerts[selected] ?? 'none'
   // Si la celda es la propia del cantón, el título sigue siendo el cantón; una celda distinta se nombra aparte.
-  const ownCell = !!selected && cell === geo?.cantonCells[selected]
+  const ownCell = !!selected && cell === cantonCells[selected]
   const zoneName = cell && !ownCell ? `Celda ${cell}` : canton?.name ?? 'Costa Rica'
-  const averageLabel = region === 'CR' ? 'Promedio nacional' : 'Promedio del sector'
   const regionName = regions.find(item => item.id === region)?.name
 
-  // Tarjetas bento: usan el snapshot de la celda o del sector y el rango del slider (sin esperar a la API).
+  // Tarjetas de gráfica: usan el snapshot de la celda o del sector (sin esperar a la API).
   const pick = (name: Variable) => region ? (cell ? snapshot?.cells?.[region]?.[cell]?.[name] : snapshot?.climate[region]?.[name]) : undefined
   const climateBy: Record<Variable, Climate | undefined> = { T2M: pick('T2M'), PRECTOTCORR: pick('PRECTOTCORR') }
-  const primary = climateBy[variable]
-  const continuity = primary ? continuityOf(primary.series, range) : { valid: 0, total: range[1] - range[0] + 1, pct: 0 }
-  const coverage = spatialCoverage(primary?.cells ?? [])
-  // Datos que cargan las ASADAs (localStorage): reportes de caudal y afectación, y registros locales de comisiones.
-  const cantonRecords = useMemo(() => data.records.filter(item => item.cantonCode === selected), [data.records, selected])
+  // Datos que cargan las ASADAs (localStorage): reportes de caudal y afectación.
   const latest = useMemo(() => latestReports(data.reports), [data.reports])
   const summaries = useMemo(() => summarizeCantons(asadas, latest), [asadas, latest])
-  const overview = useMemo<CantonOverview[]>(() => Object.entries(summaries).filter(([, item]) => item.reported > 0)
-    .map(([code, item]) => ({ code, name: choices.get(code)?.name ?? code, operators: item.operators, reported: item.reported, affected: item.affected }))
-    .sort((a, b) => b.affected - a.affected || a.name.localeCompare(b.name, 'es-CR')), [summaries, choices])
-  const cantonOperators = useMemo(() => asadas.filter(item => item.cantonCode === selected).sort((a, b) => a.name.localeCompare(b.name, 'es-CR')), [asadas, selected])
-  const flows = useMemo(() => new globalThis.Map(cantonOperators.map(item => [item.id, { flow: currentFlow(item, latest), affected: latest.get(item.id)?.ninoAffected ?? null }])), [cantonOperators, latest])
   const asada = asadas.find(item => item.id === asadaId)
   const asadaReports = useMemo(() => data.reports.filter(item => item.asadaId === asadaId)
     .sort((a, b) => b.measuredAt.localeCompare(a.measuredAt) || b.createdAt.localeCompare(a.createdAt)), [data.reports, asadaId])
   const sessionAsada = session ? asadas.find(item => item.id === session.asadaId) : undefined
-  const localStations = [...new Set(cantonRecords.map(item => item.station || 'Fuente local sin nombre'))]
-  const stations = stationsLinked(primary, localStations)
-  const confidence = confidenceOf(continuity.pct, coverage.pct, stations.count, !!primary)
-  const gridStats = useMemo(() => {
-    const { withData, total } = buildLayerGrid(snapshot?.layers, 'PRECTOTCORR', geo, 'value', [MIN_YEAR, MAX_YEAR], MAX_YEAR)
-    return { withData, total }
-  }, [snapshot, geo])
-  const projections = {
-    T2M: climateBy.T2M ? project(climateBy.T2M.series, 'T2M', range) : undefined,
-    PRECTOTCORR: climateBy.PRECTOTCORR ? project(climateBy.PRECTOTCORR.series, 'PRECTOTCORR', range) : undefined,
-  }
-  const forecastVariables: Variable[] = section === 'temp' ? ['T2M'] : section === 'precip' ? ['PRECTOTCORR'] : ['PRECTOTCORR', 'T2M']
-  const forecastRows = forecastVariables.flatMap((name): ForecastRow[] => {
-    const projection = projections[name]
-    return projection ? [{ variable: name, projection, localStatus: climateBy[name]?.forecast.status }] : []
-  })
-  const episode = climateBy.PRECTOTCORR?.enso.episode
-  const paragraphs = synthesis({
-    level, zone: zoneName, regionName, range,
-    precip: statsFor(climateBy.PRECTOTCORR, range), temp: statsFor(climateBy.T2M, range),
-    enso: episode ? { start: episode.start, end: episode.end, precip: ensoMean(climateBy.PRECTOTCORR), temp: ensoMean(climateBy.T2M) } : undefined,
-    confidence, continuityPct: continuity.pct, coveragePct: coverage.pct, stations: stations.count,
-    operators: selected && summaries[selected] ? {
-      total: summaries[selected].operators, reported: summaries[selected].reported,
-      affected: cantonOperators.filter(item => latest.get(item.id)?.ninoAffected).map(item => ({ name: item.name, localities: latest.get(item.id)!.localities })),
-    } : undefined,
-    local: { temp: localStat(cantonRecords.filter(item => item.variable === 'T2M')), precip: localStat(cantonRecords.filter(item => item.variable === 'PRECTOTCORR')) },
-  })
-  const noData = <Tile title={copy[level].variableTitle[variable]}>
-    <p className="empty">Esta zona todavía no tiene datos NASA POWER asociados: queda pendiente de las comisiones.</p>
-  </Tile>
-  const quality = <QualityTile level={level} hasData={!!primary} regionName={regionName} coverage={coverage} grid={gridStats}
-    continuity={continuity} range={range} stations={stations} confidence={confidence} />
-  const forecast = <ForecastTile level={level} zoneName={zoneName} rows={forecastRows} thresholds={thresholds} setThresholds={setThresholds} />
 
   return <div className="app">
-    <Header level={level} mapMode={mapMode} setMapMode={setMapMode} openAdmin={() => setModal('admin')}
-      session={session} logout={onLogout} />
+    <Header level={level} mapMode={mapMode} setMapMode={changeMapMode} openAdmin={() => setModal('admin')}
+      session={session} logout={onLogout} goHome={goHome} />
     <div className="body">
-      <Sidebar level={level} section={section} setSection={setSection} admin={!!session} />
+      <Sidebar level={level} section={activeSection} setSection={setSection} admin={!!session} disabled={disabled} />
       <div className={collapsed ? 'stage collapsed' : 'stage'}>
         <section className="map-wrap" aria-label="Mapa">
-          <Map boundaries={boundaries} geo={geo} snapshot={snapshot} waterways={waterways} mode={mapMode} variable={mapVar}
+          <Map boundaries={boundaries} geo={geo} snapshot={snapshot} cds={cds} cdsGeo={cdsGeo} cdsMissing={cdsMissing} waterways={waterways} mode={mapMode} variable={mapVar}
             layerMode={layerMode} range={range} year={year} level={level} selected={selected} selectedCell={cell} alerts={alerts}
-            cantonStatus={summaries} focus={focus} select={select} selectCell={selectCell}
-            controls={<MapControls variable={mapVar} layer={snapshot?.layers?.[mapVar]} mode={layerMode} setMode={setLayerMode}
-              range={range} setRange={setRange} year={year} setYear={setYear} />} />
-          <FloatingSearch choices={choices} asadas={asadas} mode={mapMode} loading={loading} select={select}
-            selectAsada={selectAsada} selectProvince={selectProvince} />
-          <ZoneCard level={level} name={zoneName} province={canton?.province} nasa={!!region} range={range} setRange={setRange}
-            selection={!!selected || !!cell} exitZone={() => select('')} admin={!!session} openForm={openAdminForm} />
+            cantonStatus={summaries} focus={focus} select={select} selectCell={selectCell} />
           <button className="drawer-toggle glass" aria-expanded={!collapsed} aria-controls="ficha"
             aria-label={collapsed ? 'Mostrar el panel de información' : 'Ocultar el panel de información'}
             title={collapsed ? 'Mostrar el panel' : 'Ocultar el panel'} onClick={() => setCollapsed(value => !value)}>
@@ -341,51 +288,16 @@ function App() {
             </svg>
           </button>
         </section>
-        <aside className="drawer glass" id="ficha" aria-label="Panel de información" inert={collapsed}>
-          <div className="drawer-title"><small>{canton ? canton.province : cell ? regionName : 'Costa Rica'}</small><h2>{zoneName}</h2></div>
-          <div className="bento">
-            {asada && <AsadaTile operator={asada} reports={asadaReports} close={() => { setAsadaId(''); updateUrl(url => url.searchParams.delete('asada')) }} />}
-            {section === 'general' && <>
-              {climateBy.T2M && <ChartTile variable="T2M" level={level} series={climateBy.T2M.series} range={range} />}
-              {climateBy.PRECTOTCORR && <ChartTile variable="PRECTOTCORR" level={level} series={climateBy.PRECTOTCORR.series} range={range} />}
-              {!primary && noData}
-              <GeneralPanel level={level} climateBy={climateBy} region={region} canton={canton} cell={cell}
-                alert={alert} notices={notices} loading={loading} nino={selected ? summaries[selected] : undefined} />
-              <LocalRecordsTile level={level} records={cantonRecords} />
-              {quality}
-              <SynthesisTile level={level} paragraphs={paragraphs} />
-              {forecast}
-            </>}
-            {(section === 'temp' || section === 'precip') && <>
-              {primary ? <>
-                {(() => { const result = projections[variable]; return <ChartTile variable={variable} level={level} series={primary.series} range={range}
-                  projection={result?.ok ? result.points : undefined} caption={`${regionName ?? ''} · ${cell ? `Celda ${cell}` : averageLabel}`} /> })()}
-                <StatTiles variable={variable} level={level} series={primary.series} range={range} />
-              </> : noData}
-              <LocalRecordsTile level={level} records={cantonRecords} variable={variable} />
-              {quality}
-              <SynthesisTile level={level} paragraphs={paragraphs} />
-              {forecast}
-              <ClimatePanel variable={variable} level={level} climate={climate}
-                remote={matchingRemote} queryKey={queryKey} region={region} cell={cell} setCell={setCell}
-                setRegion={setRegionOverride} years={years} setYears={setYears} setAppliedYears={setAppliedYears}
-                requestError={requestError} setRequestError={setRequestError} loading={loading} catalog={catalog}
-                selected={selected} rangeApprox={rangeApprox} />
-            </>}
-            {(section === 'uv' || section === 'humedad') && <LayerPanel variable={mapVar} layer={snapshot?.layers?.[mapVar]} cell={cell}
-              range={range} year={year} zoneName={zoneName} />}
-            {section === 'avisos' && <>
-              <CantonOperatorsTile cantonName={canton?.name ?? ''} operators={cantonOperators} flows={flows} selectedId={asadaId} pick={selectAsada} />
-              <NoticesPanel level={level} loading={loading} notices={notices} operators={operators}
-                catalog={catalog} selected={selected} alert={alert} highlight={params.get('aviso')} highlightCanton={params.get('canton')}
-                overview={overview} select={select} />
-              {forecast}
-            </>}
-            {section === 'admin' && session && <AdminPanel key={session.asadaId} session={session} asada={sessionAsada} choices={choices} data={data}
-              resolveCanton={resolveCanton} notify={setToast} />}
-          </div>
-          <p className="muted">{copy[level].mapTip[mapMode]}</p>
-        </aside>
+        <InfoPanel choices={choices} asadas={asadas} mode={mapMode} loading={loading}
+          select={select} selectAsada={selectAsada} selectProvince={selectProvince}
+          selected={selected} cell={cell} canton={canton} zoneName={zoneName} regionName={regionName}
+          collapsed={collapsed} mapTip={copy[level].mapTip[mapMode]}>
+          {asada && <AsadaTile operator={asada} reports={asadaReports} close={() => { setAsadaId(''); updateUrl(url => url.searchParams.delete('asada')) }} />}
+          {section === 'admin' && session
+            ? <AdminPanel key={session.asadaId} session={session} asada={sessionAsada} choices={choices} data={data} resolveCanton={resolveCanton} notify={setToast} />
+            : <ChartsPanel mapMode={mapMode} level={level} zoneName={zoneName} climateBy={climateBy} uvLayer={snapshot?.layers?.UV} humedadLayer={snapshot?.layers?.RH2M} cds={cds}
+              cell={cell} range={range} setRange={setRange} layerMode={layerMode} setLayerMode={setLayerMode} year={year} setYear={setYear} />}
+        </InfoPanel>
       </div>
     </div>
     {modal === 'admin' && !session && <AdminModal onClose={() => setModal(null)} onLogin={onLogin} />}
@@ -393,4 +305,43 @@ function App() {
   </div>
 }
 
-createRoot(document.getElementById('root')!).render(<App />)
+/** Elige entre la página de inicio y el mapa. Cada cambio queda en el historial: «Atrás» vuelve a la página anterior. */
+function Root() {
+  const [page, setPage] = useState<'inicio' | 'mapa'>(() => wantsMap() ? 'mapa' : 'inicio')
+  const [mode, setMode] = useState<MapMode>(modeFromUrl)
+  // Cambia cada vez que se entra al mapa, para que se monte de cero con la URL nueva.
+  const [visit, setVisit] = useState(0)
+
+  useEffect(() => {
+    const onPop = () => {
+      setPage(wantsMap() ? 'mapa' : 'inicio')
+      setMode(modeFromUrl())
+      setVisit(value => value + 1)
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+
+  function openMap(next: MapMode) {
+    const url = new URL(window.location.href)
+    url.search = ''
+    url.hash = ''
+    url.searchParams.set('pagina', 'mapa')
+    url.searchParams.set('modo', MODE_PARAM[next])
+    history.pushState(null, '', url)
+    setMode(next)
+    setVisit(value => value + 1)
+    setPage('mapa')
+    window.scrollTo(0, 0)
+  }
+
+  function goHome() {
+    history.pushState(null, '', window.location.pathname)
+    setPage('inicio')
+    window.scrollTo(0, 0)
+  }
+
+  return page === 'mapa' ? <App key={visit} initialMode={mode} goHome={goHome} /> : <Landing openMap={openMap} />
+}
+
+createRoot(document.getElementById('root')!).render(<Root />)

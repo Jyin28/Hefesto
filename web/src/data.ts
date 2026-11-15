@@ -18,6 +18,8 @@ export type Geo = {
   country: GeoShape; provinces: GeoShape[]; neighbors: GeoShape[]
   cells: GeoCell[]; cantonCells: Record<string, string>
 }
+/** Malla ERA5-Land del CDS (0,1°), precalculada por `npm run geo`. Las celdas interiores traen `land: null` y se pintan con su caja. */
+export type GridGeo = { cells: GeoCell[]; cantonCells: Record<string, string> }
 export type Boundaries = FeatureCollection<Polygon | MultiPolygon, { code: string; name: string; province?: string }>
 export type Notice = {
   id: string; cantonCodes: string[]; title: string; summary: string; source: string;
@@ -80,6 +82,8 @@ export type Layer = {
   resampled: boolean
   provenance: { source?: string; url?: string; sha256?: string | null; retrieved_at?: string; parameter?: string }
 }
+/** Capas del mapa «Datos CDS» (Copernicus ERA5-Land + ERA5), generadas por `python -m src.cds`. El UV es opcional: falta si no se cargó el archivo de ERA5. */
+export type CdsData = { layers: Partial<Record<LayerVar, Layer>>; attribution: string }
 export type Snapshot = {
   climate: Record<Region, Record<Variable, Climate>>
   cells?: Record<Region, Record<string, Record<Variable, Climate>>>
@@ -109,7 +113,10 @@ export async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> 
 const staticRoot = `${import.meta.env.BASE_URL}data/`
 export const getSnapshot = (signal: AbortSignal) => getJson<Snapshot>(`${staticRoot}snapshot.json`, signal)
 export const getGeo = (signal: AbortSignal) => getJson<Geo>(`${staticRoot}geo.json`, signal)
-export const getBoundaries = (signal: AbortSignal) => getJson<Boundaries>(`${staticRoot}cantones.geojson`, signal)
+/** Solo se piden al abrir el mapa «Datos CDS». `cds.json` no existe hasta que se corre `python -m src.cds`. */
+export const getCds = (signal: AbortSignal) => getJson<CdsData>(`${staticRoot}cds.json`, signal)
+export const getCdsGeo = (signal: AbortSignal) => getJson<GridGeo>(`${staticRoot}geo-cds.json`, signal)
+export const getBoundaries =(signal: AbortSignal) => getJson<Boundaries>(`${staticRoot}cantones.geojson`, signal)
 export const getAsadas = (signal: AbortSignal) => getJson<Asadas>(`${staticRoot}asadas.json`, signal)
 /** ~4,5 MB: solo se pide al entrar al mapa de cuencas. */
 export const getWaterways = (signal: AbortSignal) => getJson<Waterways>(`${staticRoot}waterways.geojson`, signal)

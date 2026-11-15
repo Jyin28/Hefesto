@@ -7,7 +7,7 @@ export type AlertLevel = 'verde' | 'amarillo' | 'naranja' | 'rojo'
 export type Confidence = 'sin-datos' | 'baja' | 'media' | 'alta'
 export type Thresholds = Record<Variable, [number, number, number]>
 
-/** Umbrales de ejemplo, editables en el panel. Lluvia: déficit en % frente a la referencia. Temperatura: anomalía en °C. */
+/** Umbrales fijos de alerta, definidos por las comisiones. Lluvia: déficit en % frente a la referencia. Temperatura: anomalía en °C. */
 export const defaultThresholds: Thresholds = { PRECTOTCORR: [10, 20, 30], T2M: [0.5, 1, 1.5] }
 export const REFERENCE: Range = [1981, 2010]
 export const HORIZONS = { corto: 3, mediano: 10 }
