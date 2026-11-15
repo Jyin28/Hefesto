@@ -1,5 +1,8 @@
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  server: { proxy: { '/api': 'http://127.0.0.1:8000' } },
+  server: {
+    allowedHosts: ['sb-29q8tisf0yuf.vercel.run'],
+    proxy: { '/api': 'http://127.0.0.1:8000' },
+  },
 })
