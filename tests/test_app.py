@@ -62,12 +62,18 @@ class AppTourTest(unittest.TestCase):
 
     def test_wizard_reaches_results_with_hypothesis(self):
         at = AppTest.from_file(APP, default_timeout=60).run()
-        at.radio(key="topic").set_value("rain").run()
+        at.radio(key="topic_input").set_value("rain").run()
+        at.radio(key="region_input").set_value("CR_CAR").run()
+        at.slider(key="years_input").set_value((1991, 2020)).run()
         next(b for b in at.button if "Continuar" in b.label).click().run()
         at.text_area(key="hypothesis").set_value("Creo que llueve más <b>").run()
         next(b for b in at.button if "Investigar" in b.label).click().run()
         self.assertFalse(at.exception)
-        self.assertNotIn("<b>", at.session_state["card"]["hypothesis"])
+        card = at.session_state["card"]
+        self.assertEqual(card["query"]["variable"], "PRECTOTCORR")
+        self.assertEqual(card["query"]["regions"], ["CR_CAR", "CR_PN"])
+        self.assertEqual((card["query"]["start_year"], card["query"]["end_year"]), (1991, 2020))
+        self.assertNotIn("<b>", card["hypothesis"])
 
 
 

@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class VerifyDataTest(unittest.TestCase):
     def test_verify_data_script_passes(self):
-        out = subprocess.run([sys.executable, str(ROOT / "scripts" / "verify_data.py")], capture_output=True,
+        out = subprocess.run([sys.executable, "-X", "utf8", str(ROOT / "scripts" / "verify_data.py")], capture_output=True,
                              text=True, encoding="utf-8", timeout=300)
         self.assertEqual(out.returncode, 0, out.stdout[-2000:] + out.stderr[-1000:])
         self.assertNotIn("FAIL", out.stdout)
