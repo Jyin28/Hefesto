@@ -47,10 +47,13 @@ export function FloatingSearch({ choices, operators, loading, select }: {
   </div>
 }
 
-export function ZoneCard({ level, name, province, nasa, range, setRange, requestCount, openRequest }: {
+export function ZoneCard({ level, name, province, nasa, range, setRange, selection, exitZone, admin, openForm }: {
   level: Level; name: string; province?: string; nasa: boolean
   range: [number, number]; setRange: (range: [number, number]) => void
-  requestCount: number; openRequest: () => void
+  /** Hay un cantón o una celda elegidos: se ofrece volver a la vista de todo el país. */
+  selection: boolean; exitZone: () => void
+  /** Solo con sesión de administrador: abre el formulario de datos de las comisiones. */
+  admin: boolean; openForm: () => void
 }) {
   const [collapsed, setCollapsed] = useState(() => window.matchMedia('(max-width: 860px)').matches)
   return <section className="zone-card glass" aria-label="Zona seleccionada">
@@ -66,7 +69,7 @@ export function ZoneCard({ level, name, province, nasa, range, setRange, request
       <RangeSlider value={range} onChange={setRange} title={copy[level].tipRange} />
       {!nasa && <p className="muted">Información pendiente de ser facilitada para esta zona.</p>}
     </>}
-    <button className="pill pill-primary" onClick={openRequest}>+ Pedir información de esta zona</button>
-    {!collapsed && requestCount > 0 && <p className="muted" role="status">{requestCount} {requestCount === 1 ? 'solicitud enviada' : 'solicitudes enviadas'} desde este navegador.</p>}
+    {selection && <button className="pill pill-ghost" onClick={exitZone}>← Salir del cantón</button>}
+    {admin && <button className="pill pill-primary" onClick={openForm}>Enviar formulario de datos</button>}
   </section>
 }

@@ -15,6 +15,10 @@ from typing import Any
 
 SCHEMA_VERSION = "2.0"
 REGION_IDS = ("CR_PN", "CR_CAR")
+# Región nacional (malla NASA POWER 7×7 completa) que usa la interfaz web; las pruebas BY de los dos
+# sectores no la incluyen: tiene su propia familia de pruebas.
+NATIONAL_REGION_ID = "CR"
+WEB_REGION_IDS = REGION_IDS + (NATIONAL_REGION_ID,)
 VARIABLE_IDS = ("T2M", "PRECTOTCORR")
 PRESET_IDS = ("CR_HEAT", "CR_RAIN")
 LEVELS = ("none", "descriptive", "inferential")
@@ -166,12 +170,13 @@ class ExportBundle:
     evidence_json: bytes
 
 
-def validate_query(variable: str, region_id: str | None, start_year: int, end_year: int) -> None:
+def validate_query(variable: str, region_id: str | None, start_year: int, end_year: int,
+                   regions: tuple[str, ...] = REGION_IDS) -> None:
     """Raise readable ValueError on invalid input; never invent a result."""
     if variable not in VARIABLE_IDS:
         raise ValueError(f"Variable invalida: {variable!r}. Validas: {', '.join(VARIABLE_IDS)}.")
-    if region_id is not None and region_id not in REGION_IDS:
-        raise ValueError(f"Region invalida: {region_id!r}. Validas: {', '.join(REGION_IDS)}.")
+    if region_id is not None and region_id not in regions:
+        raise ValueError(f"Region invalida: {region_id!r}. Validas: {', '.join(regions)}.")
     for name, y in (("start_year", start_year), ("end_year", end_year)):
         if isinstance(y, bool) or not isinstance(y, int):
             raise ValueError(f"{name} debe ser entero, recibido {y!r}.")

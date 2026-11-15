@@ -6,10 +6,12 @@ verificados contra la linea de costa y frontera terrestre de Costa Rica (WGS84 /
 """
 from __future__ import annotations
 
+import json
 import math
+from pathlib import Path
 from typing import TYPE_CHECKING
 
-from src.contracts import RegionSpec
+from src.contracts import NATIONAL_REGION_ID, RegionSpec
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -115,3 +117,56 @@ def build_masks_df() -> pd.DataFrame:
         }
     )
     return df.sort_values(["region_id", "lat", "lon"]).reset_index(drop=True)
+
+
+# --------------------------------------------------------------------------- #
+# Región nacional (interfaz web): todas las celdas de la malla 7x7 que tocan territorio.
+# --------------------------------------------------------------------------- #
+NATIONAL_MASK_VERSION = "cr-national-cells-v1.0"
+NATIONAL_CELLS_PATH = Path(__file__).resolve().parents[1] / "data" / "web" / "national_cells.json"
+
+NATIONAL_SPEC = RegionSpec(
+    id=NATIONAL_REGION_ID,
+    name="Costa Rica (malla nacional NASA POWER 7x7)",
+    lat_min=8.25,
+    lat_max=11.75,
+    lon_min=-86.5625,
+    lon_max=-82.1875,
+    mask_version=NATIONAL_MASK_VERSION,
+    scale_warning=(
+        "Promedio nacional ponderado por la fraccion de tierra de cada celda (~55x69 km de reanalisis "
+        "MERRA-2). No equivale a estaciones locales ni a cantones; las celdas costeras incluyen "
+        "superficie marina y los cantones usan la celda que mas los cubre."
+    ),
+)
+
+
+def region_spec(region_id: str) -> RegionSpec:
+    """Especificación de un sector o de la región nacional."""
+    return NATIONAL_SPEC if region_id == NATIONAL_REGION_ID else REGION_SPECS[region_id]
+
+
+def national_cells() -> list[dict]:
+    """Celdas con tierra (lat, lon, land_fraction) calculadas por web/scripts/build-geo.mjs."""
+    return json.loads(NATIONAL_CELLS_PATH.read_text(encoding="utf-8"))
+
+
+def assign_national(lat: float, lon: float) -> str | None:
+    """Devuelve 'CR' si el centro de celda es una de las celdas nacionales con tierra."""
+    for cell in national_cells():
+        if math.isclose(lat, cell["lat"], abs_tol=1e-4) and math.isclose(lon, cell["lon"], abs_tol=1e-4):
+            return NATIONAL_REGION_ID
+    return None
+
+
+def national_mask_records() -> list[dict]:
+    """Pesos cos(lat) x fraccion de tierra, normalizados, para el promedio nacional."""
+    cells = national_cells()
+    raw = [math.cos(math.radians(c["lat"])) * c["land_fraction"] for c in cells]
+    total = sum(raw)
+    return [
+        {"region_id": NATIONAL_REGION_ID, "lat": float(c["lat"]), "lon": float(c["lon"]),
+         "weight": float(w / total), "land_fraction": float(c["land_fraction"]),
+         "mask_version": NATIONAL_MASK_VERSION}
+        for c, w in zip(cells, raw)
+    ]

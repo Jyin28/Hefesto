@@ -15,8 +15,7 @@ import { normalizeText } from './localData'
 import { buildGrid, Map } from './Map'
 import type { CantonAffectation } from './Map'
 import { FloatingSearch, ZoneCard } from './MapOverlay'
-import { AdminModal, RequestModal } from './Modals'
-import type { InfoRequest } from './Modals'
+import { AdminModal } from './Modals'
 import { ClimatePanel, GeneralPanel, LocalRecordsTile, NoticesPanel, worstOf } from './Panels'
 import type { AffectationOverview } from './Panels'
 import { affectationLabel, useCantonData } from './store'
@@ -24,14 +23,15 @@ import { MAX_YEAR, MIN_YEAR } from './RangeSlider'
 import { Sidebar } from './Sidebar'
 import { copy } from './copy'
 import type { Alert, Level, MapMode, Section } from './copy'
-import { getBoundaries, getJson, getSnapshot, regions } from './data'
-import type { Boundaries, Canton, Climate, Local, Region, Snapshot, Variable } from './data'
+import { getBoundaries, getGeo, getJson, getSnapshot, regions } from './data'
+import type { Boundaries, Canton, Climate, Geo, Local, Region, Snapshot, Variable } from './data'
 import './style.css'
 
 const params = new URLSearchParams(window.location.search)
 const emptyLocal: Local = { cantons: {}, notices: [], operators: [] }
 const defaultYears = [1981, 2002, 2003, 2024]
-const STORAGE_KEY = 'hefesto.solicitudes'
+// Nivel de lectura fijo: público general (el selector de escolaridad se retiró).
+const level: Level = 'basico'
 const sections: Section[] = ['general', 'temp', 'precip', 'avisos', 'admin']
 
 function initialSection(): Section {
@@ -41,26 +41,20 @@ function initialSection(): Section {
   return sections.find(item => item === view) ?? 'general'
 }
 
-function loadRequests(): InfoRequest[] {
-  try {
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]')
-    return Array.isArray(stored) ? stored : []
-  } catch { return [] }
-}
-
 function App() {
   const [snapshot, setSnapshot] = useState<Snapshot>()
   const [boundaries, setBoundaries] = useState<Boundaries>()
+  const [geo, setGeo] = useState<Geo>()
   const [local, setLocal] = useState<Local>()
   const [remote, setRemote] = useState<{ key: string; data: Climate }>()
   const [loading, setLoading] = useState(true)
-  const [selected, setSelected] = useState(params.get('canton') || '503')
+  // Sin cantón elegido se ve el país completo; la región por defecto es la malla nacional.
+  const [selected, setSelected] = useState(params.get('canton') || '')
   const [session, setSession] = useState<Session | null>(restoreSession)
   const [requestedSection, setSectionState] = useState<Section>(initialSection)
   // Sin sesión de administrador, la sección Admin nunca se muestra, aunque llegue por la URL.
   const section: Section = requestedSection === 'admin' && !session ? 'general' : requestedSection
   const data = useCantonData()
-  const [level, setLevel] = useState<Level>('basico')
   const [mapMode, setMapMode] = useState<MapMode>('grid')
   const [regionOverride, setRegionOverride] = useState<Region>()
   const [cell, setCell] = useState('')
@@ -70,8 +64,7 @@ function App() {
   const [appliedRange, setAppliedRange] = useState<[number, number]>([MIN_YEAR, MAX_YEAR])
   const [requestError, setRequestError] = useState('')
   const [focus, setFocus] = useState({ code: '', tick: 0 })
-  const [modal, setModal] = useState<'admin' | 'request' | null>(null)
-  const [requests, setRequests] = useState<InfoRequest[]>(loadRequests)
+  const [modal, setModal] = useState<'admin' | null>(null)
   const [toast, setToast] = useState('')
   const [collapsed, setCollapsed] = useState(false)
   const [thresholds, setThresholds] = useState<Thresholds>(defaultThresholds)
@@ -82,6 +75,7 @@ function App() {
     const climateRequest = getSnapshot(signal).then(data => { if (!signal.aborted) setSnapshot(data) })
     const localRequest = getJson<Local>('/api/local', signal).then(data => { if (!signal.aborted) setLocal(data) })
     getBoundaries(signal).then(data => { if (!signal.aborted) setBoundaries(data) }).catch(() => {})
+    getGeo(signal).then(data => { if (!signal.aborted) setGeo(data) }).catch(() => {})
     void Promise.allSettled([climateRequest, localRequest]).then(() => { if (!signal.aborted) setLoading(false) })
     return () => controller.abort()
   }, [])
@@ -118,9 +112,10 @@ function App() {
   }, [catalog])
 
   const canton = choices.get(selected)
-  const region = regionOverride ?? canton?.regionId
+  const region: Region = regionOverride ?? 'CR'
   const variable: Variable = section === 'temp' ? 'T2M' : 'PRECTOTCORR'
-  const queryParams = new URLSearchParams({ canton: selected })
+  const queryParams = new URLSearchParams()
+  if (selected) queryParams.set('canton', selected)
   if (cell) queryParams.set('celda', cell)
   const usesDefaults = defaultYears.every((year, index) => appliedYears[index] === year)
   if (!usesDefaults) ['a_inicio', 'a_fin', 'b_inicio', 'b_fin'].forEach((label, index) => queryParams.set(label, String(appliedYears[index])))
@@ -158,18 +153,31 @@ function App() {
     updateUrl(url => url.searchParams.set('vista', value))
   }, [])
 
+  /** Cada cantón usa la celda de la malla que más lo cubre; sin polígono propio se usa el promedio nacional. */
   function select(code: string) {
     setSelected(code)
     setRegionOverride(undefined)
-    setCell('')
+    setCell(code ? geo?.cantonCells[code] ?? '' : '')
     setFocus(previous => ({ code, tick: previous.tick + 1 }))
-    updateUrl(url => { url.searchParams.set('canton', code); url.searchParams.delete('aviso') })
+    updateUrl(url => { if (code) url.searchParams.set('canton', code); else url.searchParams.delete('canton'); url.searchParams.delete('aviso') })
   }
+
+  // Un cantón que llega por la URL toma su celda en cuanto se carga la geometría.
+  useEffect(() => {
+    if (geo && selected) setCell(previous => previous || geo.cantonCells[selected] || '')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geo])
 
   function onLogin(next: Session) {
     setSession(next)
     setModal(null)
     setToast(`Modo administrador activo: ${next.name}. Seguís en el mapa; la sección Admin está en la barra lateral.`)
+  }
+
+  /** «Enviar formulario de datos»: abre la sección Admin con el formulario puesto en el cantón actual. */
+  function openAdminForm() {
+    setSection('admin')
+    setCollapsed(false)
   }
 
   function onLogout() {
@@ -193,19 +201,13 @@ function App() {
     if (section === 'avisos') setSection('general')
   }
 
-  function submitRequest(data: Omit<InfoRequest, 'id' | 'createdAt'>) {
-    const request: InfoRequest = { ...data, id: `SOL-${Date.now().toString(36).toUpperCase()}`, createdAt: new Date().toISOString() }
-    const next = [...requests, request]
-    setRequests(next)
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)) } catch { /* sin almacenamiento local */ }
-    setModal(null)
-    setToast(`Solicitud ${request.id} guardada para «${request.zone}». Una comisión la revisará.`)
-  }
-
   const notices = catalog.notices.filter(item => item.cantonCodes.includes(selected))
   const operators = catalog.operators.filter(item => item.cantonCodes.includes(selected))
   const alert = alerts[selected] ?? 'none'
-  const zoneName = cell ? `Celda ${cell}` : canton?.name ?? 'Costa Rica'
+  // Si la celda es la propia del cantón, el título sigue siendo el cantón; una celda distinta se nombra aparte.
+  const ownCell = !!selected && cell === geo?.cantonCells[selected]
+  const zoneName = cell && !ownCell ? `Celda ${cell}` : canton?.name ?? 'Costa Rica'
+  const averageLabel = region === 'CR' ? 'Promedio nacional' : 'Promedio del sector'
   const regionName = regions.find(item => item.id === region)?.name
 
   // Tarjetas bento: usan el snapshot de la celda o del sector y el rango del slider (sin esperar a la API).
@@ -235,9 +237,9 @@ function App() {
   const stations = stationsLinked(primary, localStations)
   const confidence = confidenceOf(continuity.pct, coverage.pct, stations.count, !!primary)
   const gridStats = useMemo(() => {
-    const features = buildGrid(snapshot, 'PRECTOTCORR', boundaries).data.features
-    return { withData: features.filter(item => item.properties.has === 1).length, total: features.length }
-  }, [snapshot, boundaries])
+    const { withData, total } = buildGrid(snapshot, 'PRECTOTCORR', geo)
+    return { withData, total }
+  }, [snapshot, geo])
   const projections = {
     T2M: climateBy.T2M ? project(climateBy.T2M.series, 'T2M', range) : undefined,
     PRECTOTCORR: climateBy.PRECTOTCORR ? project(climateBy.PRECTOTCORR.series, 'PRECTOTCORR', range) : undefined,
@@ -258,24 +260,24 @@ function App() {
     local: { temp: localStat(cantonRecords.filter(item => item.variable === 'T2M')), precip: localStat(cantonRecords.filter(item => item.variable === 'PRECTOTCORR')) },
   })
   const noData = <Tile title={copy[level].variableTitle[variable]}>
-    <p className="empty">Esta zona todavía no tiene datos NASA POWER asociados. Usá «Pedir información de esta zona» en la tarjeta del mapa.</p>
+    <p className="empty">Esta zona todavía no tiene datos NASA POWER asociados: queda pendiente de las comisiones.</p>
   </Tile>
   const quality = <QualityTile level={level} hasData={!!primary} regionName={regionName} coverage={coverage} grid={gridStats}
     continuity={continuity} range={range} stations={stations} confidence={confidence} />
   const forecast = <ForecastTile level={level} zoneName={zoneName} rows={forecastRows} thresholds={thresholds} setThresholds={setThresholds} />
 
   return <div className="app">
-    <Header level={level} setLevel={setLevel} mapMode={mapMode} setMapMode={setMapMode} openAdmin={() => setModal('admin')}
+    <Header level={level} mapMode={mapMode} setMapMode={setMapMode} openAdmin={() => setModal('admin')}
       session={session} logout={onLogout} />
     <div className="body">
       <Sidebar level={level} section={section} setSection={setSection} admin={!!session} />
       <div className={collapsed ? 'stage collapsed' : 'stage'}>
         <section className="map-wrap" aria-label="Mapa">
-          <Map boundaries={boundaries} snapshot={snapshot} mode={mapMode} variable={variable} level={level} selected={selected}
+          <Map boundaries={boundaries} geo={geo} snapshot={snapshot} mode={mapMode} variable={variable} level={level} selected={selected}
             selectedCell={cell} alerts={alerts} affectations={mapAffectations.byCanton} focus={focus} select={select} selectCell={selectCell} />
           <FloatingSearch choices={choices} operators={catalog.operators} loading={loading} select={select} />
           <ZoneCard level={level} name={zoneName} province={canton?.province} nasa={!!region} range={range} setRange={setRange}
-            requestCount={requests.length} openRequest={() => setModal('request')} />
+            selection={!!selected || !!cell} exitZone={() => select('')} admin={!!session} openForm={openAdminForm} />
           <button className="drawer-toggle glass" aria-expanded={!collapsed} aria-controls="ficha"
             aria-label={collapsed ? 'Mostrar el panel de información' : 'Ocultar el panel de información'}
             title={collapsed ? 'Mostrar el panel' : 'Ocultar el panel'} onClick={() => setCollapsed(value => !value)}>
@@ -285,7 +287,7 @@ function App() {
           </button>
         </section>
         <aside className="drawer glass" id="ficha" aria-label="Panel de información" inert={collapsed}>
-          <div className="drawer-title"><small>{cell ? regionName : canton?.province || 'Costa Rica'}</small><h2>{zoneName}</h2></div>
+          <div className="drawer-title"><small>{canton ? canton.province : cell ? regionName : 'Costa Rica'}</small><h2>{zoneName}</h2></div>
           <div className="bento">
             {section === 'general' && <>
               {climateBy.T2M && <ChartTile variable="T2M" level={level} series={climateBy.T2M.series} range={range} />}
@@ -301,7 +303,7 @@ function App() {
             {(section === 'temp' || section === 'precip') && <>
               {primary ? <>
                 {(() => { const result = projections[variable]; return <ChartTile variable={variable} level={level} series={primary.series} range={range}
-                  projection={result?.ok ? result.points : undefined} caption={`${regionName ?? ''} · ${cell ? `Celda ${cell}` : 'Promedio del sector'}`} /> })()}
+                  projection={result?.ok ? result.points : undefined} caption={`${regionName ?? ''} · ${cell ? `Celda ${cell}` : averageLabel}`} /> })()}
                 <StatTiles variable={variable} level={level} series={primary.series} range={range} />
               </> : noData}
               <LocalRecordsTile level={level} records={cantonRecords} variable={variable} />
@@ -320,7 +322,7 @@ function App() {
                 affectations={cantonAffectations} overview={mapAffectations.overview} select={select} />
               {forecast}
             </>}
-            {section === 'admin' && session && <AdminPanel session={session} choices={choices} data={data} defaultCanton={selected}
+            {section === 'admin' && session && <AdminPanel key={selected} session={session} choices={choices} data={data} defaultCanton={selected}
               resolveCanton={resolveCanton} notify={setToast} />}
           </div>
           <p className="muted">{copy[level].mapTip[mapMode]}</p>
@@ -328,7 +330,6 @@ function App() {
       </div>
     </div>
     {modal === 'admin' && !session && <AdminModal onClose={() => setModal(null)} onLogin={onLogin} />}
-    {modal === 'request' && <RequestModal zone={zoneName} onClose={() => setModal(null)} onSubmit={submitRequest} />}
     {toast && <div className="toast glass" role="status">{toast}</div>}
   </div>
 }

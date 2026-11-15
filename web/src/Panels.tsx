@@ -46,7 +46,7 @@ export function GeneralPanel({ level, climateBy, region, canton, cell, alert, no
       <p className="muted" style={{ marginTop: 8 }}>{notices.length
         ? `${notices.length} ${notices.length === 1 ? 'comunicado asociado' : 'comunicados asociados'} a este cantón.`
         : 'Todavía no hay comunicados verificados para este cantón.'}</p>
-      {!regionName && <p className="muted">Usá «Pedir información de esta zona» si tu comisión necesita estos datos.</p>}
+      {!regionName && <p className="muted">Información pendiente de ser facilitada por las comisiones.</p>}
     </Tile>
   </>
 }
@@ -88,11 +88,11 @@ export function ClimatePanel({ variable, level, climate, remote, queryKey, regio
         <button type="submit" className="pill">Aplicar</button>
       </form>
     </details>}
-    {cell && <button type="button" className="pill pill-ghost" onClick={() => setCell('')}>Volver al promedio del sector</button>}
+    {cell && <button type="button" className="pill pill-ghost" onClick={() => setCell('')}>Volver al promedio de la zona</button>}
     {requestError && (!climate || requestError.startsWith('El año')) && <p role="status" className="error">{requestError}</p>}
     {climate ? <>
       <div><h3>{text.variableTitle[variable]}</h3>
-        <p className="muted">{chosenRegion?.name} · {cell ? `Celda ${cell}` : 'Promedio del sector'}</p></div>
+        <p className="muted">{chosenRegion?.name} · {cell ? `Celda ${cell}` : region === 'CR' ? 'Promedio nacional' : 'Promedio del sector'}</p></div>
       {rangeApprox && <p className="muted">Sin conexión con la API: la tendencia oficial y la comparación siguen calculadas sobre 1981–2024. El gráfico sí usa el rango elegido.</p>}
       {climate.comparison && <div className="periods" aria-label={text.windows}>
         {[climate.comparison.window_a, climate.comparison.window_b].map((window, index) => <div className="card" key={index}>
@@ -118,7 +118,7 @@ export function ClimatePanel({ variable, level, climate, remote, queryKey, regio
         </>}
       </div>
     </> : <p className="empty">{region ? (loading ? 'Cargando la serie climática…' : 'Serie regional no disponible.')
-      : 'Esta zona todavía no tiene datos de NASA POWER asociados. Podés elegir un sector arriba o pedir la información.'}</p>}
+      : 'Esta zona todavía no tiene datos de NASA POWER asociados. Podés elegir una zona climática arriba.'}</p>}
   </Tile>
 }
 

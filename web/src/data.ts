@@ -1,12 +1,23 @@
-import type { FeatureCollection, MultiPolygon, Polygon } from 'geojson'
+import type { Feature, FeatureCollection, MultiPolygon, Polygon } from 'geojson'
 
 export const regions = [
+  { id: 'CR', name: 'Costa Rica (malla nacional)' },
   { id: 'CR_PN', name: 'Sector Pacífico Norte' },
   { id: 'CR_CAR', name: 'Sector Caribe' },
 ] as const
 export type Region = typeof regions[number]['id']
 export type Variable = 'PRECTOTCORR' | 'T2M'
 export type Canton = { name: string; province: string; regionId?: Region }
+/** Precalculado por `npm run geo`: país, provincias, vecinos aproximados y la malla NASA POWER 7×7. */
+export type GeoShape = Feature<Polygon | MultiPolygon, { name?: string }>
+export type GeoCell = {
+  id: string; lat: number; lon: number; bbox: [number, number, number, number]
+  landFraction: number; land: Polygon | MultiPolygon | null
+}
+export type Geo = {
+  country: GeoShape; provinces: GeoShape[]; neighbors: GeoShape[]
+  cells: GeoCell[]; cantonCells: Record<string, string>
+}
 export type Boundaries = FeatureCollection<Polygon | MultiPolygon, { code: string; name: string; province?: string }>
 export type Notice = {
   id: string; cantonCodes: string[]; title: string; summary: string; source: string;
@@ -73,4 +84,5 @@ export async function getJson<T>(url: string, signal?: AbortSignal): Promise<T> 
 
 const staticRoot = `${import.meta.env.BASE_URL}data/`
 export const getSnapshot = (signal: AbortSignal) => getJson<Snapshot>(`${staticRoot}snapshot.json`, signal)
+export const getGeo = (signal: AbortSignal) => getJson<Geo>(`${staticRoot}geo.json`, signal)
 export const getBoundaries = (signal: AbortSignal) => getJson<Boundaries>(`${staticRoot}cantones.geojson`, signal)

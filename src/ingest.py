@@ -92,8 +92,12 @@ def fetch_variable_raw(
     return payload, file_meta, url, retrieved_at
 
 
-def parse_monthly_records(payload: dict[str, Any], variable: str) -> list[dict[str, Any]]:
-    """Convierte el GeoJSON de NASA POWER a registros mensuales de Costa Rica."""
+def parse_monthly_records(payload: dict[str, Any], variable: str, assign=assign_region) -> list[dict[str, Any]]:
+    """Convierte el GeoJSON de NASA POWER a registros mensuales de Costa Rica.
+
+    `assign(lat, lon)` decide a que region pertenece la celda (sectores por defecto; ver
+    `regions.assign_national` para la region nacional).
+    """
     fill_value = float(payload.get("header", {}).get("fill_value", -999.0))
     unit = MONTHLY_UNITS[variable]
     rows: list[dict[str, Any]] = []
@@ -102,7 +106,7 @@ def parse_monthly_records(payload: dict[str, Any], variable: str) -> list[dict[s
         coords = feat["geometry"]["coordinates"]
         lon = float(coords[0])
         lat = float(coords[1])
-        region_id = assign_region(lat, lon)
+        region_id = assign(lat, lon)
         if region_id is None:
             continue
 

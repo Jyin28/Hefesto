@@ -25,6 +25,11 @@
 3. **Mezcla costera y orografia:** Las celdas costeras incluyen fraccion oceanica y suavizan gradientes abruptos de las cordilleras de Costa Rica.
 4. **Uso educativo:** Herramienta de exploracion historica; no pronostica sequias, inundaciones ni disponibilidad de agua potable.
 
+## 3b. Región nacional `CR` (interfaz web)
+* La descarga ya cubre la malla 7x7 completa (49 celdas). Para el mapa nacional se usan las celdas con al menos 1 % de tierra según `data/web/national_cells.json` (24 celdas), generado por `web/scripts/build-geo.mjs` desde la capa cantonal.
+* Promedio nacional ponderado por `cos(lat) × fracción de tierra`; tiene su propia familia de pruebas BY (celdas nacionales) y no altera las pruebas de los dos sectores.
+* Cada cantón usa la celda de la malla que más lo cubre (`cantonCells` en `web/public/data/geo.json`). Los contornos de Nicaragua y Panamá del mapa son aproximados, dibujados a mano.
+
 ## 4. Qué datos usa el producto MVP (y cuáles no)
 **Usados:** `data/raw/nasa_power_monthly_{T2M,PRECTOTCORR}_1981_2024.json` (crudo inmutable, SHA-256 en
 `provenance_base.json`), `data/processed/grid_monthly.parquet` (10 560 registros, 5 celdas × 2 sectores × 528 meses × 2 variables),

@@ -25,7 +25,7 @@ export function AdminPanel({ session, choices, data, defaultCanton, resolveCanto
   const sorted = [...choices].sort((a, b) => a[1].name.localeCompare(b[1].name, 'es-CR'))
   const nameOf = (code: string) => choices.get(code)?.name ?? code
 
-  const [canton, setCanton] = useState(defaultCanton)
+  const [canton, setCanton] = useState(defaultCanton || sorted[0]?.[0] || '')
   const [type, setType] = useState<AffectationType>('sequia')
   const [level, setLevel] = useState<AlertLevel>('amarillo')
   const [notes, setNotes] = useState('')
