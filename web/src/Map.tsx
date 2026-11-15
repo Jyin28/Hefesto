@@ -24,6 +24,13 @@ const REPORTED = '#10B981'
 const RIVER = '#2563eb'
 const WATER_FILL = '#7dd3fc'
 const WATER_LAYERS = ['water-bodies', 'rivers', 'streams']
+// Contornos del mapa de cuencas (Datos nacionales): cantones, provincias y países en rojo; en los mapas de malla se mantienen oscuros.
+const OUTLINE = {
+  cantones: { canton: '#dc2626', cantonOpacity: 0.85, province: '#b91c1c', country: '#991b1b', neighbor: '#b91c1c', hover: '#7f1d1d' },
+  grid: { canton: '#1e293b', cantonOpacity: 0.6, province: '#0f172a', country: '#082f49', neighbor: '#b9b2a4', hover: '#0c4a6e' },
+} as const
+const HOVER_SCALE = 1.04
+const HOVER_MS = 120
 const WATER_NAMES = { river: 'Río', canal: 'Canal', stream: 'Quebrada', water: 'Cuerpo de agua' } as const
 
 /** Resumen de los operadores de agua de un cantón, según el catálogo SAGA y los reportes de las ASADAs. */
@@ -42,6 +49,17 @@ export function bboxOf(geometry: Geometry): [number, number, number, number] | u
   }
   if (geometry.type === 'Polygon' || geometry.type === 'MultiPolygon') visit(geometry.coordinates)
   return Number.isFinite(west) ? [west, south, east, north] : undefined
+}
+
+/** Agranda una geometría respecto del centro de su caja (para el efecto de «levantar» el cantón o la celda bajo el cursor). */
+function scaleGeometry(geometry: Geometry, factor: number): Geometry {
+  const box = bboxOf(geometry)
+  if (!box || (geometry.type !== 'Polygon' && geometry.type !== 'MultiPolygon')) return geometry
+  const cx = (box[0] + box[2]) / 2, cy = (box[1] + box[3]) / 2
+  const move = (value: unknown): unknown => Array.isArray(value)
+    ? typeof value[0] === 'number' ? [cx + (value[0] - cx) * factor, cy + (value[1] - cy) * factor] : value.map(move)
+    : value
+  return { ...geometry, coordinates: move(geometry.coordinates) } as Geometry
 }
 
 const collection = (features: Feature[] | undefined): FeatureCollection => ({ type: 'FeatureCollection', features: features ?? [] })
@@ -94,8 +112,10 @@ export function Map({ boundaries, geo, snapshot, cds, cdsGeo, cdsMissing, waterw
     ? buildLayerGrid(cds?.layers, variable, cdsGeo?.cells, layerMode, range, year)
     : buildLayerGrid(snapshot?.layers, variable, geo?.cells, layerMode, range, year),
   [source, cds, cdsGeo, snapshot, variable, geo, layerMode, range, year])
-  const latest = useRef({ select, selectCell, mode, level, alerts, cantonStatus, variable, layerMode, grid, source })
-  latest.current = { select, selectCell, mode, level, alerts, cantonStatus, variable, layerMode, grid, source }
+  const hover = useRef<{ key: string; frame: number }>({ key: '', frame: 0 })
+  const hoverControl = useRef<(key: string, find?: () => Feature | undefined) => void>(() => {})
+  const latest = useRef({ select, selectCell, mode, level, alerts, cantonStatus, variable, layerMode, grid, source, boundaries })
+  latest.current = { select, selectCell, mode, level, alerts, cantonStatus, variable, layerMode, grid, source, boundaries }
 
   useEffect(() => {
     if (!container.current) return
@@ -118,13 +138,15 @@ export function Map({ boundaries, geo, snapshot, cds, cdsGeo, cdsMissing, waterw
       new Marker({ element: labelElement('Panamá'), anchor: 'center' }).setLngLat([-82.75, 8.8]),
     ]
     instance.on('load', () => {
-      for (const name of ['neighbors', 'cantons', 'grid-land', 'grid', 'waterways', 'provinces', 'country']) instance.addSource(name, { type: 'geojson', data: empty })
+      for (const name of ['neighbors', 'cantons', 'grid-land', 'grid', 'waterways', 'provinces', 'country', 'hover']) instance.addSource(name, { type: 'geojson', data: empty })
       // De abajo hacia arriba: vecinos, relleno cantonal, relleno de la malla, cuadrícula (tenue), hidrografía, cantones, provincias y país.
       instance.addLayer({ id: 'neighbors', source: 'neighbors', type: 'fill', paint: { 'fill-color': NEIGHBOR, 'fill-opacity': 1 } })
       instance.addLayer({ id: 'neighbor-lines', source: 'neighbors', type: 'line', paint: { 'line-color': '#b9b2a4', 'line-width': 1 } })
       instance.addLayer({ id: 'cantons', source: 'cantons', type: 'fill', paint: { 'fill-color': LAND, 'fill-opacity': 1 } })
       instance.addLayer({ id: 'grid-fill', source: 'grid-land', type: 'fill', paint: { 'fill-color': '#ffffff', 'fill-opacity': 0 } })
       instance.addLayer({ id: 'grid-line', source: 'grid', type: 'line', paint: { 'line-color': '#0c4a6e', 'line-opacity': 0.22, 'line-width': 0.6 } })
+      // Cantón o celda bajo el cursor, agrandada un poco: el relleno va bajo la hidrografía; la sombra y el borde, sobre todo.
+      instance.addLayer({ id: 'hover-fill', source: 'hover', type: 'fill', paint: { 'fill-color': LAND, 'fill-opacity': 1 } })
       instance.addLayer({ id: 'water-bodies', source: 'waterways', type: 'fill', filter: ['==', ['get', 'kind'], 'water'],
         layout: { visibility: 'none' }, paint: { 'fill-color': WATER_FILL, 'fill-opacity': 0.85, 'fill-outline-color': RIVER } })
       instance.addLayer({ id: 'streams', source: 'waterways', type: 'line', filter: ['==', ['get', 'kind'], 'stream'], minzoom: 8.5,
@@ -135,8 +157,29 @@ export function Map({ boundaries, geo, snapshot, cds, cdsGeo, cdsMissing, waterw
       instance.addLayer({ id: 'canton-lines', source: 'cantons', type: 'line', paint: { 'line-color': '#1e293b', 'line-opacity': 0.6, 'line-width': 0.9 } })
       instance.addLayer({ id: 'province-lines', source: 'provinces', type: 'line', layout: { 'line-join': 'round' }, paint: { 'line-color': '#0f172a', 'line-opacity': 0.85, 'line-width': 1.8 } })
       instance.addLayer({ id: 'country-line', source: 'country', type: 'line', layout: { 'line-join': 'round' }, paint: { 'line-color': '#082f49', 'line-width': 2.6 } })
+      instance.addLayer({ id: 'hover-shadow', source: 'hover', type: 'line', layout: { 'line-join': 'round' }, paint: { 'line-color': '#0f172a', 'line-opacity': 0.28, 'line-width': 9, 'line-blur': 6 } })
+      instance.addLayer({ id: 'hover-line', source: 'hover', type: 'line', layout: { 'line-join': 'round' }, paint: { 'line-color': OUTLINE.grid.hover, 'line-width': 2 } })
       instance.addLayer({ id: 'grid-selected', source: 'grid', type: 'line', filter: ['==', ['get', 'id'], ''], paint: { 'line-color': '#0c4a6e', 'line-width': 3 } })
       instance.addLayer({ id: 'canton-selected', source: 'cantons', type: 'line', filter: ['==', ['get', 'code'], ''], paint: { 'line-color': '#0c4a6e', 'line-width': 3 } })
+
+      /** Muestra (o quita) la figura agrandada. Solo redibuja si cambia el lugar bajo el cursor; entra con una animación corta. */
+      const showHover = (key: string, find?: () => Feature | undefined) => {
+        if (hover.current.key === key) return
+        cancelAnimationFrame(hover.current.frame)
+        hover.current.key = key
+        const target = instance.getSource('hover') as GeoJSONSource
+        const feature = key && find ? find() : undefined
+        if (!feature) { hover.current.key = ''; target.setData(empty); return }
+        const started = performance.now()
+        const step = (now: number) => {
+          const t = Math.min((now - started) / HOVER_MS, 1)
+          const factor = 1 + (HOVER_SCALE - 1) * (1 - (1 - t) ** 3)
+          target.setData({ type: 'FeatureCollection', features: [{ ...feature, geometry: scaleGeometry(feature.geometry, factor) }] })
+          if (t < 1) hover.current.frame = requestAnimationFrame(step)
+        }
+        hover.current.frame = requestAnimationFrame(step)
+      }
+      hoverControl.current = showHover
 
       instance.on('click', event => {
         const { mode: current } = latest.current
@@ -157,14 +200,19 @@ export function Map({ boundaries, geo, snapshot, cds, cdsGeo, cdsMissing, waterw
         if (current !== 'cantones') {
           const cell = instance.queryRenderedFeatures(event.point, { layers: ['grid-fill'] })[0]
           const meta = metaFor(variableNow, sourceNow)
+          const cellId = cell?.properties?.id ? String(cell.properties.id) : ''
+          showHover(cellId, () => now.land.features.find(item => item.properties.id === cellId) as Feature | undefined)
           if (cell?.properties?.has === 1) {
-            content = hoverCard(place, province, describe(variableNow, modeNow, Number(cell.properties.v), Number(cell.properties.nat), now, sourceNow))
+            const approximate = cell.properties.approx === 1 ? ' · valor aproximado: toma el punto de tierra más cercano de ERA5-Land' : ''
+            content = hoverCard(place, province, describe(variableNow, modeNow, Number(cell.properties.v), Number(cell.properties.nat), now, sourceNow) + approximate)
           } else if (cell || canton) {
             content = hoverCard(place, province, modeNow === 'slope'
               ? `${meta.slopeTitle}: sin datos suficientes en este período`
               : `${meta.valueTitle(now.year)}: sin dato`)
           }
         } else {
+          const hoveredCode = canton?.properties?.code ? String(canton.properties.code) : ''
+          showHover(hoveredCode, () => latest.current.boundaries?.features.find(item => item.properties.code === hoveredCode) as Feature | undefined)
           const box: [[number, number], [number, number]] = [[event.point.x - 4, event.point.y - 4], [event.point.x + 4, event.point.y + 4]]
           const water = instance.queryRenderedFeatures(box, { layers: WATER_LAYERS })[0]
           if (water?.properties) {
@@ -188,7 +236,7 @@ export function Map({ boundaries, geo, snapshot, cds, cdsGeo, cdsMissing, waterw
         if (content) popup.setLngLat(event.lngLat).setDOMContent(content).addTo(instance)
         else popup.remove()
       })
-      instance.on('mouseout', () => popup.remove())
+      instance.on('mouseout', () => { popup.remove(); showHover('') })
       const camera = instance.cameraForBounds(VIEW_BOUNDS)
       if (camera?.center && camera.zoom !== undefined) instance.jumpTo({ center: camera.center, zoom: camera.zoom })
       lockView(instance)
@@ -198,7 +246,7 @@ export function Map({ boundaries, geo, snapshot, cds, cdsGeo, cdsMissing, waterw
     // El panel lateral se colapsa y cambia el ancho del contenedor: el mapa debe redibujarse y recalcular su zoom mínimo.
     const observer = new ResizeObserver(() => { instance.resize(); if (instance.loaded()) lockView(instance) })
     observer.observe(container.current)
-    return () => { observer.disconnect(); popup.remove(); labels.forEach(label => label.remove()); instance.remove(); map.current = null }
+    return () => { observer.disconnect(); cancelAnimationFrame(hover.current.frame); popup.remove(); labels.forEach(label => label.remove()); instance.remove(); map.current = null }
   }, [])
 
   useEffect(() => {
@@ -242,6 +290,17 @@ export function Map({ boundaries, geo, snapshot, cds, cdsGeo, cdsMissing, waterw
     }
     const byStatus = ['match', ['get', 'code'], ...[...colors].flatMap(([code, color]) => [code, color]), LAND] as unknown as ExpressionSpecification
     instance.setPaintProperty('cantons', 'fill-color', isGrid || colors.size === 0 ? LAND : byStatus)
+    // Mapa de cuencas: cantones, provincias y países en rojo.
+    const outline = isGrid ? OUTLINE.grid : OUTLINE.cantones
+    instance.setPaintProperty('canton-lines', 'line-color', outline.canton)
+    instance.setPaintProperty('canton-lines', 'line-opacity', outline.cantonOpacity)
+    instance.setPaintProperty('province-lines', 'line-color', outline.province)
+    instance.setPaintProperty('country-line', 'line-color', outline.country)
+    instance.setPaintProperty('neighbor-lines', 'line-color', outline.neighbor)
+    instance.setPaintProperty('hover-line', 'line-color', outline.hover)
+    instance.setPaintProperty('hover-fill', 'fill-color', isGrid ? colorExpression(variable, layerMode, grid) : colors.size === 0 ? LAND : byStatus)
+    instance.setPaintProperty('hover-fill', 'fill-opacity', isGrid ? ['case', ['==', ['get', 'has'], 1], 0.85, 0.5] : 1)
+    hoverControl.current('') // los colores cambiaron (modo, año, rango): la figura agrandada se vuelve a crear en el próximo movimiento
     instance.setFilter('canton-selected', ['==', ['get', 'code'], selected])
     instance.setFilter('grid-selected', ['==', ['get', 'id'], selectedCell])
     instance.setPaintProperty('grid-fill', 'fill-color', colorExpression(variable, layerMode, grid))
@@ -283,6 +342,7 @@ export function Map({ boundaries, geo, snapshot, cds, cdsGeo, cdsMissing, waterw
           </div>
           {mode === 'cds' && cdsMissing && <span><strong>Datos CDS todavía no generados.</strong> Corré <code>python -m src.cds</code>.</span>}
           {grid.withData < grid.total && <span>Gris: sin datos suficientes.</span>}
+          {mode === 'cds' && !!cds?.layers[variable]?.filled?.length && <span>Costa: las celdas cuyo centro cae en el mar toman el punto de tierra más cercano (valor aproximado).</span>}
           {mode === 'cds' && variable === 'UV' && <span>El UV viene en cuadros de 0,25°: varios cuadros vecinos comparten valor.</span>}
           <span>Solo se colorea el territorio nacional.</span>
         </> : <>

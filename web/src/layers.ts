@@ -73,7 +73,8 @@ const CDS_UV: Meta = {
 }
 export const metaFor = (variable: LayerVar, source: Source = 'nasa'): Meta => source === 'cds' && variable === 'UV' ? CDS_UV : META[variable]
 
-export type GridProps = { id: string; region: string; has: number; v: number; nat: number }
+/** `approx` = 1 si el valor viene del punto de tierra más cercano (celda costera sin dato propio). */
+export type GridProps = { id: string; region: string; has: number; v: number; nat: number; approx: number }
 export type LayerGrid = {
   lines: FeatureCollection<Polygon, GridProps>
   land: FeatureCollection<Polygon | MultiPolygon, GridProps>
@@ -121,12 +122,13 @@ export function buildLayerGrid(layers: Partial<Record<LayerVar, Layer>> | undefi
     if (slope != null) extent = Math.max(extent, Math.abs(slope))
   }
   const national = measure(layer?.national)
+  const approximate = new Set(layer?.filled)
   const lines: Feature<Polygon, GridProps>[] = []
   const land: Feature<Polygon | MultiPolygon, GridProps>[] = []
   let withData = 0
   for (const cell of gridCells ?? []) {
     const value = measure(layer?.cells[cell.id])
-    const properties: GridProps = { id: cell.id, region: 'CR', has: value == null ? 0 : 1, v: value ?? 0, nat: national ?? 0 }
+    const properties: GridProps = { id: cell.id, region: 'CR', has: value == null ? 0 : 1, v: value ?? 0, nat: national ?? 0, approx: approximate.has(cell.id) ? 1 : 0 }
     const [west, south, east, north] = cell.bbox
     const box: Polygon = { type: 'Polygon', coordinates: [[[west, south], [east, south], [east, north], [west, north], [west, south]]] }
     lines.push({ type: 'Feature', properties, geometry: box })

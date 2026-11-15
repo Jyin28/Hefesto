@@ -2,10 +2,10 @@ import type { Session } from './auth'
 import { copy } from './copy'
 import type { Level, MapMode } from './copy'
 
-export function Header({ level, mapMode, setMapMode, openAdmin, session, logout, goHome }: {
+export function Header({ level, mapMode, setMapMode, openAdmin, session, logout, goHome, openPredictions }: {
   level: Level
   mapMode: MapMode; setMapMode: (mode: MapMode) => void; openAdmin: () => void
-  session: Session | null; logout: () => void; goHome: () => void
+  session: Session | null; logout: () => void; goHome: () => void; openPredictions: () => void
 }) {
   const tip = copy[level]
   return <header className="header glass">
@@ -18,6 +18,7 @@ export function Header({ level, mapMode, setMapMode, openAdmin, session, logout,
         <button aria-pressed={mapMode === 'grid'} onClick={() => setMapMode('grid')} title={tip.mapTip.grid}>Datos de NASA POWER</button>
         <button aria-pressed={mapMode === 'cds'} onClick={() => setMapMode('cds')} title={tip.mapTip.cds}>Datos CDS</button>
         <button aria-pressed={mapMode === 'cantones'} onClick={() => setMapMode('cantones')} title={tip.mapTip.cantones}>Datos nacionales</button>
+        <button aria-pressed="false" onClick={openPredictions} title="Cuándo podría durar El Niño y qué se espera de la temperatura y la lluvia. Página aparte, sin mapa.">Predicciones</button>
       </div>
       {session ? <div className="admin-badge" role="status" title={`${session.name} · ${session.username}`}>
         <span className="dot verde" aria-hidden="true" />

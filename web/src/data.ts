@@ -17,9 +17,11 @@ export type GeoCell = {
 export type Geo = {
   country: GeoShape; provinces: GeoShape[]; neighbors: GeoShape[]
   cells: GeoCell[]; cantonCells: Record<string, string>
+  /** Cantones que tocan cada celda (con tierra), del que más área comparte al que menos. */
+  cellCantons: Record<string, string[]>
 }
 /** Malla ERA5-Land del CDS (0,1°), precalculada por `npm run geo`. Las celdas interiores traen `land: null` y se pintan con su caja. */
-export type GridGeo = { cells: GeoCell[]; cantonCells: Record<string, string> }
+export type GridGeo = { cells: GeoCell[]; cantonCells: Record<string, string>; cellCantons: Record<string, string[]> }
 export type Boundaries = FeatureCollection<Polygon | MultiPolygon, { code: string; name: string; province?: string }>
 export type Notice = {
   id: string; cantonCodes: string[]; title: string; summary: string; source: string;
@@ -80,6 +82,8 @@ export type Layer = {
   national: (number | null)[]; cells: Record<string, (number | null)[]>
   /** El UV viene de NASA en una malla de 1°: varias celdas del mapa comparten el mismo punto. */
   resampled: boolean
+  /** Celdas costeras sin dato propio (mar en ERA5-Land) que toman el punto de tierra más cercano. Valor aproximado. */
+  filled?: string[]
   provenance: { source?: string; url?: string; sha256?: string | null; retrieved_at?: string; parameter?: string }
 }
 /** Capas del mapa «Datos CDS» (Copernicus ERA5-Land + ERA5), generadas por `python -m src.cds`. El UV es opcional: falta si no se cargó el archivo de ERA5. */

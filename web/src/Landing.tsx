@@ -9,8 +9,12 @@ import type { Snapshot, Variable } from './data'
 import { AlertPill } from './Forecast'
 import { DATA_CARDS, PHOTO_CREDITS, SOURCES, TIPS, TOPIC_LABEL } from './landingCopy'
 import type { Tip, TipTopic } from './landingCopy'
+import { getPredictions } from './predictionsData'
+import type { Predictions } from './predictionsData'
+import { PredictionsTeaser } from './PredictionsTeaser'
 import { MAX_YEAR, MIN_YEAR } from './RangeSlider'
 import { useCantonData } from './store'
+import { useReveal, useScrollToHash } from './useReveal'
 
 const img = (name: string) => `${import.meta.env.BASE_URL}img/${name}`
 const rank = (level: AlertLevel) => ALERT_ORDER.indexOf(level)
@@ -87,33 +91,20 @@ function pickTips(focus: TipTopic | undefined): Tip[] {
   return chosen
 }
 
-/** Hace aparecer las secciones al bajar. Sin soporte o con movimiento reducido, todo se ve desde el principio. */
-function useReveal() {
-  useEffect(() => {
-    const items = document.querySelectorAll<HTMLElement>('.reveal')
-    if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      items.forEach(item => item.classList.add('in'))
-      return
-    }
-    const observer = new IntersectionObserver(entries => {
-      for (const entry of entries) if (entry.isIntersecting) { entry.target.classList.add('in'); observer.unobserve(entry.target) }
-    }, { threshold: 0.12 })
-    items.forEach(item => observer.observe(item))
-    return () => observer.disconnect()
-  }, [])
-}
-
-export function Landing({ openMap }: { openMap: (mode: MapMode) => void }) {
+export function Landing({ openMap, openPredictions }: { openMap: (mode: MapMode) => void; openPredictions: () => void }) {
   const [snapshot, setSnapshot] = useState<Snapshot>()
+  const [predictions, setPredictions] = useState<Predictions>()
   const [failed, setFailed] = useState(false)
   const data = useCantonData()
   const [tipRound, setTipRound] = useState(0)
-  useReveal()
+  useReveal([predictions])
+  useScrollToHash()
 
   useEffect(() => {
     const controller = new AbortController()
     getSnapshot(controller.signal).then(value => { if (!controller.signal.aborted) setSnapshot(value) })
       .catch(() => { if (!controller.signal.aborted) setFailed(true) })
+    getPredictions(controller.signal).then(value => { if (!controller.signal.aborted) setPredictions(value) }).catch(() => {})
     return () => controller.abort()
   }, [])
 
@@ -137,10 +128,14 @@ export function Landing({ openMap }: { openMap: (mode: MapMode) => void }) {
       <div className="nav-links">
         <a href="#el-nino">El Niño</a>
         <a href="#advertencias">Advertencias</a>
+        <a href="#predicciones">Predicciones</a>
         <a href="#datos">Datos</a>
         <a href="#fuentes">Fuentes</a>
       </div>
-      <button className="pill pill-primary" onClick={() => openMap('grid')}>Abrir el mapa</button>
+      <div className="nav-actions">
+        <a className="pill pill-ghost" href="?pagina=predicciones" onClick={event => { event.preventDefault(); openPredictions() }}>Predicciones</a>
+        <button className="pill pill-primary" onClick={() => openMap('grid')}>Abrir el mapa</button>
+      </div>
     </nav>
 
     <header className="hero" id="inicio">
@@ -229,6 +224,8 @@ export function Landing({ openMap }: { openMap: (mode: MapMode) => void }) {
         </div>
         <p className="muted note">{text.recommendationsNote}</p>
       </section>
+
+      <PredictionsTeaser data={predictions} openPredictions={openPredictions} />
 
       <section className="section" id="datos" aria-labelledby="data-title">
         <div className="section-head reveal">

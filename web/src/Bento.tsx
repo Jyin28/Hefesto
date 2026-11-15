@@ -6,10 +6,10 @@ import type { Level } from './copy'
 import type { Variable } from './data'
 import { SeriesChart } from './SeriesChart'
 
-export function Tile({ title, badge, span = 2, tip, children }: {
-  title: string; badge?: ReactNode; span?: 1 | 2; tip?: string; children: ReactNode
+export function Tile({ title, badge, span = 2, tip, id, className, children }: {
+  title: string; badge?: ReactNode; span?: 1 | 2; tip?: string; id?: string; className?: string; children: ReactNode
 }) {
-  return <section className={`tile span-${span}`} aria-label={title} title={tip}>
+  return <section id={id} className={`tile span-${span}${className ? ` ${className}` : ''}`} aria-label={title} title={tip}>
     <header className="tile-head"><h3>{title}</h3>{badge}</header>
     {children}
   </section>

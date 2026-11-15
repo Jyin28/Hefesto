@@ -11,17 +11,7 @@
       "sourceId": "asada-surfside"
     }
   ],
-  "notices": [
-    {
-      "id": "playa-grande-racionamiento-2026-09", "cantonCodes": ["503"],
-      "title": "Horario de racionamiento en Playa Grande",
-      "summary": "Programación publicada para Playa Grande del 5 de setiembre al 30 de noviembre de 2026. Consultá las franjas de tu sector y verificá cambios con la ASADA.",
-      "source": "ASADA Playa Grande · comunicado reproducido por Upe",
-      "sourceUrl": "https://u.pe/es/info/asada-playa-grande-water-rationing-schedule-sep-5-nov-30-2026-horario-de-racionamiento-de-agua/",
-      "publishedAt": "2026-09-04T00:00:00-06:00", "expiresAt": "2026-11-30T23:59:59-06:00",
-      "communities": ["Playa Grande, Cabo Velas"]
-    }
-  ],
+  "notices": [],
   "waterCoverage": [
     {
       "cantonCode": "503", "geography": "Santa Cruz", "geographyLevel": "cantón",
