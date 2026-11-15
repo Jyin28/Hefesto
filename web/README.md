@@ -31,8 +31,18 @@ El snapshot incluye el detalle de celdas para las ventanas por defecto. La API p
 - `python scripts/prepare_cantons.py --ign` consulta la capa publicada del IGN y exige que sus códigos coincidan con la DTA 2026. Si la fuente no responde, usá el flujo con un archivo local. Antes de publicar, cotejá la geometría, su fecha y condiciones de uso.
 - Prepará un GeoJSON cantonal en EPSG:4326, con código oficial de tres dígitos, nombre y provincia. Si pesa varios MB, simplificalo para visualización con QGIS y conservá los límites compartidos. Guardá el archivo de origen y su ficha con fuente, fecha, cobertura y condiciones de uso.
 - Corré `python scripts/prepare_cantons.py ruta/al/archivo.geojson --code-field CAMPO_CODIGO --name-field CAMPO_NOMBRE --province-field CAMPO_PROVINCIA` desde la raíz. Esto coloca la capa en `web/public/data/cantones.geojson`. Verificá el número de cantones y que la selección de Santa Cruz coincida con su ficha. La aplicación usa sectores climáticos como respaldo mientras falta la capa.
+- `npm.cmd run geo` (dentro de `web/`) precalcula `public/data/geo.json` a partir de `cantones.geojson`: contorno del país, provincias, contornos aproximados de Nicaragua y Panamá, la malla NASA POWER 7×7 con su porción de tierra y la celda que más cubre a cada cantón. También escribe `data/web/national_cells.json`, que usa Python para la región nacional `CR`. Corrélo después de cambiar la capa cantonal y antes de `python -m src.web_data`. Los contornos de los vecinos son dibujados a mano (aproximados, solo para que el mapa no flote en el vacío).
 - Las asociaciones de cantón a sector están en `data/web/cantons.json`. Editá `data/web/local.json` para directorio, comunicados y registros hídricos. Conservá alcance geográfico, fecha, fuente y condición programada u observada.
 - Una vez cargado un aviso, la URL `/?canton=503&vista=agua&aviso=<id>` abre la ficha y destaca ese comunicado. `/?canton=503&vista=clima` abre las tendencias.
+
+## Capas del mapa, hidrografía y operadores de agua
+
+Estos pasos generan los archivos que el navegador pide en `web/public/data/` (ignorados por git; se regeneran).
+
+- `python -m src.web_data` también escribe `snapshot.layers`: promedios anuales por celda de temperatura, lluvia, humedad (`RH2M`, 1981–2024) y radiación UV (`ALLSKY_SFC_UV_INDEX`, solo 2001–2024). La primera vez descarga RH2M y UV de NASA POWER y los guarda en `data/raw/`. El UV llega en malla de 1° y cada celda del mapa toma el punto más cercano.
+- `python scripts/prepare_waterways.py` lee `data/raw/hidrografia/hotosm_cri_waterways_osm_geojson.zip` (OpenStreetMap, ODbL) y escribe `public/data/waterways.geojson` (~4,5 MB, simplificado). Solo se pide al abrir el mapa de cuencas.
+- `python scripts/prepare_asadas.py` lee `Operadores y Fuentes (Ubicaciones).xlsx` y escribe `data/web/asadas.json` y su copia en `public/data/`: 1334 operadores de agua con provincia, cantón, distrito y caudal inicial (suma del último caudal de sus fuentes, en L/s). No se dibujan en el mapa; se buscan con el buscador o con «Buscar por lugar».
+- Cada cuenta de `src/data/admins.json` administra una sola ASADA (`asadaId` = IDEO de SAGA) y solo puede enviar reportes sobre ella. Los reportes (caudal, afectación por El Niño y localidades) se guardan en `localStorage`; el caudal vigente es el del reporte más reciente. Las cuentas son de demostración, sin seguridad real.
 
 ## API
 

@@ -7,12 +7,14 @@ from pathlib import Path
 from statistics import mean
 from tempfile import NamedTemporaryFile
 
-from .contracts import COVERAGE_END_YEAR, COVERAGE_START_YEAR, REGION_IDS, VARIABLE_IDS, to_json, to_jsonable, validate_query
+from .contracts import (COVERAGE_END_YEAR, COVERAGE_START_YEAR, NATIONAL_REGION_ID, REGION_IDS, VARIABLE_IDS,
+                        WEB_REGION_IDS, to_json, to_jsonable, validate_query)
 from .enso import episode_comparison
 from .evidence import evidence_family
 from .ingest import parse_monthly_records
-from .prepare import build_regional_annual, prepare_regional_series
-from .regions import REGION_SPECS, mask_records
+from .layers import build_layers
+from .prepare import build_regional_annual, build_regional_monthly, prepare_regional_series
+from .regions import assign_national, mask_records, national_mask_records, region_spec
 from .statistics import compare_historical_windows
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,10 +26,10 @@ def read_json(path):
 
 
 @lru_cache(maxsize=1)
-def climate_package():
+def raw_payloads():
+    """JSON crudo de NASA POWER verificado contra la huella SHA-256 de provenance_base.json."""
     provenance = read_json(ROOT / "data" / "processed" / "provenance_base.json")
-    masks = mask_records()
-    raw_rows = []
+    payloads = {}
     for variable in VARIABLE_IDS:
         name = f"data/raw/nasa_power_monthly_{variable}_{COVERAGE_START_YEAR}_{COVERAGE_END_YEAR}.json"
         raw = (ROOT / name).read_bytes()
@@ -38,7 +40,17 @@ def climate_package():
         expected_unit = "C" if variable == "T2M" else "mm/day"
         if payload["parameters"][variable]["units"] != expected_unit:
             raise ValueError(f"Unidad de origen inesperada en {name}")
-        raw_rows.extend(parse_monthly_records(payload, variable))
+        payloads[variable] = payload
+    return payloads, provenance
+
+
+@lru_cache(maxsize=1)
+def climate_package():
+    payloads, provenance = raw_payloads()
+    masks = mask_records()
+    raw_rows = []
+    for variable in VARIABLE_IDS:
+        raw_rows.extend(parse_monthly_records(payloads[variable], variable))
     prepared = prepare_regional_series(raw_rows, masks)
     by_cell = defaultdict(list)
     for row in raw_rows:
@@ -62,6 +74,36 @@ def climate_package():
     return prepared, cells, provenance
 
 
+@lru_cache(maxsize=1)
+def national_package():
+    """Región nacional: todas las celdas de la malla 7x7 con tierra, con su promedio ponderado."""
+    payloads, _ = raw_payloads()
+    masks = national_mask_records()
+    raw_rows = []
+    for variable in VARIABLE_IDS:
+        raw_rows.extend(parse_monthly_records(payloads[variable], variable, assign_national))
+    regional_monthly = build_regional_monthly(raw_rows, masks, regions=(NATIONAL_REGION_ID,))
+    prepared = {
+        "regional_monthly": regional_monthly,
+        "regional_annual": build_regional_annual(regional_monthly, regions=(NATIONAL_REGION_ID,)),
+    }
+    by_cell = defaultdict(list)
+    for row in raw_rows:
+        by_cell[row["lat"], row["lon"]].append(dict(row, coverage_fraction=float(row["value"] is not None)))
+    cells = {}
+    for mask in masks:
+        lat, lon = mask["lat"], mask["lon"]
+        cell_id = f"POWER:{lat:g}:{lon:g}"
+        monthly = by_cell[lat, lon]
+        cells[cell_id] = {
+            "id": cell_id, "region": NATIONAL_REGION_ID, "regions": [NATIONAL_REGION_ID], "lat": lat, "lon": lon,
+            "bbox": [lon - .3125, lat - .25, lon + .3125, lat + .25],
+            "monthly": monthly, "weight": mask["weight"], "land_fraction": mask["land_fraction"],
+            "annual": build_regional_annual(monthly, regions=(NATIONAL_REGION_ID,)),
+        }
+    return prepared, cells
+
+
 def annual_rows():
     return climate_package()[0]["regional_annual"]
 
@@ -76,18 +118,36 @@ def _evidence(start, end, variable=None):
     return evidence_family(series, start, end, "cells", variable)
 
 
+@lru_cache(maxsize=48)
+def _national_evidence(start, end, variable=None):
+    prepared, cells = national_package()
+    national = (NATIONAL_REGION_ID,)
+    if variable is None:
+        series = {NATIONAL_REGION_ID: (NATIONAL_REGION_ID, prepared["regional_annual"])}
+        return evidence_family(series, start, end, "regions", regions=national)
+    series = {key: (NATIONAL_REGION_ID, cell["annual"]) for key, cell in cells.items()}
+    return evidence_family(series, start, end, "cells", variable, regions=national)
+
+
 def climate(region, variable, start=COVERAGE_START_YEAR, end=COVERAGE_END_YEAR,
             *, window_a=None, window_b=None, cell_id=None):
-    validate_query(variable, region, start, end)
-    if region not in REGION_IDS:
+    validate_query(variable, region, start, end, regions=WEB_REGION_IDS)
+    if region not in WEB_REGION_IDS:
         raise ValueError("La consulta requiere una zona climática")
-    prepared, cells, provenance = climate_package()
+    national = region == NATIONAL_REGION_ID
+    if national:
+        prepared, cells = national_package()
+        provenance = climate_package()[2]
+        evidence_of = _national_evidence
+    else:
+        prepared, cells, provenance = climate_package()
+        evidence_of = _evidence
     if cell_id is not None and (cell_id not in cells or region not in cells[cell_id]["regions"]):
         raise ValueError("La celda elegida no pertenece a la zona")
     selected_cell = cells.get(cell_id)
     rows = selected_cell["annual"] if selected_cell else prepared["regional_annual"]
     subject_region = selected_cell["region"] if selected_cell else region
-    spec = REGION_SPECS[region]
+    spec = region_spec(region)
     series = [r for r in rows if r["region_id"] == subject_region and r["variable"] == variable
               and start <= r["year"] <= end]
     comparison = None
@@ -96,8 +156,8 @@ def climate(region, variable, start=COVERAGE_START_YEAR, end=COVERAGE_END_YEAR,
             rows, variable=variable, region_id=subject_region, window_a=window_a, window_b=window_b,
             coverage_start_year=start, coverage_end_year=end,
         )
-    regional, regional_families = _evidence(start, end)
-    grid, grid_families = _evidence(start, end, variable)
+    regional, regional_families = evidence_of(start, end)
+    grid, grid_families = evidence_of(start, end, variable)
     evidence = grid[cell_id, variable] if cell_id else regional[region, variable]
     mk = evidence["mann_kendall"]
     trend = evidence["ols"]
@@ -189,17 +249,25 @@ def export_snapshot():
 
     snapshot = {
         "climate": {region: {variable: evidence_card(region, variable) for variable in VARIABLE_IDS}
-                    for region in REGION_IDS},
+                    for region in WEB_REGION_IDS},
         "cells": {
             region: {
                 cell["id"]: {variable: evidence_card(region, variable, cell_id=cell["id"])
                              for variable in VARIABLE_IDS}
-                for cell in climate_package()[1].values() if region in cell["regions"]
+                for cell in (national_package()[1] if region == NATIONAL_REGION_ID
+                             else climate_package()[1]).values() if region in cell["regions"]
             }
-            for region in REGION_IDS
+            for region in WEB_REGION_IDS
         },
         "local": local_catalog(),
+        "layers": build_layers(*raw_payloads()),
     }
+    # La interfaz no usa el detalle de pruebas de cada celda y pesaría varios MB.
+    cards = [*(v for by in snapshot["climate"].values() for v in by.values()),
+             *(v for cells in snapshot["cells"].values() for by in cells.values() for v in by.values())]
+    for card in cards:
+        for cell in card.get("cells", []):
+            cell.pop("evidence", None)
     PUBLIC.mkdir(parents=True, exist_ok=True)
     target = PUBLIC / "snapshot.json"
     content = to_json(snapshot, separators=(",", ":"))

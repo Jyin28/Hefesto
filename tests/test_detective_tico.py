@@ -10,7 +10,7 @@ from src.enso import episode_comparison
 from src.evidence import sen_mann_kendall
 from src.export import csv_tables, evidence_card, format_csv
 from src.forecast import evaluate_station
-from src.web_data import climate, climate_package, local_catalog
+from src.web_data import climate, climate_package, local_catalog, national_package
 
 
 class DetectiveTicoTest(unittest.TestCase):
@@ -28,6 +28,23 @@ class DetectiveTicoTest(unittest.TestCase):
                     self.assertEqual(card["families"]["cells"]["ols"]["planned_tests"], 10)
                     self.assertEqual(len(card["cells"]), 5)
                     self.assertEqual(json.loads(to_json(card)), card)
+
+    def test_national_region_uses_every_land_cell_with_its_own_family(self):
+        for variable in VARIABLE_IDS:
+            with self.subTest(variable=variable):
+                card = climate("CR", variable)
+                self.assertEqual(len(card["cells"]), 24)
+                self.assertEqual(card["families"]["cells"]["ols"]["planned_tests"], 24)
+                self.assertEqual(card["families"]["regions"]["ols"]["planned_tests"], 2)
+                self.assertEqual(card["families"]["cells"]["ols"]["family_id"], f"cells|{variable}|CR|1981-2024|v2")
+                self.assertEqual(len(card["series"]), 44)
+                self.assertTrue(all(row["complete"] for row in card["series"]))
+        _, cells = national_package()
+        self.assertAlmostEqual(sum(cell["weight"] for cell in cells.values()), 1.0)
+        shared = climate("CR", "T2M", cell_id="POWER:10:-85.625")
+        self.assertEqual(shared["cellId"], "POWER:10:-85.625")
+        with self.assertRaises(ValueError):
+            climate("CR", "T2M", cell_id="POWER:11:-86.25")  # casi sin tierra: fuera de la region nacional
 
     def test_cell_values_and_filtering_share_the_original_family(self):
         card = climate("CR_CAR", "PRECTOTCORR")

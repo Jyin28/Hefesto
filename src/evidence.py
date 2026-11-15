@@ -4,7 +4,7 @@ from dataclasses import replace
 from math import erfc, sqrt
 from statistics import mean, median
 
-from .contracts import REGION_IDS, SLOPE_UNITS, VARIABLE_IDS, validate_query
+from .contracts import REGION_IDS, SLOPE_UNITS, VARIABLE_IDS, WEB_REGION_IDS, validate_query
 from .statistics import (
     LONG_TERM_MIN_YEARS, MIN_YEARS_FOR_DESCRIPTIVE_SLOPE, _select_window_series,
     compute_long_term_trend, fdr_by, homogeneity_check,
@@ -23,7 +23,7 @@ def _midranks(values):
 
 def sen_mann_kendall(rows, start, end, variable, region):
     """Sen and bilateral MK with tie correction and Hamed–Rao rank screening."""
-    validate_query(variable, region, start, end)
+    validate_query(variable, region, start, end, regions=WEB_REGION_IDS)
     years, values = _select_window_series(rows, start, end, variable=variable, region_id=region)
     n = len(years)
     result = dict(
@@ -73,13 +73,13 @@ def sen_mann_kendall(rows, start, end, variable, region):
 PRECIP_CAUTION = "reanalysis_precip_caution"
 
 
-def _family_id(scope, variables, start, end, method):
+def _family_id(scope, variables, start, end, method, regions=REGION_IDS):
     subject = "+".join(variables) if scope == "regions" else variables[0]
     suffix = "" if method == "ols" else "|mk"
-    return f"{scope}|{subject}|{'+'.join(REGION_IDS)}|{start}-{end}|v2{suffix}"
+    return f"{scope}|{subject}|{'+'.join(regions)}|{start}-{end}|v2{suffix}"
 
 
-def evidence_family(series, start, end, scope, variable=None):
+def evidence_family(series, start, end, scope, variable=None, regions=REGION_IDS):
     """Adjust all eligible tests before returning a filtered result to the UI.
 
     Regional family: 2 variables x 2 regions; map family: every eligible cell of BOTH sectors
@@ -105,7 +105,7 @@ def evidence_family(series, start, end, scope, variable=None):
 
     families = {}
     for method in ("ols", "mann_kendall"):
-        family_id = _family_id(scope, variables, start, end, method)
+        family_id = _family_id(scope, variables, start, end, method, regions)
         eligible = []
         for entry in entries.values():
             result = entry[method]
@@ -119,7 +119,7 @@ def evidence_family(series, start, end, scope, variable=None):
             else:
                 entry[method].update(fields)
         families[method] = dict(family_id=family_id, scope=scope, variables=variables,
-                                regions=REGION_IDS, planned_tests=len(entries),
+                                regions=regions, planned_tests=len(entries),
                                 valid_tests=len(eligible), alpha=0.05, method="fdr_by",
                                 start_year=start, end_year=end)
 

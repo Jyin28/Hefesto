@@ -1,34 +1,84 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Chart } from './Chart'
-import { ClimateDetails, WaterDetails } from './ClimateDetails'
-import { Map } from './Map'
-import { getBoundaries, getJson, getSnapshot, regions } from './data'
-import type { Boundaries, Canton, Climate, Local, Region, Snapshot, Variable } from './data'
+import { AdminPanel } from './AdminPanel'
+import { confidence as confidenceOf, continuity as continuityOf, defaultThresholds, ensoMean, localStat, project, spatialCoverage,
+  stationsLinked, statsFor, synthesis } from './analysis'
+import type { Thresholds } from './analysis'
+import { logout as endSession, restoreSession } from './auth'
+import type { Session } from './auth'
+import { ChartTile, QualityTile, StatTiles, SynthesisTile, Tile } from './Bento'
+import { ForecastTile } from './Forecast'
+import type { ForecastRow } from './Forecast'
+import { AsadaTile, CantonOperatorsTile } from './AsadaPanels'
+import { currentFlow, latestReports, summarizeCantons } from './asadas'
+import { Header } from './Header'
+import { buildLayerGrid } from './layers'
+import type { LayerMode } from './layers'
+import { normalizeText } from './localData'
+import { bboxOf, Map } from './Map'
+import type { Focus } from './Map'
+import { MapControls } from './MapControls'
+import { FloatingSearch, ZoneCard } from './MapOverlay'
+import { AdminModal } from './Modals'
+import { ClimatePanel, GeneralPanel, LayerPanel, LocalRecordsTile, NoticesPanel } from './Panels'
+import type { CantonOverview } from './Panels'
+import { useCantonData } from './store'
+import { MAX_YEAR, MIN_YEAR } from './RangeSlider'
+import { Sidebar } from './Sidebar'
+import { copy } from './copy'
+import type { Alert, Level, MapMode, Section } from './copy'
+import { getAsadas, getBoundaries, getGeo, getJson, getSnapshot, getWaterways, regions } from './data'
+import type { Boundaries, Canton, Climate, Geo, LayerVar, Local, Operator, Region, Snapshot, Variable, Waterways } from './data'
 import './style.css'
 
 const params = new URLSearchParams(window.location.search)
 const emptyLocal: Local = { cantons: {}, notices: [], operators: [] }
-const format = new Intl.NumberFormat('es-CR', { maximumFractionDigits: 2 })
-const dateFormat = new Intl.DateTimeFormat('es-CR', { dateStyle: 'medium', timeZone: 'America/Costa_Rica' })
 const defaultYears = [1981, 2002, 2003, 2024]
+// Nivel de lectura fijo: público general (el selector de escolaridad se retiró).
+const level: Level = 'basico'
+const sections: Section[] = ['general', 'temp', 'precip', 'uv', 'humedad', 'avisos', 'admin']
+const DEFAULT_YEAR = MAX_YEAR
+const initialYear = () => { const value = Number(params.get('anio')); return value >= MIN_YEAR && value <= MAX_YEAR ? Math.round(value) : DEFAULT_YEAR }
+
+function initialSection(): Section {
+  const view = params.get('vista')
+  if (view === 'clima') return 'precip'
+  if (view === 'agua') return 'avisos'
+  return sections.find(item => item === view) ?? 'general'
+}
 
 function App() {
   const [snapshot, setSnapshot] = useState<Snapshot>()
   const [boundaries, setBoundaries] = useState<Boundaries>()
+  const [geo, setGeo] = useState<Geo>()
   const [local, setLocal] = useState<Local>()
+  const [asadas, setAsadas] = useState<Operator[]>([])
+  const [waterways, setWaterways] = useState<Waterways>()
   const [remote, setRemote] = useState<{ key: string; data: Climate }>()
   const [loading, setLoading] = useState(true)
-  const [selected, setSelected] = useState(params.get('canton') || '503')
-  const [tab, setTab] = useState<'agua' | 'clima'>(params.get('vista') === 'clima' ? 'clima' : 'agua')
-  const [variable, setVariable] = useState<Variable>('PRECTOTCORR')
+  // Sin cantón elegido se ve el país completo; la región por defecto es la malla nacional.
+  const [selected, setSelected] = useState(params.get('canton') || '')
+  const [session, setSession] = useState<Session | null>(restoreSession)
+  const [requestedSection, setSectionState] = useState<Section>(initialSection)
+  // Sin sesión de administrador, la sección Admin nunca se muestra, aunque llegue por la URL.
+  const section: Section = requestedSection === 'admin' && !session ? 'general' : requestedSection
+  const data = useCantonData()
+  const [mapMode, setMapMode] = useState<MapMode>('grid')
+  const [layerMode, setLayerModeState] = useState<LayerMode>(params.get('capa') === 'valor' ? 'value' : 'slope')
+  const [year, setYearState] = useState(initialYear)
+  const [asadaId, setAsadaId] = useState(params.get('asada') || '')
   const [regionOverride, setRegionOverride] = useState<Region>()
   const [cell, setCell] = useState('')
   const [years, setYears] = useState(defaultYears)
   const [appliedYears, setAppliedYears] = useState(defaultYears)
+  const [range, setRange] = useState<[number, number]>([MIN_YEAR, MAX_YEAR])
+  const [appliedRange, setAppliedRange] = useState<[number, number]>([MIN_YEAR, MAX_YEAR])
   const [requestError, setRequestError] = useState('')
-  const [query, setQuery] = useState('')
-  const [searching, setSearching] = useState(false)
+  const [focus, setFocus] = useState<Focus>({ code: '', tick: 0 })
+  const [modal, setModal] = useState<'admin' | null>(null)
+  const [toast, setToast] = useState('')
+  const [collapsed, setCollapsed] = useState(false)
+  const [thresholds, setThresholds] = useState<Thresholds>(defaultThresholds)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -36,202 +86,311 @@ function App() {
     const climateRequest = getSnapshot(signal).then(data => { if (!signal.aborted) setSnapshot(data) })
     const localRequest = getJson<Local>('/api/local', signal).then(data => { if (!signal.aborted) setLocal(data) })
     getBoundaries(signal).then(data => { if (!signal.aborted) setBoundaries(data) }).catch(() => {})
+    getGeo(signal).then(data => { if (!signal.aborted) setGeo(data) }).catch(() => {})
+    getAsadas(signal).then(data => { if (!signal.aborted) setAsadas(data.operators) }).catch(() => {})
     void Promise.allSettled([climateRequest, localRequest]).then(() => { if (!signal.aborted) setLoading(false) })
     return () => controller.abort()
   }, [])
 
-  const catalog = local ?? snapshot?.local ?? emptyLocal
-  const choices = new globalThis.Map<string, Canton>()
-  for (const feature of boundaries?.features ?? []) {
-    const { code, name, province = '' } = feature.properties
-    choices.set(code, { name, province })
-  }
-  for (const [code, canton] of Object.entries(catalog.cantons)) choices.set(code, canton)
-  const canton = choices.get(selected)
-  const region = regionOverride ?? canton?.regionId
-  const chosenRegion = regions.find(item => item.id === region)
-  const queryParams = new URLSearchParams({ canton: selected })
-  if (cell) queryParams.set('celda', cell)
-  const usesDefaults = defaultYears.every((year, index) => appliedYears[index] === year)
-  if (!usesDefaults) {
-    ['a_inicio', 'a_fin', 'b_inicio', 'b_fin'].forEach((label, index) => queryParams.set(label, String(appliedYears[index])))
-  }
-  const key = `${region}/${variable}?${queryParams}`
-  const matchingRemote = remote?.key === key ? remote.data : undefined
-  const climate = matchingRemote ?? (region && usesDefaults
-    ? cell ? snapshot?.cells?.[region]?.[cell]?.[variable] : snapshot?.climate[region][variable]
-    : undefined)
+  // La hidrografía pesa unos 4,5 MB: solo se pide la primera vez que se abre el mapa de cuencas.
+  useEffect(() => {
+    if (mapMode !== 'cantones' || waterways) return
+    const controller = new AbortController()
+    getWaterways(controller.signal).then(data => { if (!controller.signal.aborted) setWaterways(data) }).catch(() => {})
+    return () => controller.abort()
+  }, [mapMode, waterways])
 
   useEffect(() => {
-    if (!region || tab !== 'clima') return
+    const timer = setTimeout(() => setAppliedRange(range), 350)
+    return () => clearTimeout(timer)
+  }, [range])
+
+  useEffect(() => {
+    if (!toast) return
+    const timer = setTimeout(() => setToast(''), 5000)
+    return () => clearTimeout(timer)
+  }, [toast])
+
+  const catalog = local ?? snapshot?.local ?? emptyLocal
+  const choices = useMemo(() => {
+    const items = new globalThis.Map<string, Canton>()
+    for (const feature of boundaries?.features ?? []) {
+      const { code, name, province = '' } = feature.properties
+      items.set(code, { name, province })
+    }
+    for (const [code, canton] of Object.entries(catalog.cantons)) items.set(code, canton)
+    return items
+  }, [boundaries, catalog])
+  const alerts = useMemo(() => {
+    const states: Record<string, Alert> = {}
+    const now = new Date()
+    for (const notice of catalog.notices) {
+      const expired = notice.expiresAt ? new Date(notice.expiresAt) < now : false
+      for (const code of notice.cantonCodes) if (!expired) states[code] = 'active'; else if (states[code] !== 'active') states[code] = 'expired'
+    }
+    return states
+  }, [catalog])
+
+  const canton = choices.get(selected)
+  const region: Region = regionOverride ?? 'CR'
+  const variable: Variable = section === 'temp' ? 'T2M' : 'PRECTOTCORR'
+  // Capa que pinta el mapa nacional: UV y Humedad tienen su propia sección en la barra lateral.
+  const mapVar: LayerVar = section === 'uv' ? 'UV' : section === 'humedad' ? 'RH2M' : variable
+  const queryParams = new URLSearchParams()
+  if (selected) queryParams.set('canton', selected)
+  if (cell) queryParams.set('celda', cell)
+  const usesDefaults = defaultYears.every((year, index) => appliedYears[index] === year)
+  if (!usesDefaults) ['a_inicio', 'a_fin', 'b_inicio', 'b_fin'].forEach((label, index) => queryParams.set(label, String(appliedYears[index])))
+  const rangeCustom = appliedRange[0] !== MIN_YEAR || appliedRange[1] !== MAX_YEAR
+  if (rangeCustom) { queryParams.set('desde', String(appliedRange[0])); queryParams.set('hasta', String(appliedRange[1])) }
+  const queryKey = `${region}/${variable}?${queryParams}`
+  const matchingRemote = remote?.key === queryKey ? remote.data : undefined
+  const snapshotClimate = region && usesDefaults
+    ? cell ? snapshot?.cells?.[region]?.[cell]?.[variable] : snapshot?.climate[region][variable]
+    : undefined
+  const rangeApprox = !matchingRemote && rangeCustom && !!snapshotClimate
+  const climate = matchingRemote ?? snapshotClimate
+
+  useEffect(() => {
+    if (!region || (section !== 'temp' && section !== 'precip')) return
     const controller = new AbortController()
     const { signal } = controller
     setRequestError('')
-    getJson<Climate>(`/api/clima/${key}`, signal).then(data => {
-      if (!signal.aborted) setRemote({ key, data })
+    getJson<Climate>(`/api/clima/${queryKey}`, signal).then(data => {
+      if (!signal.aborted) setRemote({ key: queryKey, data })
     }).catch(() => {
       if (!signal.aborted) setRequestError('La API no pudo cargar esta selección.')
     })
     return () => controller.abort()
-  }, [region, key, tab])
+  }, [region, queryKey, section])
 
+  function updateUrl(change: (url: URL) => void) {
+    const url = new URL(window.location.href)
+    change(url)
+    history.replaceState(null, '', url)
+  }
+
+  const setSection = useCallback((value: Section) => {
+    setSectionState(value)
+    updateUrl(url => url.searchParams.set('vista', value))
+  }, [])
+
+  const setLayerMode = useCallback((value: LayerMode) => {
+    setLayerModeState(value)
+    updateUrl(url => { if (value === 'value') url.searchParams.set('capa', 'valor'); else url.searchParams.delete('capa') })
+  }, [])
+  const setYear = useCallback((value: number) => {
+    setYearState(value)
+    updateUrl(url => url.searchParams.set('anio', String(value)))
+  }, [])
+
+  /** Cada cantón usa la celda de la malla que más lo cubre; sin polígono propio se usa el promedio nacional. */
   function select(code: string) {
     setSelected(code)
+    setAsadaId('')
     setRegionOverride(undefined)
+    setCell(code ? geo?.cantonCells[code] ?? '' : '')
+    setFocus(previous => ({ code, tick: previous.tick + 1 }))
+    updateUrl(url => { if (code) url.searchParams.set('canton', code); else url.searchParams.delete('canton'); url.searchParams.delete('aviso'); url.searchParams.delete('asada') })
+  }
+
+  /** Elegir un operador de agua acerca el mapa a su cantón y abre su ficha. Los operadores no se dibujan en el mapa. */
+  function selectAsada(operator: Operator) {
+    select(operator.cantonCode)
+    setAsadaId(operator.id)
+    setCollapsed(false)
+    updateUrl(url => url.searchParams.set('asada', operator.id))
+  }
+
+  /** Elegir una provincia en el ayudante de búsqueda acerca el mapa a ella. */
+  function selectProvince(name: string) {
+    const wanted = normalizeText(name)
+    const shape = geo?.provinces.find(item => normalizeText(item.properties?.name ?? '') === wanted)
+    const bbox = shape && bboxOf(shape.geometry)
+    setSelected('')
+    setAsadaId('')
     setCell('')
-    setQuery('')
-    setSearching(false)
-    const url = new URL(window.location.href)
-    url.searchParams.set('canton', code)
-    url.searchParams.delete('aviso')
-    history.replaceState(null, '', url)
+    setRegionOverride(undefined)
+    updateUrl(url => { url.searchParams.delete('canton'); url.searchParams.delete('aviso'); url.searchParams.delete('asada') })
+    setFocus(previous => ({ code: '', bbox, tick: previous.tick + 1 }))
   }
 
-  function showTab(value: 'agua' | 'clima') {
-    setTab(value)
-    const url = new URL(window.location.href)
-    url.searchParams.set('vista', value)
-    history.replaceState(null, '', url)
+  // Un cantón que llega por la URL toma su celda en cuanto se carga la geometría.
+  useEffect(() => {
+    if (geo && selected) setCell(previous => previous || geo.cantonCells[selected] || '')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geo])
+
+  function onLogin(next: Session) {
+    setSession(next)
+    setModal(null)
+    setToast(`Modo administrador activo: ${next.name}. Seguís en el mapa; el formulario de tu ASADA está en la sección Admin.`)
   }
 
-  function normalize(text: string) {
-    return text.toLocaleLowerCase('es-CR').normalize('NFD').replace(/\p{Diacritic}/gu, '')
+  /** «Enviar formulario de datos»: abre la sección Admin con el formulario puesto en el cantón actual. */
+  function openAdminForm() {
+    setSection('admin')
+    setCollapsed(false)
   }
 
-  function printCard() {
-    const collapsed = Array.from(document.querySelectorAll<HTMLDetailsElement>('#ficha details:not([open])'))
-    collapsed.forEach(item => { item.open = true })
-    try { window.print() } finally { collapsed.forEach(item => { item.open = false }) }
+  function onLogout() {
+    endSession()
+    setSession(null)
+    if (requestedSection === 'admin') setSection('general')
+    setToast('Sesión de administrador cerrada.')
   }
 
-  const search = normalize(query.trim())
-  const results = [...choices].filter(([code, info]) => {
-    const operators = catalog.operators.filter(operator => operator.cantonCodes.includes(code))
-    return normalize(`${code} ${info.name} ${info.province} ${operators.map(item => item.name).join(' ')}`).includes(search)
-  }).sort((a, b) => a[1].name.localeCompare(b[1].name, 'es-CR')).slice(0, 8)
+  /** Acepta el código de tres dígitos o el nombre del cantón (sin tildes ni mayúsculas). */
+  function resolveCanton(raw: string) {
+    const wanted = normalizeText(raw)
+    if (/^\d{3}$/.test(wanted) && choices.has(wanted)) return wanted
+    for (const [code, info] of choices) if (normalizeText(info.name) === wanted) return code
+    return null
+  }
+
+  function selectCell(cellRegion: Region, id: string) {
+    setRegionOverride(cellRegion)
+    setCell(id)
+    if (section === 'avisos') setSection('general')
+  }
+
   const notices = catalog.notices.filter(item => item.cantonCodes.includes(selected))
   const operators = catalog.operators.filter(item => item.cantonCodes.includes(selected))
-  const unit = variable === 'T2M' ? '°C' : 'mm/año'
+  const alert = alerts[selected] ?? 'none'
+  // Si la celda es la propia del cantón, el título sigue siendo el cantón; una celda distinta se nombra aparte.
+  const ownCell = !!selected && cell === geo?.cantonCells[selected]
+  const zoneName = cell && !ownCell ? `Celda ${cell}` : canton?.name ?? 'Costa Rica'
+  const averageLabel = region === 'CR' ? 'Promedio nacional' : 'Promedio del sector'
+  const regionName = regions.find(item => item.id === region)?.name
 
-  return <>
-    <header className="header"><div className="shell header-inner">
-      <a className="brand" href={import.meta.env.BASE_URL}><span className="mark" aria-hidden="true"><svg width="19" height="23" viewBox="0 0 20 24" fill="none"><path d="M10 1.5C7 6.5 2.5 10.5 2.5 15a7.5 7.5 0 0 0 15 0C17.5 10.5 13 6.5 10 1.5Z" stroke="currentColor" strokeWidth="1.7"/><path d="M6 15a4 4 0 0 0 4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg></span>Detective Tico</a>
-      <nav aria-label="Navegación principal"><a href="#explorar">Mapa</a><a href="#ficha" onClick={() => showTab('agua')}>Avisos</a></nav>
-    </div></header>
-    <main className="shell">
-      <section className="intro">
-        <h1>Clima y agua<br className="small-break" /> en tu cantón<span>.</span></h1>
-        <p>Consultá avisos de tu comunidad y explorá cómo han cambiado la lluvia y la temperatura.</p>
-      </section>
-      <div className="search" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setSearching(false) }}>
-        <form onSubmit={event => { event.preventDefault(); if (results[0]) select(results[0][0]) }}>
-          <label className="screen-reader" htmlFor="search-canton">Buscá tu cantón o ASADA</label>
-          <svg aria-hidden="true" width="21" height="21" viewBox="0 0 24 24" fill="none"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" strokeWidth="1.8"/><path d="m16 16 4.5 4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
-          <input id="search-canton" type="search" value={query} placeholder="Buscá tu cantón o ASADA"
-            onFocus={() => setSearching(true)} onChange={event => { setQuery(event.target.value); setSearching(true) }}
-            onKeyDown={event => { if (event.key === 'Escape') setSearching(false) }} autoComplete="off" />
-        </form>
-        {searching && <div className="results" aria-label="Resultados">
-          {results.length ? results.map(([code, info]) => <button key={code} onClick={() => select(code)}>{info.name}<small>{info.province}</small></button>)
-            : <p>{loading ? 'Cargando cantones…' : 'Sin coincidencias en el catálogo disponible.'}</p>}
-        </div>}
-      </div>
-      <div className="workspace">
-        <section className="map-card" id="explorar" aria-label="Mapa">
-          <Map boundaries={boundaries} snapshot={snapshot} selected={selected} select={select}
-            explore={value => { setRegionOverride(value); setCell(''); showTab('clima') }} />
+  // Tarjetas bento: usan el snapshot de la celda o del sector y el rango del slider (sin esperar a la API).
+  const pick = (name: Variable) => region ? (cell ? snapshot?.cells?.[region]?.[cell]?.[name] : snapshot?.climate[region]?.[name]) : undefined
+  const climateBy: Record<Variable, Climate | undefined> = { T2M: pick('T2M'), PRECTOTCORR: pick('PRECTOTCORR') }
+  const primary = climateBy[variable]
+  const continuity = primary ? continuityOf(primary.series, range) : { valid: 0, total: range[1] - range[0] + 1, pct: 0 }
+  const coverage = spatialCoverage(primary?.cells ?? [])
+  // Datos que cargan las ASADAs (localStorage): reportes de caudal y afectación, y registros locales de comisiones.
+  const cantonRecords = useMemo(() => data.records.filter(item => item.cantonCode === selected), [data.records, selected])
+  const latest = useMemo(() => latestReports(data.reports), [data.reports])
+  const summaries = useMemo(() => summarizeCantons(asadas, latest), [asadas, latest])
+  const overview = useMemo<CantonOverview[]>(() => Object.entries(summaries).filter(([, item]) => item.reported > 0)
+    .map(([code, item]) => ({ code, name: choices.get(code)?.name ?? code, operators: item.operators, reported: item.reported, affected: item.affected }))
+    .sort((a, b) => b.affected - a.affected || a.name.localeCompare(b.name, 'es-CR')), [summaries, choices])
+  const cantonOperators = useMemo(() => asadas.filter(item => item.cantonCode === selected).sort((a, b) => a.name.localeCompare(b.name, 'es-CR')), [asadas, selected])
+  const flows = useMemo(() => new globalThis.Map(cantonOperators.map(item => [item.id, { flow: currentFlow(item, latest), affected: latest.get(item.id)?.ninoAffected ?? null }])), [cantonOperators, latest])
+  const asada = asadas.find(item => item.id === asadaId)
+  const asadaReports = useMemo(() => data.reports.filter(item => item.asadaId === asadaId)
+    .sort((a, b) => b.measuredAt.localeCompare(a.measuredAt) || b.createdAt.localeCompare(a.createdAt)), [data.reports, asadaId])
+  const sessionAsada = session ? asadas.find(item => item.id === session.asadaId) : undefined
+  const localStations = [...new Set(cantonRecords.map(item => item.station || 'Fuente local sin nombre'))]
+  const stations = stationsLinked(primary, localStations)
+  const confidence = confidenceOf(continuity.pct, coverage.pct, stations.count, !!primary)
+  const gridStats = useMemo(() => {
+    const { withData, total } = buildLayerGrid(snapshot?.layers, 'PRECTOTCORR', geo, 'value', [MIN_YEAR, MAX_YEAR], MAX_YEAR)
+    return { withData, total }
+  }, [snapshot, geo])
+  const projections = {
+    T2M: climateBy.T2M ? project(climateBy.T2M.series, 'T2M', range) : undefined,
+    PRECTOTCORR: climateBy.PRECTOTCORR ? project(climateBy.PRECTOTCORR.series, 'PRECTOTCORR', range) : undefined,
+  }
+  const forecastVariables: Variable[] = section === 'temp' ? ['T2M'] : section === 'precip' ? ['PRECTOTCORR'] : ['PRECTOTCORR', 'T2M']
+  const forecastRows = forecastVariables.flatMap((name): ForecastRow[] => {
+    const projection = projections[name]
+    return projection ? [{ variable: name, projection, localStatus: climateBy[name]?.forecast.status }] : []
+  })
+  const episode = climateBy.PRECTOTCORR?.enso.episode
+  const paragraphs = synthesis({
+    level, zone: zoneName, regionName, range,
+    precip: statsFor(climateBy.PRECTOTCORR, range), temp: statsFor(climateBy.T2M, range),
+    enso: episode ? { start: episode.start, end: episode.end, precip: ensoMean(climateBy.PRECTOTCORR), temp: ensoMean(climateBy.T2M) } : undefined,
+    confidence, continuityPct: continuity.pct, coveragePct: coverage.pct, stations: stations.count,
+    operators: selected && summaries[selected] ? {
+      total: summaries[selected].operators, reported: summaries[selected].reported,
+      affected: cantonOperators.filter(item => latest.get(item.id)?.ninoAffected).map(item => ({ name: item.name, localities: latest.get(item.id)!.localities })),
+    } : undefined,
+    local: { temp: localStat(cantonRecords.filter(item => item.variable === 'T2M')), precip: localStat(cantonRecords.filter(item => item.variable === 'PRECTOTCORR')) },
+  })
+  const noData = <Tile title={copy[level].variableTitle[variable]}>
+    <p className="empty">Esta zona todavía no tiene datos NASA POWER asociados: queda pendiente de las comisiones.</p>
+  </Tile>
+  const quality = <QualityTile level={level} hasData={!!primary} regionName={regionName} coverage={coverage} grid={gridStats}
+    continuity={continuity} range={range} stations={stations} confidence={confidence} />
+  const forecast = <ForecastTile level={level} zoneName={zoneName} rows={forecastRows} thresholds={thresholds} setThresholds={setThresholds} />
+
+  return <div className="app">
+    <Header level={level} mapMode={mapMode} setMapMode={setMapMode} openAdmin={() => setModal('admin')}
+      session={session} logout={onLogout} />
+    <div className="body">
+      <Sidebar level={level} section={section} setSection={setSection} admin={!!session} />
+      <div className={collapsed ? 'stage collapsed' : 'stage'}>
+        <section className="map-wrap" aria-label="Mapa">
+          <Map boundaries={boundaries} geo={geo} snapshot={snapshot} waterways={waterways} mode={mapMode} variable={mapVar}
+            layerMode={layerMode} range={range} year={year} level={level} selected={selected} selectedCell={cell} alerts={alerts}
+            cantonStatus={summaries} focus={focus} select={select} selectCell={selectCell}
+            controls={<MapControls variable={mapVar} layer={snapshot?.layers?.[mapVar]} mode={layerMode} setMode={setLayerMode}
+              range={range} setRange={setRange} year={year} setYear={setYear} />} />
+          <FloatingSearch choices={choices} asadas={asadas} mode={mapMode} loading={loading} select={select}
+            selectAsada={selectAsada} selectProvince={selectProvince} />
+          <ZoneCard level={level} name={zoneName} province={canton?.province} nasa={!!region} range={range} setRange={setRange}
+            selection={!!selected || !!cell} exitZone={() => select('')} admin={!!session} openForm={openAdminForm} />
+          <button className="drawer-toggle glass" aria-expanded={!collapsed} aria-controls="ficha"
+            aria-label={collapsed ? 'Mostrar el panel de información' : 'Ocultar el panel de información'}
+            title={collapsed ? 'Mostrar el panel' : 'Ocultar el panel'} onClick={() => setCollapsed(value => !value)}>
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              {collapsed ? <path d="M20 12H4M10 6l-6 6 6 6" /> : <path d="M4 12h16M14 6l6 6-6 6" />}
+            </svg>
+          </button>
         </section>
-        <section className="panel" id="ficha" aria-label="Ficha cantonal">
-          <div className="panel-heading"><span>{canton?.province || 'Costa Rica'}</span><h2>{canton?.name ?? 'Ficha cantonal'}</h2></div>
-          <div className="tabs" aria-label="Vista de la ficha">
-            <button aria-pressed={tab === 'agua'} onClick={() => showTab('agua')}>Avisos y servicio de agua</button>
-            <button aria-pressed={tab === 'clima'} onClick={() => showTab('clima')}>Datos y tendencias</button>
-          </div>
-          <div className="panel-content" aria-live="polite">
-            {tab === 'agua' ? <>
-              <h3>Avisos publicados</h3>
-              {notices.length ? notices.map(notice => {
-                const url = new URL(window.location.href)
-                url.search = new URLSearchParams({ canton: selected, vista: 'agua', aviso: notice.id }).toString()
-                return <article className={params.get('aviso') === notice.id && params.get('canton') === selected ? 'notice highlighted' : 'notice'} key={notice.id}>
-                  <p className="source">{notice.source} · {dateFormat.format(new Date(notice.publishedAt))}</p>
-                  <h4>{notice.title}</h4><p>{notice.summary}</p>
-                  {notice.communities.length > 0 && <p>Comunidades · {notice.communities.join(', ')}</p>}
-                  {notice.expiresAt && <p>{new Date(notice.expiresAt) < new Date() ? 'Venció el' : 'Vigencia publicada hasta el'} {dateFormat.format(new Date(notice.expiresAt))}</p>}
-                  <div className="notice-links"><a href={notice.sourceUrl}>Ver comunicado</a><a href={`https://wa.me/?text=${encodeURIComponent(url.href)}`}>Compartir por WhatsApp</a></div>
-                </article>
-              }) : <p className="empty">{loading ? 'Cargando avisos…' : 'Todavía no hay comunicados verificados en la página para este cantón.'}</p>}
-              <h3>ASADAS y operadores</h3>
-              {operators.length ? operators.map(operator => <p key={operator.name}><strong>{operator.name}</strong><br />{operator.communities.join(', ')}{operator.phone && <> · <a href={`tel:${operator.phone}`}>{operator.phone}</a></>}{operator.sourceId && catalog.sources?.[operator.sourceId] && <> · <a href={catalog.sources[operator.sourceId].url}>Fuente</a></>}</p>)
-                : <p className="muted">Directorio local pendiente de verificación.</p>}
-              <WaterDetails local={catalog} canton={selected} />
-              <button className="text-action" onClick={() => showTab('clima')}>Explorar lluvia y temperatura <span aria-hidden="true">→</span></button>
-            </> : <>
-              <div className="climate-controls">
-                <div className="variables" aria-label="Variable climática">
-                  <button aria-pressed={variable === 'PRECTOTCORR'} onClick={() => setVariable('PRECTOTCORR')}>Lluvia</button>
-                  <button aria-pressed={variable === 'T2M'} onClick={() => setVariable('T2M')}>Temperatura</button>
-                </div>
-                <label>Zona climática <select value={region ?? ''} onChange={event => {
-                  setRegionOverride((event.target.value || undefined) as Region | undefined); setCell('')
-                }}>
-                  <option value="" disabled>Elegir zona</option>
-                  {regions.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-                </select></label>
-              </div>
-              {region && <details>
-                <summary>Ajustar ventanas A y B</summary>
-                <form className="period-controls" onSubmit={event => {
-                  event.preventDefault()
-                  if (years[0] > years[1] || years[2] > years[3]) {
-                    setRequestError('El año inicial debe ser anterior o igual al final.')
-                  } else {
-                    setRequestError('')
-                    setAppliedYears([...years])
-                  }
-                }}>
-                  {['Inicio A', 'Fin A', 'Inicio B', 'Fin B'].map((label, index) => <label key={label}>{label}
-                    <input type="number" min={1981} max={2024} required value={years[index] || ''}
-                      onChange={event => setYears(years.map((year, position) => position === index ? Number(event.target.value) : year))} />
-                  </label>)}
-                  <button type="submit">Aplicar</button>
-                </form>
-              </details>}
-              {cell && <button type="button" onClick={() => setCell('')}>Volver al promedio del sector</button>}
-              {requestError && (!climate || requestError.startsWith('El año')) && <p role="status">{requestError}</p>}
-              {climate ? <>
-                <h3>{variable === 'T2M' ? 'Temperatura media anual' : 'Precipitación acumulada anual'}</h3>
-                <p className="muted">{chosenRegion?.name} · {cell || 'Promedio del sector'}</p>
-                <Chart data={climate} unit={unit} />
-                {climate.comparison && <div className="periods">
-                  {[climate.comparison.window_a, climate.comparison.window_b].map((window, index) => <div key={index}><small>{window.start_year}–{window.end_year} · {window.n_years} años</small><strong>{window.mean === null ? 'Sin datos' : `${format.format(window.mean)} ${unit}`}</strong></div>)}
-                </div>}
-                <p className="trend">{climate.trend.slope_per_decade === null ? 'Tendencia sin datos suficientes.' : <>Cambio estimado por década · <strong>{format.format(climate.trend.slope_per_decade)} {unit}</strong> <span>({climate.trend.n_years} años válidos)</span></>}</p>
-                <p className="muted">{climate.trend.significant === null ? 'Sin prueba de significancia disponible.' : climate.trend.significant ? 'Tendencia con evidencia estadística al 5 % (ajuste BY).' : 'Evidencia estadística insuficiente al 5 % (ajuste BY).'}</p>
-                <p className="source"><a href={climate.sourceUrl}>{climate.source}</a></p>
-                <ClimateDetails data={climate} unit={unit} selected={cell} choose={setCell} />
-                {variable === 'PRECTOTCORR' && <WaterDetails local={catalog} canton={selected} />}
-                <div className="exports" aria-label="Descargas">
-                  <button type="button" onClick={printCard}>Imprimir ficha</button>
-                  {matchingRemote && <>
-                    <a download="ficha-detective-tico.json" href={`/api/ficha/${key}`}>JSON</a>
-                    {['series', 'results', 'sources', 'enso',
-                      ...(matchingRemote.water_coverage.length ? ['water'] : []),
-                      ...(matchingRemote.distribution.length ? ['distribution'] : []),
-                    ].map(table => <a key={table} href={`/api/ficha/${key}&tabla=${table}`}>CSV {({
-                      series: 'serie', results: 'resultados', water: 'cobertura de agua', distribution: 'distribución',
-                      sources: 'fuentes', enso: 'El Niño',
-                    } as Record<string, string>)[table]}</a>)}
-                  </>}
-                </div>
-              </> : <p className="empty">{region ? (loading ? 'Cargando la serie climática…' : 'Serie regional no disponible.') : 'Este cantón todavía no tiene una zona climática asociada. Podés explorar una de las zonas del menú.'}</p>}
+        <aside className="drawer glass" id="ficha" aria-label="Panel de información" inert={collapsed}>
+          <div className="drawer-title"><small>{canton ? canton.province : cell ? regionName : 'Costa Rica'}</small><h2>{zoneName}</h2></div>
+          <div className="bento">
+            {asada && <AsadaTile operator={asada} reports={asadaReports} close={() => { setAsadaId(''); updateUrl(url => url.searchParams.delete('asada')) }} />}
+            {section === 'general' && <>
+              {climateBy.T2M && <ChartTile variable="T2M" level={level} series={climateBy.T2M.series} range={range} />}
+              {climateBy.PRECTOTCORR && <ChartTile variable="PRECTOTCORR" level={level} series={climateBy.PRECTOTCORR.series} range={range} />}
+              {!primary && noData}
+              <GeneralPanel level={level} climateBy={climateBy} region={region} canton={canton} cell={cell}
+                alert={alert} notices={notices} loading={loading} nino={selected ? summaries[selected] : undefined} />
+              <LocalRecordsTile level={level} records={cantonRecords} />
+              {quality}
+              <SynthesisTile level={level} paragraphs={paragraphs} />
+              {forecast}
             </>}
+            {(section === 'temp' || section === 'precip') && <>
+              {primary ? <>
+                {(() => { const result = projections[variable]; return <ChartTile variable={variable} level={level} series={primary.series} range={range}
+                  projection={result?.ok ? result.points : undefined} caption={`${regionName ?? ''} · ${cell ? `Celda ${cell}` : averageLabel}`} /> })()}
+                <StatTiles variable={variable} level={level} series={primary.series} range={range} />
+              </> : noData}
+              <LocalRecordsTile level={level} records={cantonRecords} variable={variable} />
+              {quality}
+              <SynthesisTile level={level} paragraphs={paragraphs} />
+              {forecast}
+              <ClimatePanel variable={variable} level={level} climate={climate}
+                remote={matchingRemote} queryKey={queryKey} region={region} cell={cell} setCell={setCell}
+                setRegion={setRegionOverride} years={years} setYears={setYears} setAppliedYears={setAppliedYears}
+                requestError={requestError} setRequestError={setRequestError} loading={loading} catalog={catalog}
+                selected={selected} rangeApprox={rangeApprox} />
+            </>}
+            {(section === 'uv' || section === 'humedad') && <LayerPanel variable={mapVar} layer={snapshot?.layers?.[mapVar]} cell={cell}
+              range={range} year={year} zoneName={zoneName} />}
+            {section === 'avisos' && <>
+              <CantonOperatorsTile cantonName={canton?.name ?? ''} operators={cantonOperators} flows={flows} selectedId={asadaId} pick={selectAsada} />
+              <NoticesPanel level={level} loading={loading} notices={notices} operators={operators}
+                catalog={catalog} selected={selected} alert={alert} highlight={params.get('aviso')} highlightCanton={params.get('canton')}
+                overview={overview} select={select} />
+              {forecast}
+            </>}
+            {section === 'admin' && session && <AdminPanel key={session.asadaId} session={session} asada={sessionAsada} choices={choices} data={data}
+              resolveCanton={resolveCanton} notify={setToast} />}
           </div>
-        </section>
+          <p className="muted">{copy[level].mapTip[mapMode]}</p>
+        </aside>
       </div>
-      <footer>Detective Tico <span>·</span> NASA Space Apps Challenge</footer>
-    </main>
-  </>
+    </div>
+    {modal === 'admin' && !session && <AdminModal onClose={() => setModal(null)} onLogin={onLogin} />}
+    {toast && <div className="toast glass" role="status">{toast}</div>}
+  </div>
 }
 
 createRoot(document.getElementById('root')!).render(<App />)

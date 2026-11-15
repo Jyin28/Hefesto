@@ -25,6 +25,11 @@
 3. **Mezcla costera y orografia:** Las celdas costeras incluyen fraccion oceanica y suavizan gradientes abruptos de las cordilleras de Costa Rica.
 4. **Uso educativo:** Herramienta de exploracion historica; no pronostica sequias, inundaciones ni disponibilidad de agua potable.
 
+## 3b. Región nacional `CR` (interfaz web)
+* La descarga ya cubre la malla 7x7 completa (49 celdas). Para el mapa nacional se usan las celdas con al menos 1 % de tierra según `data/web/national_cells.json` (24 celdas), generado por `web/scripts/build-geo.mjs` desde la capa cantonal.
+* Promedio nacional ponderado por `cos(lat) × fracción de tierra`; tiene su propia familia de pruebas BY (celdas nacionales) y no altera las pruebas de los dos sectores.
+* Cada cantón usa la celda de la malla que más lo cubre (`cantonCells` en `web/public/data/geo.json`). Los contornos de Nicaragua y Panamá del mapa son aproximados, dibujados a mano.
+
 ## 4. Qué datos usa el producto MVP (y cuáles no)
 **Usados:** `data/raw/nasa_power_monthly_{T2M,PRECTOTCORR}_1981_2024.json` (crudo inmutable, SHA-256 en
 `provenance_base.json`), `data/processed/grid_monthly.parquet` (10 560 registros, 5 celdas × 2 sectores × 528 meses × 2 variables),
@@ -38,3 +43,11 @@ Verificados con `scripts/verify_data.py` (esquema, unidades, celdas, 528 meses/c
 ## 5. Limitación adicional detectada
 Las celdas del Caribe incluyen terreno alto (Talamanca): T2M medio ≈ 22 °C, menor que el de la costa de Limón.
 La lluvia de reanálisis no está validada con estaciones (ver `docs/limitations.md` §9).
+
+## 6. Capas adicionales del mapa (humedad, UV, hidrografía y operadores)
+
+- **Humedad relativa a 2 m (`RH2M`)**: NASA POWER Monthly Regional, misma malla 0,5° × 0,625° y años 1981–2024 que T2M y lluvia. Promedio anual ponderado por días; un año sin los 12 meses válidos no se usa.
+- **Radiación UV (`ALLSKY_SFC_UV_INDEX`)**: NASA POWER la publica solo desde 2001 y en malla nativa de 1° × 1°. Es un promedio de las 24 horas del día (incluye la noche), por eso es mucho menor que el índice UV del mediodía. Cada celda del mapa toma el punto de NASA más cercano a su centro, así que varias celdas vecinas comparten valor (`resampled: true` en el snapshot).
+- **Hidrografía**: HOT/OpenStreetMap (`hotosm_cri_waterways_osm_geojson.zip`, instantánea del 2026-11-03), licencia ODbL: se debe atribuir «© colaboradores de OpenStreetMap». Es cobertura voluntaria y puede estar incompleta. Muestra dónde hay ríos y quebradas; **no mide caudal**.
+- **Operadores de agua**: SAGA (AyA), «Operadores y Fuentes (Ubicaciones)», datos al 11 de noviembre de 2026. Caudal inicial de cada operador = suma del «Último caudal registrado» de sus fuentes, que se asume en L/s. 1175 de 1334 operadores tienen al menos una medición. Los reportes que envían las ASADAs son autorreportes sin verificación independiente.
+
