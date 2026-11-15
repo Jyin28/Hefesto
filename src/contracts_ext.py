@@ -1,4 +1,4 @@
-"""Hefesto contract extensions for F2 (J2.1/J2.3). Owner: Jacky.
+"""AguaAlerta contract extensions for F2 (J2.1/J2.3). Owner: Jacky.
 
 [PROPUESTA, pendiente de acuerdo con Samuel/Emanuel/Kevin]. Additive: contracts v2 in
 contracts.py are untouched; these types ride next to them via wrappers. Pure stdlib, no I/O.

@@ -1,4 +1,4 @@
-"""Comparacion historica, OLS+HAC y BY regional (Hefesto v2, Entrega 2 EMANUEL).
+"""Comparacion historica, OLS+HAC y BY regional (AguaAlerta v2, Entrega 2 EMANUEL).
 
 Propietario: Emanuel. Normative source: docs/plan/PLAN-HEFESTO.md, secciones 2, 3 y 6
 ("2. Comparacion automatica"; "3. Tendencia, incertidumbre y significancia",

@@ -1,4 +1,4 @@
-"""Streamlit implementation of the Detective Tico MVP."""
+"""Streamlit implementation of the AguaAlerta MVP."""
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -92,8 +92,8 @@ def display_card(card):
 
 
 def main():
-    st.set_page_config(page_title="Detective Tico", layout="wide")
-    st.title("Detective Tico")
+    st.set_page_config(page_title="AguaAlerta", layout="wide")
+    st.title("AguaAlerta")
     st.caption("Compara el calor y la lluvia en dos sectores de Costa Rica con datos de NASA POWER.")
     st.markdown(
         "<style>@media print { [data-testid='stHeader'], [data-testid='stToolbar'], "
@@ -204,7 +204,7 @@ def main():
         st.caption(limitation)
     st.markdown(f"[{card['source']}]({card['sourceUrl']})")
     st.caption("Para imprimir la ficha, usá la opción Imprimir del navegador.")
-    st.download_button("Ficha JSON", to_json(card, indent=2), "ficha-detective-tico.json", "application/json")
+    st.download_button("Ficha JSON", to_json(card, indent=2), "ficha-aguaalerta.json", "application/json")
     labels = {"series": "Serie anual", "results": "Resultados", "water": "Cobertura de agua",
               "distribution": "Distribución", "sources": "Fuentes", "enso": "El Niño"}
     for table, rows in csv_tables(card).items():

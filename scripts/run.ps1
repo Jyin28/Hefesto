@@ -1,4 +1,4 @@
-# Abre Hefesto (Detective Tico) en http://localhost:8501
+# Abre AguaAlerta en http://localhost:8501
 # Uso:  .\scripts\run.ps1         (crea .venv e instala dependencias solo si hace falta)
 $ErrorActionPreference = "Stop"
 $root = Split-Path $PSScriptRoot -Parent

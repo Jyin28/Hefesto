@@ -1,4 +1,4 @@
-"""Preparacion de series mensuales y anuales regionales (Hefesto v2, EMANUEL-03).
+"""Preparacion de series mensuales y anuales regionales (AguaAlerta v2, EMANUEL-03).
 
 Propietario: Emanuel. Pure stdlib: ninguna dependencia externa (no hay pandas/numpy
 en este entorno todavia; coincide con la convencion de `src/contracts.py` y

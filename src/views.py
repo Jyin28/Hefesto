@@ -1,4 +1,4 @@
-"""Vistas Streamlit/Plotly de Detective Tico. La UI NO calcula pendientes ni p: solo presenta
+"""Vistas Streamlit/Plotly de AguaAlerta. La UI NO calcula pendientes ni p: solo presenta
 lo que devuelve el servicio (`service.build_evidence_card` y funciones hermanas).
 
 Todo el mapa es Plotly puro con rectángulos de celdas nativas: no usa teselas ni topojson externos.

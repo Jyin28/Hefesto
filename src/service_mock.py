@@ -1,4 +1,4 @@
-"""Hefesto MOCK service. Development tool ONLY: every output is synthetic=True.
+"""AguaAlerta MOCK service. Development tool ONLY: every output is synthetic=True.
 
 Numbers here are deterministic contract examples, NOT scientific evidence and NOT
 NASA data. Inference fields (se/p/CI) at level "inferential" are PLACEHOLDERS, not

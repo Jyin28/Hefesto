@@ -1,4 +1,4 @@
-"""Hefesto MOCK service, F2 part (J2.1 availability states, J2.3 catalog and queries).
+"""AguaAlerta MOCK service, F2 part (J2.1 availability states, J2.3 catalog and queries).
 
 Development tool ONLY: every output is synthetic=True, source_mode="mock". Values are
 deterministic contract examples, not NASA data. Real service (src/service.py) must never

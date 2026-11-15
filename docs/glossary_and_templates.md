@@ -1,4 +1,4 @@
-# Glosario, guías y plantillas — Hefesto v2 · Detective Tico
+# Glosario, guías y plantillas — AguaAlerta
 
 Documento de producto y educación para el equipo (Kevin en UI, Jacky en servicio, Emanuel en estadística). Todo el texto es fijo y determinista: no se genera en tiempo de ejecución.
 

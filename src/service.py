@@ -1,4 +1,4 @@
-"""Servicio REAL de Hefesto v2 (mismas firmas y formas de retorno que `service_mock`).
+"""Servicio REAL de AguaAlerta v2 (mismas firmas y formas de retorno que `service_mock`).
 
 Punto de entrada único de la UI: NO calcula pendientes ni p en la UI; todo sale de
 `prepare` → `statistics`/`evidence` sobre los datos NASA POWER del repositorio.

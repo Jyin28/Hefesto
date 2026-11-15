@@ -1,4 +1,4 @@
-"""Construye los datasets mock y reales de Costa Rica y ejecuta QC (Hefesto v2).
+"""Construye los datasets mock y reales de Costa Rica y ejecuta QC (AguaAlerta v2).
 
 Propietario: Samuel.
 Uso: python -m scripts.build_data
@@ -108,7 +108,7 @@ def run_qc(grid_df: pd.DataFrame, masks_df: pd.DataFrame, processed_dir: Path) -
 
 def write_data_sources_md(path: Path, provenance: dict) -> None:
     """Documenta fuentes, licencias y limitaciones para Joshua y Diego."""
-    content = f"""# Fuentes de Datos y Limitaciones Espaciales — Hefesto v2
+    content = f"""# Fuentes de Datos y Limitaciones Espaciales — AguaAlerta v2
 
 ## 1. Fuente primaria (S1 / S2)
 * **Proveedor:** {provenance['provider']}

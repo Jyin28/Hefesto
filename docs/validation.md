@@ -1,4 +1,4 @@
-# Hefesto · Estado y validación (rama MVP)
+# AguaAlerta · Estado y validación (rama MVP)
 
 Revisión del 14 de noviembre de 2026. Producto: app Streamlit sobre datos reales NASA POWER (T2M y PRECTOTCORR, CR_PN y CR_CAR, 1981–2024).
 

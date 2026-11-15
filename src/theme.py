@@ -1,4 +1,4 @@
-"""Tema visual "vidrio" de Detective Tico (adaptado de hefesto-ui). Solo estilo: no toca datos ni estadística.
+"""Tema visual "vidrio" de AguaAlerta (adaptado de hefesto-ui). Solo estilo: no toca datos ni estadística.
 Sin fuentes ni recursos externos (offline): usa la pila de fuentes del sistema."""
 from __future__ import annotations
 

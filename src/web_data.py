@@ -1,4 +1,4 @@
-"""Read-only data adapter for the Detective Tico web interface."""
+"""Read-only data adapter for the AguaAlerta web interface."""
 from functools import lru_cache
 from collections import defaultdict
 from hashlib import sha256

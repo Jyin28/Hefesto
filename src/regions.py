@@ -1,4 +1,4 @@
-"""Definicion espacial y mascara terrestre fija para Costa Rica (Hefesto v2).
+"""Definicion espacial y mascara terrestre fija para Costa Rica (AguaAlerta v2).
 
 Propietario: Samuel.
 Fuente de geometria: Centros de malla nativa NASA POWER (0.5 deg lat x 0.625 deg lon)

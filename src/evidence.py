@@ -1,4 +1,4 @@
-"""Independent trend check and multiple-testing families for Detective Tico."""
+"""Independent trend check and multiple-testing families for AguaAlerta."""
 from collections import Counter
 from dataclasses import replace
 from math import erfc, sqrt

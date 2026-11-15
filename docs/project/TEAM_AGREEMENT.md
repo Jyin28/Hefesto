@@ -1,6 +1,6 @@
-# Acuerdo de Equipo — Hefesto v2
+# Acuerdo de Equipo — AguaAlerta v2
 
-Contrato de trabajo del equipo **Hefesto v2 — Detective Tico**. Al firmar, cada integrante acepta las cláusulas de este documento.
+Contrato de trabajo del equipo **AguaAlerta**. Al firmar, cada integrante acepta las cláusulas de este documento.
 
 ## Integrantes y roles
 

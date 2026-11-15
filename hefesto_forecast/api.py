@@ -21,5 +21,5 @@ def predictions(region: Literal['CR','CR_PN','CR_CAR']='CR',
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
 
-app = FastAPI(title='Hefesto: predicciones experimentales')
+app = FastAPI(title='AguaAlerta: predicciones experimentales')
 app.include_router(router)

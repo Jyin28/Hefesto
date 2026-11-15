@@ -1,4 +1,4 @@
-"""Hefesto v2 — Detective Tico (Costa Rica). Aplicación Streamlit.
+"""AguaAlerta (Costa Rica). Aplicación Streamlit.
 
 Reglas: la UI no recalcula estadística (todo viene de `src.service`); recomendación determinista
 desde config/discovery.json; nunca se convierte null a 0; offline (sin teselas ni telemetría).
@@ -66,7 +66,7 @@ def banner() -> None:
 
 def sidebar() -> None:
     with st.sidebar:
-        st.header("Detective Tico")
+        st.header("AguaAlerta")
         st.caption("Recorridos guiados")
         st.button("🔥 Investiga el calor", width="stretch", on_click=start_tour, args=("heat",))
         st.button("🌧️ Investiga la lluvia", width="stretch", on_click=start_tour, args=("rain",))
@@ -194,10 +194,10 @@ def results_step() -> None:
 
 
 def main() -> None:
-    st.set_page_config(page_title="Hefesto · Detective Tico", page_icon="🔥", layout="wide")
+    st.set_page_config(page_title="AguaAlerta", page_icon="🔥", layout="wide")
     theme.apply_theme()
     init_state()
-    st.title("Hefesto · Detective Tico")
+    st.title("AguaAlerta")
     banner()
     sidebar()
     {"questions": questions_step, "confirmation": confirmation_step, "results": results_step}[

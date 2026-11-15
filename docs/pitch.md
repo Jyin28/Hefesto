@@ -1,4 +1,4 @@
-# Pitch — Hefesto: Detective Tico (4:30)
+# Pitch — AguaAlerta (4:30)
 
 > **Guion de ensayo con datos reales.** Las cifras y su verificación están en [Validación](validation.md). Las capturas quedan para el ensayo en navegador.
 
@@ -17,7 +17,7 @@
 ## Guion
 
 ### 0:00–0:30 · Joshua · Diapositiva 1
-"En Costa Rica todos hablamos del calor y de la lluvia: ¿hace más calor que antes?, ¿llueve distinto en el Caribe que en el Pacífico? Pasar de la intuición a la evidencia no es fácil. **Hefesto: Detective Tico** convierte una pregunta cotidiana en evidencia reproducible, paso a paso, para colegios y universidades. Funciona sin internet y sin inteligencia artificial generativa en producción."
+"En Costa Rica todos hablamos del calor y de la lluvia: ¿hace más calor que antes?, ¿llueve distinto en el Caribe que en el Pacífico? Pasar de la intuición a la evidencia no es fácil. **AguaAlerta** convierte una pregunta cotidiana en evidencia reproducible, paso a paso, para colegios y universidades. Funciona sin internet y sin inteligencia artificial generativa en producción."
 
 ### 0:30–1:10 · Joshua · Diapositiva 2
 "El estudiante elige calor o lluvia. El sitio usa temperatura del aire a dos metros para calor y precipitación corregida para lluvia. Los datos son de NASA POWER mensual, del reanálisis MERRA-2, de 1981 a 2024: 44 años completos. Son estimaciones de un modelo con asimilación de observaciones, no mediciones de estaciones."
@@ -35,7 +35,7 @@
 "Cada celda mide unos 55 por 69 kilómetros; no son provincias, cantones ni fincas, y las celdas costeras pueden mezclar tierra y mar. Es una herramienta educativa: no está validada para alertas, racionamiento, ASADAS ni agricultura, ni aún con usuarios externos."
 
 ### 4:10–4:30 · Joshua · Diapositiva 6
-"Cada recorrido termina en una Ficha de Detective, descargable en JSON y CSV, reproducible con el paquete local. Detective Tico no promete respuestas; enseña a hacer buenas preguntas con evidencia. Gracias."
+"Cada recorrido termina en una Ficha de Detective, descargable en JSON y CSV, reproducible con el paquete local. AguaAlerta no promete respuestas; enseña a hacer buenas preguntas con evidencia. Gracias."
 
 ## Si el navegador o la publicación fallan
 

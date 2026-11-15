@@ -1,4 +1,4 @@
-"""Hefesto contracts v2 (schema_version="2.0"). Owner: Jacky.
+"""AguaAlerta contracts v2 (schema_version="2.0"). Owner: Jacky.
 
 Pure stdlib. No I/O at import. Normative source: PLAN-HEFESTO v2, section 4.
 Convention: DataFrame missing = NaN; JSON missing = null (never NaN/Infinity).

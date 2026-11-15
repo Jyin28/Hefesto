@@ -1,8 +1,8 @@
-# Limitaciones de Hefesto v2 — Detective Tico
+# Limitaciones de AguaAlerta
 
-Este documento explica con honestidad qué puede y qué no puede decir Hefesto v2. Léelo antes de interpretar una Ficha de Detective.
+Este documento explica con honestidad qué puede y qué no puede decir AguaAlerta v2. Léelo antes de interpretar una Ficha de Detective.
 
-> **Uso exclusivamente educativo** (colegios, universidades y aprendizaje comunitario). Hefesto v2 **no está validado** para alertas tempranas, racionamiento, operación de ASADAS, agricultura ni emergencias, y **aún no ha sido validado con usuarios externos**.
+> **Uso exclusivamente educativo** (colegios, universidades y aprendizaje comunitario). AguaAlerta v2 **no está validado** para alertas tempranas, racionamiento, operación de ASADAS, agricultura ni emergencias, y **aún no ha sido validado con usuarios externos**.
 
 ---
 
@@ -18,7 +18,7 @@ Este documento explica con honestidad qué puede y qué no puede decir Hefesto v
 - Cada sector didáctico agrupa **5 celdas terrestres elegibles**:
   - `CR_PN` (Pacífico Norte): bbox `[-86.0, 9.75, -85.0, 11.25]` → **5 celdas**.
   - `CR_CAR` (Caribe): bbox `[-84.0, 9.5, -82.75, 10.75]` → **5 celdas**.
-- Los sectores **no son límites de provincias, cantones, fincas ni cuencas oficiales**. Hefesto no describe un lugar puntual.
+- Los sectores **no son límites de provincias, cantones, fincas ni cuencas oficiales**. AguaAlerta no describe un lugar puntual.
 - **Mezcla mar/tierra:** en las celdas costeras, un mismo valor puede reflejar una combinación de tierra y mar. Por eso los resultados se interpretan a escala regional.
 
 ## 3. Qué mide cada variable y qué no
@@ -54,12 +54,12 @@ Este documento explica con honestidad qué puede y qué no puede decir Hefesto v
 Un artículo de la Universidad de Costa Rica (UCR) explica que **El Niño y La Niña** son dos caras de un mismo fenómeno climático y que influyen de forma distinta en las vertientes del Pacífico y del Caribe. *(S5)*
 Fuente: <https://www.ucr.ac.cr/noticias/2023/7/12/el-nino-y-la-nina-dos-caras-de-un-mismo-fenomeno-climatico/>
 
-En Hefesto v2 hay que tener claro que:
+En AguaAlerta v2 hay que tener claro que:
 
 - ENOS es **variabilidad interanual**, no una tendencia lineal de largo plazo.
 - ENOS **no prueba causalidad** de ninguna pendiente de una Ficha de Detective.
 - ENOS **no garantiza tendencias opuestas** entre `CR_PN` y `CR_CAR` en 1981–2024: pueden ser parecidas, distintas o no detectables.
-- Hefesto v2 no separa ni cuantifica el efecto de ENOS.
+- AguaAlerta v2 no separa ni cuantifica el efecto de ENOS.
 
 ## 6. Usos NO aptos
 
@@ -67,7 +67,7 @@ No usar los resultados para: alertas tempranas, racionamiento, operación de ASA
 
 ## 7. Reproducibilidad
 
-Hefesto v2 **no usa LLM ni IA generativa en tiempo de ejecución**. Las recomendaciones, los cálculos y los textos de la Ficha de Detective son deterministas y reproducibles sin conexión. Ver `docs/project/AI_USAGE.md`.
+AguaAlerta v2 **no usa LLM ni IA generativa en tiempo de ejecución**. Las recomendaciones, los cálculos y los textos de la Ficha de Detective son deterministas y reproducibles sin conexión. Ver `docs/project/AI_USAGE.md`.
 
 ## 8. Referencias (IDs usados en `docs/claims.csv`)
 

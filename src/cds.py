@@ -8,7 +8,7 @@ Productos (descarga con `cdsapi`, 1981-2024, caja alrededor de Costa Rica):
 La salida (`web/public/data/cds.json`) usa la misma forma `Layer` que `src/layers.py`, de modo que la interfaz trata igual
 las capas de NASA POWER y las del CDS. No toca `snapshot.json` ni la cadena de evidencia de las variables originales.
 
-Uso (desde la raíz de Hefesto, con una clave en ~/.cdsapirc; ver web/README.md):
+Uso (desde la raíz del proyecto, con una clave en ~/.cdsapirc; ver web/README.md):
     python -m src.cds
 """
 from __future__ import annotations

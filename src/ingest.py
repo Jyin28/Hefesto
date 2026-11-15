@@ -1,4 +1,4 @@
-"""Ingesta reproducible desde NASA POWER Monthly Regional API (Hefesto v2).
+"""Ingesta reproducible desde NASA POWER Monthly Regional API (AguaAlerta v2).
 
 Propietario: Samuel.
 """

@@ -1,4 +1,4 @@
-# Hefesto · Detective Tico (Costa Rica)
+# AguaAlerta (Costa Rica)
 NASA Space Apps Hackathon · explorador educativo de cambios ambientales con datos NASA POWER.
 
 El estudiante elige una pregunta (¿cambió la temperatura? ¿cambió la lluvia anual?), un sector (Pacífico Norte o Caribe de Costa Rica)
