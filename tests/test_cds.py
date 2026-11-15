@@ -81,12 +81,24 @@ class BuildLayersTest(unittest.TestCase):
         rh = self.layers["RH2M"]["cells"]["ERA5L:10:-84"][0]
         self.assertAlmostEqual(rh, float(cds.relative_humidity(26.85, 21.85)), delta=0.05)
 
-    def test_cell_without_data_is_none_and_ignored_in_national(self):
+    def test_coastal_cell_takes_nearest_land_and_is_flagged(self):
+        # (10,1; -84,0) llega vacía de ERA5-Land (mar): toma el punto de tierra más cercano (26,85 °C) y queda marcada.
         series = self.layers["T2M"]["cells"]["ERA5L:10.1:-84"]
-        self.assertTrue(all(value is None for value in series))
-        # Promedio ponderado por cos(lat) x fracción de tierra, solo con las dos celdas que tienen dato (misma latitud).
+        self.assertAlmostEqual(series[0], 26.85, places=2)
+        self.assertEqual(self.layers["T2M"]["filled"], ["ERA5L:10.1:-84"])
+        self.assertEqual(self.layers["T2M"]["provenance"]["filled_from_nearest_land"], 1)
+        self.assertEqual(self.layers["UV"]["filled"], [])  # ERA5 (UV) no enmascara el mar
+
+    def test_filled_cell_does_not_weigh_in_national(self):
+        # Promedio ponderado por cos(lat) x fracción de tierra, solo con las dos celdas con dato propio (misma latitud).
         expected = (26.85 * 1.0 + 16.85 * 0.5) / 1.5
         self.assertAlmostEqual(self.layers["T2M"]["national"][0], expected, places=2)
+
+    def test_cell_without_land_in_range_stays_none(self):
+        # Con un radio menor que 0,1° no hay tierra a la que acudir: la celda sigue vacía y no se marca.
+        picked, _, filled = cds._monthly_by_cell(land_dataset()["t2m"], CELLS, cds.GRID_TOLERANCE, fill_radius=0.05)
+        self.assertEqual(filled, [])
+        self.assertTrue(bool(np.isnan(picked.values[:, 2]).all()))
 
     def test_uv_takes_nearest_era5_point_and_is_flagged_resampled(self):
         uv = self.layers["UV"]
@@ -201,7 +213,8 @@ class ExportTest(unittest.TestCase):
             self.assertEqual(set(payload["layers"]), {"T2M", "PRECTOTCORR", "RH2M", "UV"})
             self.assertIn("Copernicus", payload["attribution"])
             self.assertTrue(math.isclose(payload["layers"]["T2M"]["cells"]["ERA5L:10:-84"][0], 26.85, abs_tol=0.01))
-            self.assertIsNone(payload["layers"]["T2M"]["cells"]["ERA5L:10.1:-84"][0])
+            self.assertTrue(math.isclose(payload["layers"]["T2M"]["cells"]["ERA5L:10.1:-84"][0], 26.85, abs_tol=0.01))
+            self.assertEqual(payload["layers"]["T2M"]["filled"], ["ERA5L:10.1:-84"])
 
 
     def test_end_to_end_without_uv_file(self):

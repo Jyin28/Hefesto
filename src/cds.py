@@ -39,6 +39,9 @@ START_YEAR, END_YEAR = 1981, 2024
 AREA = [11.4, -86.1, 7.9, -82.4]
 GRID_TOLERANCE = 0.06   # ERA5-Land: el centro de cada celda debe caer en un punto de la malla 0,1°.
 UV_TOLERANCE = 0.13     # ERA5: el punto de 0,25° más cercano queda a lo sumo a ~0,125° por eje.
+# ERA5-Land no publica puntos de mar: una celda costera cuyo centro cae en el agua llega vacía. Se rellena con el
+# punto de tierra más cercano, a lo sumo a este radio (en grados). Esas celdas se marcan en `filled` y no entran al promedio nacional.
+FILL_RADIUS = 0.3
 
 LAND = {"dataset": "reanalysis-era5-land-monthly-means", "file": "era5land_monthly_1981_2024.nc",
         "doi": "10.24381/cds.68d2bb30", "title": "ERA5-Land monthly averaged data from 1950 to present",
@@ -179,8 +182,37 @@ def load_cells(path: Path = CELLS_FILE) -> list[dict[str, Any]]:
     return [dict(cell, id=f"ERA5L:{cell['lat']:g}:{cell['lon']:g}") for cell in cells]
 
 
-def _monthly_by_cell(data, cells: list[dict[str, Any]], tolerance: float) -> tuple[Any, bool]:
-    """Valores mensuales (tiempo x celda) en el punto de malla más cercano al centro de cada celda."""
+def _fill_from_nearest_land(data, picked, cells: list[dict[str, Any]], radius: float) -> tuple[Any, list[str]]:
+    """Rellena las celdas vacías (mar en ERA5-Land) con la serie del punto de tierra más cercano dentro de `radius` grados.
+
+    Devuelve (valores mensuales, ids de las celdas rellenadas). Una celda sin tierra a ese radio sigue vacía.
+    """
+    picked = picked.transpose("time", "cell")
+    values = np.array(picked.values, dtype=float)
+    empty = np.isnan(values).all(axis=0)
+    if not empty.any():
+        return picked, []
+    grid = data.transpose("time", "latitude", "longitude")
+    cube = np.asarray(grid.values, dtype=float)
+    has_land = ~np.isnan(cube).all(axis=0)
+    lat_grid, lon_grid = np.meshgrid(grid["latitude"].values, grid["longitude"].values, indexing="ij")
+    filled: list[str] = []
+    for index in np.flatnonzero(empty):
+        distance = np.hypot(lat_grid - cells[index]["lat"], lon_grid - cells[index]["lon"])
+        distance = np.where(has_land, distance, np.inf)
+        row, col = np.unravel_index(np.argmin(distance), distance.shape)
+        if distance[row, col] <= radius + 1e-9:
+            values[:, index] = cube[:, row, col]
+            filled.append(cells[index]["id"])
+    return picked.copy(data=values), filled
+
+
+def _monthly_by_cell(data, cells: list[dict[str, Any]], tolerance: float,
+                     fill_radius: float = FILL_RADIUS) -> tuple[Any, bool, list[str]]:
+    """Valores mensuales (tiempo x celda) en el punto de malla más cercano al centro de cada celda.
+
+    Devuelve también los ids de las celdas que no tenían dato y se rellenaron con tierra cercana.
+    """
     import xarray as xr
 
     lats = xr.DataArray([cell["lat"] for cell in cells], dims="cell")
@@ -191,10 +223,12 @@ def _monthly_by_cell(data, cells: list[dict[str, Any]], tolerance: float) -> tup
         raise ValueError("La descarga del CDS no cubre todas las celdas del mapa; revisá la caja AREA.") from error
     resampled = bool((abs(picked["latitude"].values - lats.values) > 1e-4).any()
                      or (abs(picked["longitude"].values - lons.values) > 1e-4).any())
-    return picked, resampled
+    picked, filled = _fill_from_nearest_land(data, picked, cells, fill_radius)
+    return picked, resampled, filled
 
 
-def _annual_layer(picked, cells: list[dict[str, Any]], layer_id: str) -> tuple[dict[str, list[float | None]], list[float | None]]:
+def _annual_layer(picked, cells: list[dict[str, Any]], layer_id: str,
+                  filled: frozenset[str] | set[str] = frozenset()) -> tuple[dict[str, list[float | None]], list[float | None]]:
     spec = LAYER_SPECS[layer_id]
     years, months = picked["time"].dt.year.values, picked["time"].dt.month.values
     values = picked.transpose("time", "cell").values
@@ -202,9 +236,11 @@ def _annual_layer(picked, cells: list[dict[str, Any]], layer_id: str) -> tuple[d
     for index, cell in enumerate(cells):
         monthly = {f"{int(y)}{int(m):02d}": float(values[row, index]) for row, (y, m) in enumerate(zip(years, months))}
         series[cell["id"]] = annual_series(monthly, START_YEAR, END_YEAR, spec["agg"])
+    # El promedio nacional usa solo datos propios de cada celda: las rellenadas con tierra cercana no pesan dos veces.
+    own = [cell for cell in cells if cell["id"] not in filled]
     national: list[float | None] = []
     for position in range(END_YEAR - START_YEAR + 1):
-        pairs = [(series[cell["id"]][position], math.cos(math.radians(cell["lat"])) * cell["land_fraction"]) for cell in cells]
+        pairs = [(series[cell["id"]][position], math.cos(math.radians(cell["lat"])) * cell["land_fraction"]) for cell in own]
         pairs = [(value, weight) for value, weight in pairs if value is not None]
         national.append(round(sum(v * w for v, w in pairs) / sum(w for _, w in pairs), 3) if pairs else None)
     return series, national
@@ -237,15 +273,16 @@ def build_layers(land, uv, cells: list[dict[str, Any]], land_meta: dict[str, Any
         layers_data["UV"] = (joules_per_day_to_watts(uv["uvb"]), uv_meta, UV_TOLERANCE, "downward_uv_radiation_at_the_surface")
     layers: dict[str, Any] = {}
     for layer_id, (data, meta, tolerance, parameter) in layers_data.items():
-        picked, resampled = _monthly_by_cell(data, cells, tolerance)
-        series, national = _annual_layer(picked, cells, layer_id)
+        picked, resampled, filled = _monthly_by_cell(data, cells, tolerance)
+        series, national = _annual_layer(picked, cells, layer_id, set(filled))
         check_plausible(layer_id, series)
         spec = LAYER_SPECS[layer_id]
         layers[layer_id] = {
             "label": spec["label"], "unit": spec["unit"], "start": START_YEAR, "end": END_YEAR,
-            "national": national, "cells": series, "resampled": resampled,
+            "national": national, "cells": series, "resampled": resampled, "filled": filled,
             "provenance": {"source": meta["title"], "url": meta["url"], "doi": meta["doi"], "sha256": meta["sha256"],
-                           "retrieved_at": meta["retrieved_at"], "parameter": parameter, "resampled": resampled},
+                           "retrieved_at": meta["retrieved_at"], "parameter": parameter, "resampled": resampled,
+                           "filled_from_nearest_land": len(filled)},
         }
     return layers
 
@@ -296,7 +333,8 @@ def main(argv: list[str] | None = None) -> int:
     for layer_id, layer in payload["layers"].items():
         usable = sum(value is not None for value in layer["national"])
         with_data = sum(any(value is not None for value in series) for series in layer["cells"].values())
-        print(f"{layer_id}: {with_data}/{len(layer['cells'])} celdas con dato, "
+        print(f"{layer_id}: {with_data}/{len(layer['cells'])} celdas con dato "
+              f"({len(layer['filled'])} rellenadas con el punto de tierra más cercano), "
               f"{usable}/{len(layer['national'])} años con promedio nacional")
     if "UV" not in payload["layers"]:
         print("Sin archivo ERA5 de UV: la capa UV no se publica (el botón UV se desactiva en «Datos CDS»).", file=sys.stderr)

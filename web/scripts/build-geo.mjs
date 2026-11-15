@@ -93,22 +93,28 @@ for (let i = 0; i < N; i++) {
   }
 }
 
-// --- Celda dominante de cada cantón (mayor área de intersección) ---
+// --- Celda dominante de cada cantón (mayor área de intersección) y cantones que toca cada celda ---
+/** Un cantón «pertenece» a una celda si ocupa más del 1 % de la celda o la celda contiene más del 5 % del cantón (descarta astillas). */
+const belongs = (shared, cellArea, cantonArea) => shared > 0.01 * cellArea || shared > 0.05 * cantonArea
 const cantonCells = {}
+const cellCantons = {}
 for (const f of cantons.features) {
+  const cantonArea = area(f)
   let best = { id: '', value: 0 }
   for (const c of cells) {
     const shared = intersect(featureCollection([f, c.cell]))
     const value = shared ? area(shared) : 0
     if (value > best.value) best = { id: c.id, value }
+    if (value > 0 && belongs(value, area(c.cell), cantonArea)) (cellCantons[c.id] ??= []).push({ code: f.properties.code, value })
   }
   cantonCells[f.properties.code] = best.id
 }
+const sortedCodes = map => Object.fromEntries(Object.entries(map).map(([id, list]) => [id, list.sort((a, b) => b.value - a.value).map(item => item.code)]))
 
 const strip = f => ({ type: 'Feature', properties: f.properties, geometry: { type: f.geometry.type, coordinates: walk(f.geometry.coordinates) } })
 const geo = {
   country: strip(country), provinces: provinces.map(strip), neighbors: neighbors.map(strip),
-  cells: cells.map(({ cell, ...rest }) => rest), cantonCells,
+  cells: cells.map(({ cell, ...rest }) => rest), cantonCells, cellCantons: sortedCodes(cellCantons),
 }
 writeFileSync(resolve(root, 'public/data/geo.json'), JSON.stringify(geo))
 
@@ -120,9 +126,10 @@ console.log(`celdas: ${cells.length}, con tierra: ${national.length}, usadas por
 console.log(`cantones asignados: ${Object.keys(cantonCells).length}, sin celda: ${Object.values(cantonCells).filter(v => !v).length}`)
 
 // --- Malla ERA5-Land del Copernicus CDS: 0,1° × 0,1°, centros en múltiplos de 0,1° (≈11 km) ---
-// Solo se conservan las celdas con al menos 1 % de tierra. Las celdas totalmente interiores no guardan polígono
-// de tierra (el cliente usa su caja) para que el archivo no crezca.
-const CDS_STEP = 0.1, CDS_LAT0 = 8.0, CDS_LAT_N = 34, CDS_LON0 = -86.0, CDS_LON_N = 36
+// La malla cubre TODO el rectángulo navegable del mapa (también mar y países vecinos) para que se vea completa; las celdas
+// con menos de 1 % de tierra no llevan datos ni son clicables. Las celdas totalmente interiores no guardan polígono de
+// tierra (el cliente usa su caja) para que el archivo no crezca. A Python (`cds_cells.json`) solo van las celdas con tierra.
+const CDS_STEP = 0.1, CDS_LAT0 = 8.0, CDS_LAT_N = 38, CDS_LON0 = -86.5, CDS_LON_N = 44
 const tenth = n => Math.round(n * 10) / 10
 const bboxOfGeometry = geometry => {
   let west = Infinity, south = Infinity, east = -Infinity, north = -Infinity
@@ -142,31 +149,36 @@ for (let i = 0; i < CDS_LAT_N; i++) {
     const lat = tenth(CDS_LAT0 + i * CDS_STEP)
     const lon = tenth(CDS_LON0 + j * CDS_STEP)
     const bbox = [lon - CDS_STEP / 2, lat - CDS_STEP / 2, lon + CDS_STEP / 2, lat + CDS_STEP / 2].map(round)
-    if (!overlaps(bbox, countryBox)) continue
+    const id = `ERA5L:${lat}:${lon}`
+    if (!overlaps(bbox, countryBox)) { cdsCells.push({ id, lat, lon, bbox, landFraction: 0, land: null, cell: null }); continue }
     const cell = box(...bbox)
     const land = intersect(featureCollection([cell, country]))
     const landFraction = land ? Math.round((area(land) / area(cell)) * 1e4) / 1e4 : 0
-    if (landFraction < 0.01) continue
+    if (landFraction < 0.01) { cdsCells.push({ id, lat, lon, bbox, landFraction: 0, land: null, cell: null }); continue }
     cdsCells.push({
-      id: `ERA5L:${lat}:${lon}`, lat, lon, bbox, landFraction,
+      id, lat, lon, bbox, landFraction,
       land: landFraction >= 0.999 ? null : { type: land.geometry.type, coordinates: walk(land.geometry.coordinates) }, cell,
     })
   }
 }
+const cdsLand = cdsCells.filter(c => c.cell)
 const cdsCantonCells = {}
+const cdsCellCantons = {}
 for (const f of cantons.features) {
   const featureBox = bboxOfGeometry(f.geometry)
+  const cantonArea = area(f)
   let best = { id: '', value: 0 }
-  for (const c of cdsCells) {
+  for (const c of cdsLand) {
     if (!overlaps(featureBox, c.bbox)) continue
     const shared = intersect(featureCollection([f, c.cell]))
     const value = shared ? area(shared) : 0
     if (value > best.value) best = { id: c.id, value }
+    if (value > 0 && belongs(value, area(c.cell), cantonArea)) (cdsCellCantons[c.id] ??= []).push({ code: f.properties.code, value })
   }
   cdsCantonCells[f.properties.code] = best.id
 }
 writeFileSync(resolve(root, 'public/data/geo-cds.json'),
-  JSON.stringify({ cells: cdsCells.map(({ cell, ...rest }) => rest), cantonCells: cdsCantonCells }))
+  JSON.stringify({ cells: cdsCells.map(({ cell, ...rest }) => rest), cantonCells: cdsCantonCells, cellCantons: sortedCodes(cdsCellCantons) }))
 writeFileSync(resolve(root, '../data/web/cds_cells.json'),
-  JSON.stringify(cdsCells.map(c => ({ lat: c.lat, lon: c.lon, land_fraction: c.landFraction })), null, 2) + '\n')
-console.log(`celdas CDS con tierra: ${cdsCells.length}, cantones asignados: ${Object.keys(cdsCantonCells).length}, sin celda: ${Object.values(cdsCantonCells).filter(v => !v).length}`)
+  JSON.stringify(cdsLand.map(c => ({ lat: c.lat, lon: c.lon, land_fraction: c.landFraction })), null, 2) + '\n')
+console.log(`celdas CDS: ${cdsCells.length} (con tierra: ${cdsLand.length}), cantones asignados: ${Object.keys(cdsCantonCells).length}, sin celda: ${Object.values(cdsCantonCells).filter(v => !v).length}`)
