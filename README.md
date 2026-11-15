@@ -1,10 +1,10 @@
 # AguaAlerta (Costa Rica)
 
-Proyecto del NASA Space Apps Hackathon. AguaAlerta es un sitio web educativo que ayuda a explorar cómo han cambiado la temperatura
-y la lluvia en Costa Rica, con datos de NASA POWER, Copernicus CDS y caudales nacionales. Incluye mapas, una página de predicciones
-y un newsletter por Telegram.
+NASA Space Apps Hackathon project. AguaAlerta is an educational website that helps users explore how temperature
+and rainfall have changed in Costa Rica, using NASA POWER, Copernicus CDS, and national streamflow data. It includes maps, a predictions page,
+and a newsletter via Telegram.
 
-## Integrantes
+## Team Members
 
 - Jacky
 - Emanuel
@@ -13,8 +13,8 @@ y un newsletter por Telegram.
 - Joshua
 - Diego
 
-## Enlaces
+## Links
 
-- **Sitio web (Vercel):** [https://TU-PROYECTO.vercel.app](https://v0-agualerta.vercel.app)
-- **Documentación:** [Ver documento PDF](Hefesto_AguaAlerta.pdf)
-- **Video de YouTube:** [https://www.youtube.com/watch?v=TU-VIDEO](https://youtu.be/49YRnnPCppY)
+- **Website (Vercel):** [Web page](https://v0-agualerta.vercel.app)
+- **Documentation:** [Documentation](Hefesto_AguaAlerta.pdf)
+- **YouTube Video:** [Youtube](https://youtu.be/49YRnnPCppY)
