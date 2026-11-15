@@ -16,3 +16,7 @@ data/telegram_chats.json
 data/suscripciones/
 data/telegram_sent.json
 data/newsletter.log
+
+# Vercel: `vercel env pull` y `vercel link` escriben aquí (secretos y datos del proyecto)
+web/.vercel/
+web/.env*.local

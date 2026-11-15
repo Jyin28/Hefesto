@@ -27,6 +27,35 @@ internet una vez instalado ni ninguna clave: los datos (`web/public/data/`, `hef
 - **Regenerar datos:** `python -m src.predictions` (predicciones, normalmente cada mes) y `npm run geo` en `web/` (mallas por cantón).
 - **Pruebas:** `.\.venv\Scripts\python.exe -m pytest -q` y `cd web; npm.cmd run build`.
 
+## Publicar en Vercel
+
+El sitio se publica desde la carpeta `web/` (React + Vite). Todo es estático salvo el newsletter de Telegram, que usa tres funciones
+de Python en `web/api/` y guarda las suscripciones en Upstash Redis (en Vercel no hay disco permanente ni procesos que queden
+corriendo). La API local del puerto 8000 y los Excel siguen existiendo para desarrollo y no se usan en Vercel.
+
+| Función | Para qué |
+|---|---|
+| `POST /api/suscripciones` | El formulario de Predicciones guarda la suscripción (queda «Pendiente /start»). |
+| `POST /api/telegram` | Webhook del bot: Telegram entrega aquí el `/start` (activa la suscripción y manda bienvenida y mensaje de prueba) y el `/stop`. |
+| `GET /api/enviar` | Cron de Vercel, una vez al día (13:00 UTC = 7:00 de Costa Rica): envía las alertas y el resumen diario. El plan Hobby solo permite una vez al día y con hasta ±59 min de atraso. |
+
+**Una sola vez:**
+
+1. En Vercel, crea el proyecto desde GitHub (rama `main`) con **Root Directory = `web`**. Vercel detecta Vite solo (`npm run build`, salida `dist`).
+2. En *Storage → Marketplace* agrega **Upstash Redis** y conéctalo al proyecto (crea `KV_REST_API_URL` y `KV_REST_API_TOKEN`).
+3. En *Settings → Environment Variables* agrega: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_WEBHOOK_SECRET` y `CRON_SECRET`
+   (los dos secretos son texto al azar, solo letras, números, `_` y `-`; con `CRON_SECRET` definido, Vercel firma cada llamada del cron).
+4. Haz el deploy. Después, para que Telegram entregue los mensajes al sitio, pon `TELEGRAM_BOT_TOKEN` y `TELEGRAM_WEBHOOK_SECRET` en tu `.env` local (el mismo secreto que en Vercel) y corre
+   `.\scripts\telegram_webhook.ps1 -Url https://tu-sitio.vercel.app`. `-Estado` muestra a dónde entrega Telegram ahora.
+
+**Cosas que conviene saber:**
+
+- **El bot no puede atenderse desde Vercel y desde tu computadora a la vez.** Con el webhook activo, la API local no puede leer los `/start` (Telegram responde 409). Para volver al modo local: `.\scripts\telegram_webhook.ps1 -Quitar`.
+- Para ver las suscripciones en Excel: en `web/`, `npx vercel env pull .env.local` y luego `python scripts/exportar_suscripciones.py` (escribe `data/suscripciones/*.xlsx`, que está en `.gitignore` por tener datos personales).
+- `web/servidor/telegram_alerts.py` es copia exacta de `src/telegram_alerts.py`: si cambias uno, copia el otro (una prueba lo verifica). La versión del consentimiento (`CONSENT_VERSION`) debe coincidir en `web/src/NewsletterForm.tsx`, `src/newsletter.py` y `web/servidor/suscripciones.py` (también lo verifica una prueba).
+- Para actualizar las predicciones: `python -m src.predictions`, haz commit de `web/public/data/predicciones.json` y Vercel vuelve a publicar.
+- Pruebas de esta parte: `.\.venv\Scripts\python.exe -m pytest tests/test_vercel_newsletter.py -q`.
+
 ## App Streamlit (versión anterior)
 
 La primera versión del proyecto, una app educativa en Streamlit. Es independiente del sitio web.

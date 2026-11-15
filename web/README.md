@@ -26,6 +26,10 @@ También podés servir `web/dist` como página estática después de generar la 
 
 El snapshot incluye el detalle de celdas para las ventanas por defecto. La API permite cambiar las ventanas y descargar CSV/JSON desde React. Streamlit ofrece estas consultas desde el mismo paquete de datos local.
 
+## Publicar en Vercel
+
+Proyecto de Vercel con **Root Directory = `web`**. El sitio es estático (`npm run build` → `dist`); el newsletter de Telegram usa las funciones de Python de `api/` (código compartido en `servidor/`) y Upstash Redis. En desarrollo, `/api/local` se pide a la API del puerto 8000; en Vercel no existe y el catálogo sale de `snapshot.local`. Paso a paso, variables de entorno, webhook del bot y cron: sección «Publicar en Vercel» del `README.md` de la raíz.
+
 ## Cartografía y avisos
 
 - `python scripts/prepare_cantons.py --ign` consulta la capa publicada del IGN y exige que sus códigos coincidan con la DTA 2026. Si la fuente no responde, usá el flujo con un archivo local. Antes de publicar, cotejá la geometría, su fecha y condiciones de uso.

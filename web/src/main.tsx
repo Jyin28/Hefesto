@@ -101,7 +101,10 @@ function App({ initialMode, goHome, openPredictions }: { initialMode: MapMode; g
     const controller = new AbortController()
     const { signal } = controller
     const climateRequest = getSnapshot(signal).then(data => { if (!signal.aborted) setSnapshot(data) })
-    const localRequest = getJson<Local>('/api/local', signal).then(data => { if (!signal.aborted) setLocal(data) })
+    // `/api/local` solo existe con la API de Python local (puerto 8000, desarrollo). En Vercel el catálogo sale de `snapshot.local`.
+    const localRequest = import.meta.env.DEV
+      ? getJson<Local>('/api/local', signal).then(data => { if (!signal.aborted) setLocal(data) })
+      : Promise.resolve()
     getBoundaries(signal).then(data => { if (!signal.aborted) setBoundaries(data) }).catch(() => {})
     getGeo(signal).then(data => { if (!signal.aborted) setGeo(data) }).catch(() => {})
     getAsadas(signal).then(data => { if (!signal.aborted) setAsadas(data.operators) }).catch(() => {})
