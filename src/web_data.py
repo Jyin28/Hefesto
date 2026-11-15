@@ -12,6 +12,7 @@ from .contracts import (COVERAGE_END_YEAR, COVERAGE_START_YEAR, NATIONAL_REGION_
 from .enso import episode_comparison
 from .evidence import evidence_family
 from .ingest import parse_monthly_records
+from .layers import build_layers
 from .prepare import build_regional_annual, build_regional_monthly, prepare_regional_series
 from .regions import assign_national, mask_records, national_mask_records, region_spec
 from .statistics import compare_historical_windows
@@ -259,6 +260,7 @@ def export_snapshot():
             for region in WEB_REGION_IDS
         },
         "local": local_catalog(),
+        "layers": build_layers(*raw_payloads()),
     }
     # La interfaz no usa el detalle de pruebas de cada celda y pesaría varios MB.
     cards = [*(v for by in snapshot["climate"].values() for v in by.values()),
