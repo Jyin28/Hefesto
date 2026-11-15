@@ -5,7 +5,7 @@ print("Procesando datos de operadores, fuentes y agua...")
 Path("data/processed").mkdir(parents=True, exist_ok=True)
 
 # 1. Leer operadores desde el Excel de SAGA
-op_file = "Operadores y Fuentes (Ubicaciones).xlsx"
+op_file = "data/raw/agua/Operadores y Fuentes (Ubicaciones).xlsx"
 if Path(op_file).exists():
     df_op = pd.read_excel(op_file, sheet_name="Operadores", skiprows=5)
     print(f"Operadores cargados: {len(df_op)} registros.")

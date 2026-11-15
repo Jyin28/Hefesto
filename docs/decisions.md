@@ -43,5 +43,5 @@
 - D25: El adapter aporta los hooks `input_manifest`, `normalize_query` y `refresh_freshness`; `src/snapshots.py` no importa el mock. No se cachean `error` ni `unsupported`; la frescura se reevalúa al leer sin tocar `issued_at`.
 - D26: `INVALIDATION_MATRIX` se deriva de `KEY_PARTS`, de modo que una sola tabla define clave e invalidación (probado cambio por cambio).
 - D27: Export: una carpeta por resultado con `manifest.json` (presentes y ausentes con razón), `evidence.json`, `provenance.json`, `ficha.md` y CSV. Sin datos no se genera CSV. `presentable_as_real` solo con `source_mode=real` y `synthetic=false`. Hipótesis y hora de generación no alteran `result_id` ni `results`.
-- Q8 (Kevin): ¿consumes funciones internas o un bundle JSON? Los ejemplos de `docs/jacky/examples/` sirven para ambos.
+- Q8 (Kevin): ¿consumes funciones internas o un bundle JSON? Los ejemplos de `docs/team/jacky/examples/` sirven para ambos.
 - Q9 (Kevin/Diego): ¿qué metadata es visible en pantalla y cómo se exportan las tablas no aplicables? El mock las lista en `tables_absent`.

@@ -9,6 +9,6 @@
 
 ## F2 Componentes — 2026-11-14
 - Estado: **completa en mock (J2.1–J2.6); revisión humana y acuerdos pendientes.** Rama `feat/jacky-f2-componentes` (desde F1); sin commit ni push.
-- Hecho: J2.1 estados de disponibilidad; J2.2 `F2_ESPEC_ADAPTADORES.md`; J2.3 catálogo y consultas (`get_series`, `get_map`, `get_event_series`, `get_capabilities`, `get_data_coverage`); J2.4 pronóstico, agua y cobertura del servicio; J2.5 `src/snapshots.py` (clave, matriz de invalidación, store); J2.6 `src/export_f2.py` y 14 ejemplos en `docs/jacky/examples/`. 97 tests OK con `.venv`. Resumen: `F2_RESUMEN_EJECUTIVO.md`.
+- Hecho: J2.1 estados de disponibilidad; J2.2 `F2_ESPEC_ADAPTADORES.md`; J2.3 catálogo y consultas (`get_series`, `get_map`, `get_event_series`, `get_capabilities`, `get_data_coverage`); J2.4 pronóstico, agua y cobertura del servicio; J2.5 `src/snapshots.py` (clave, matriz de invalidación, store); J2.6 `src/export_f2.py` y 14 ejemplos en `docs/team/jacky/examples/`. 97 tests OK con `.venv`. Resumen: `F2_RESUMEN_EJECUTIVO.md`.
 - Pendiente: acuerdos de F1/F2 con Samuel, Emanuel, Kevin, Joshua y Diego (Q1–Q9); servicio real (`src/service.py`, F3); fixtures de huecos y series cortas por celda; revisión ajena del PR.
 - Límites: todo sintético; firmas son [PROPUESTA]; `request_id` y `result_id` del mock son deterministas; no se ejecutó Streamlit.

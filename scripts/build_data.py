@@ -159,9 +159,9 @@ def main() -> None:
     prov_path = processed_dir / "provenance_base.json"
     prov_path.write_text(to_json(provenance, indent=2), encoding="utf-8")
 
-    print("4/4 Ejecutando QC y generando DATA_SOURCES.md...")
+    print("4/4 Ejecutando QC y generando docs/DATA_SOURCES.md...")
     run_qc(grid_df, masks_df, processed_dir)
-    write_data_sources_md(root / "DATA_SOURCES.md", provenance)
+    write_data_sources_md(root / "docs" / "DATA_SOURCES.md", provenance)
 
 
 if __name__ == "__main__":

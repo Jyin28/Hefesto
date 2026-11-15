@@ -8,12 +8,12 @@ Es exploración histórica: **no pronostica** sequías, inundaciones ni disponib
 
 ## Cómo abrir el sitio (Windows, PowerShell)
 
-Usa Python 3.12 o posterior. Abre una terminal en la carpeta donde está `run.ps1`.
+Usa Python 3.12 o posterior. Abre una terminal en la raíz del repositorio.
 
 ```powershell
-.\run.ps1
+.\scripts\run.ps1
 ```
-`run.ps1` crea `.venv` e instala las dependencias si hacen falta. Después verifica los datos e inicia Streamlit.
+`scripts\run.ps1` crea `.venv` e instala las dependencias si hacen falta. Después verifica los datos e inicia Streamlit.
 Abre **http://localhost:8501** en el navegador cuando aparezca la dirección en la terminal.
 
 Si ya tienes el entorno listo, puedes iniciar Streamlit directamente.
@@ -39,11 +39,27 @@ Ejecuta estos comandos desde el repositorio de Git. El ZIP de distribución incl
 ```powershell
 .\.venv\Scripts\python.exe scripts\verify_data.py      # datos accesibles y consistentes
 .\.venv\Scripts\python.exe -m pytest -q                 # pruebas (incluye statsmodels, AppTest offline)
-.\package.ps1                                           # dist\hefesto-mvp.zip
+.\scripts\package.ps1                                         # dist\hefesto-mvp.zip
 ```
 
 ## Mapa del repositorio
-`app.py` UI guiada · `src/views.py` vistas · `src/service.py` servicio real (mismas firmas que `service_mock.py`) ·
-`src/prepare.py`, `src/statistics.py`, `src/evidence.py`, `src/enso.py` ciencia · `src/export.py` ficha y exportación ·
-`data/` datos · `docs/` limitaciones, claims, validación, guion · `RELEASE.md` checklist.
+```
+app.py              UI guiada (Streamlit)
+src/                código Python: servicio, ciencia (prepare, statistics, evidence, enso), vistas, exportación
+scripts/            build_*/prepare_*/verify_data.py y run.ps1 / package.ps1
+tests/              pruebas y fixtures
+config/             configuración (ENOS, descubrimiento)
+data/
+  raw/              fuentes originales (NASA POWER, agua/, lluvia/, cantones/, hidrografia/)
+  processed/        datos derivados que consume la app
+  web/              JSON para la app web
+  mock/             datos sintéticos de desarrollo
+docs/
+  plan/             planes del proyecto
+  project/          RELEASE, AI_USAGE, TEAM_AGREEMENT
+  team/             notas y especificaciones por integrante
+  limitations.md, validation.md, claims.csv, DATA_SOURCES.md, pitch.md, video_script.md ...
+web/                app React (fuera del MVP)
+```
+Raíz: solo `README.md`, `LICENSE`, `THIRD_PARTY.md` y archivos de configuración.
 Fuera del producto (se conservan sin usar): `web/` (React), `src/web_api.py`, `src/dashboard.py`, pronóstico y datos hídricos.

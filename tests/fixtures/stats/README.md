@@ -4,7 +4,7 @@ Los fixtures son referencias numéricas sintéticas para las pruebas de preparac
 estadística. Las regiones, unidades de salida y familia regional BY siguen el contrato
 v2 publicado en `main`. Cada JSON documenta sus propias entradas y expectativas.
 Las convenciones pendientes se registran en
-[las decisiones de Emanuel](../../../docs/emanuel/decisions.md).
+[las decisiones de Emanuel](../../../docs/team/emanuel/decisions.md).
 
 Todos los `.json` de este directorio:
 - tienen `"synthetic": true`,

@@ -1,8 +1,8 @@
 # Decisiones de análisis estadístico — EMANUEL-01
 
 Revisión contra el contrato v2 de Jacky publicado en `main` (`4b17e3d`).
-Las [decisiones del equipo](../decisions.md) y [el contrato](../../src/contracts.py)
-definen la integración. Los fixtures de [EMANUEL-02](../../tests/fixtures/stats/README.md)
+Las [decisiones del equipo](../../decisions.md) y [el contrato](../../../src/contracts.py)
+definen la integración. Los fixtures de [EMANUEL-02](../../../tests/fixtures/stats/README.md)
 aportan referencias numéricas sintéticas para Emanuel y Diego.
 
 | Punto | Base de trabajo v2 | Por resolver |

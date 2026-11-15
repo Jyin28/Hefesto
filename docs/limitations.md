@@ -6,13 +6,13 @@ Este documento explica con honestidad qué puede y qué no puede decir Hefesto v
 
 ---
 
-## 1. Fuente y naturaleza de los datos (verificado en `DATA_SOURCES.md`)
+## 1. Fuente y naturaleza de los datos (verificado en `docs/DATA_SOURCES.md`)
 
 - **Fuente oficial:** datos mensuales de NASA POWER, basados en el sistema de reanálisis **MERRA-2**, período **1981–2024** (44 años completos, 528 meses). *(S1)*
 - **Naturaleza del dato:** son **estimaciones de un modelo atmosférico con asimilación de observaciones**. **No** son mediciones directas de estaciones meteorológicas ni de satélites puntuales.
 - Por ser un modelo, puede haber diferencias respecto a lo que mide una estación local, sobre todo en lluvia y en zonas de relieve complejo.
 
-## 2. Escala espacial (verificado en `DATA_SOURCES.md`)
+## 2. Escala espacial (verificado en `docs/DATA_SOURCES.md`)
 
 - La cuadrícula nativa es de **0.5° × 0.625°**, equivalente a **~55 km × 69 km por celda**. *(S2)*
 - Cada sector didáctico agrupa **5 celdas terrestres elegibles**:
@@ -67,13 +67,13 @@ No usar los resultados para: alertas tempranas, racionamiento, operación de ASA
 
 ## 7. Reproducibilidad
 
-Hefesto v2 **no usa LLM ni IA generativa en tiempo de ejecución**. Las recomendaciones, los cálculos y los textos de la Ficha de Detective son deterministas y reproducibles sin conexión. Ver `AI_USAGE.md`.
+Hefesto v2 **no usa LLM ni IA generativa en tiempo de ejecución**. Las recomendaciones, los cálculos y los textos de la Ficha de Detective son deterministas y reproducibles sin conexión. Ver `docs/project/AI_USAGE.md`.
 
 ## 8. Referencias (IDs usados en `docs/claims.csv`)
 
 | ID | Referencia |
 |---|---|
-| `DATA_SOURCES.md` | Metadatos verificados por Samuel. |
+| `docs/DATA_SOURCES.md` | Metadatos verificados por Samuel. |
 | S1 | NASA POWER, datos mensuales (reanálisis MERRA-2). |
 | S2 | Documentación/metadatos de resolución de NASA POWER. |
 | S3 | statsmodels: OLS con covarianza HAC. |

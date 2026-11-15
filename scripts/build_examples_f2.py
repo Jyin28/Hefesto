@@ -1,4 +1,4 @@
-"""Build the F2 example bundles for Kevin: docs/jacky/examples/<case>/ (J2.6).
+"""Build the F2 example bundles for Kevin: docs/team/jacky/examples/<case>/ (J2.6).
 
 Reproducible: the mock clocks are pinned, so running this twice gives identical files.
 Everything is synthetic mock output. Usage (repo root): python scripts/build_examples_f2.py
@@ -17,7 +17,7 @@ from src import service_mock_f2 as m  # noqa: E402
 from src.contracts_ext import AnalysisQuery  # noqa: E402
 from src.export_f2 import build_export  # noqa: E402
 
-OUT = ROOT / "docs" / "jacky" / "examples"
+OUT = ROOT / "docs" / "team" / "jacky" / "examples"
 PIN_DATE = date(2026, 11, 14)
 PIN_NOW = "2026-11-14T00:00:00Z"
 

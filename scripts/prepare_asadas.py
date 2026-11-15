@@ -13,7 +13,7 @@ from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-XLSX = ROOT / "Operadores y Fuentes (Ubicaciones).xlsx"
+XLSX = ROOT / "data" / "raw" / "agua" / "Operadores y Fuentes (Ubicaciones).xlsx"
 CANTONS = ROOT / "data" / "web" / "cantons.json"
 OUT = ROOT / "data" / "web" / "asadas.json"
 PUBLIC_OUT = ROOT / "web" / "public" / "data" / "asadas.json"
