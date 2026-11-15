@@ -69,3 +69,19 @@ class EngineTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FingerprintTests(unittest.TestCase):
+    def test_line_endings_do_not_change_the_data_fingerprint(self):
+        """Git en Windows entrega los CSV con CRLF: el mismo contenido debe dar la misma huella (y un cambio real, otra)."""
+        import tempfile
+        from pathlib import Path
+        from hefesto_forecast.engine import file_digest
+        crlf, lf = bytes([13, 10]), bytes([10])
+        with tempfile.TemporaryDirectory() as tmp:
+            a, b, c = (Path(tmp) / name for name in ("a.csv", "b.csv", "c.csv"))
+            a.write_bytes(b"x,y" + crlf + b"1,2" + crlf)
+            b.write_bytes(b"x,y" + lf + b"1,2" + lf)
+            c.write_bytes(b"x,y" + lf + b"1,3" + lf)
+            self.assertEqual(file_digest(a), file_digest(b))
+            self.assertNotEqual(file_digest(a), file_digest(c))

@@ -2,7 +2,7 @@
   "calibration_date": "2026-11-15",
   "first_target": "2026-12",
   "input_sha256": {
-    "monthly_regional.csv": "5d189ef6cf13520d8948abf8d22b6fb359b1f68d7bded1055019472bd5cccac2",
+    "monthly_regional.csv": "07e8807bb85a7f4a662c763e937af0bc1a8af4e4891e4be738a03fc966df270e",
     "roni_noaa.csv": "9229b89bbebacbb0f3779d75c552352f6e4d4db5df1c3eea68d2f096cc6a3b40"
   },
   "series": {

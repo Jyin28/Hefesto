@@ -16,6 +16,16 @@ VARIABLES = ('T2M', 'RH2M', 'PRECTOTCORR', 'UV')
 class NeedsRevalidation(ValueError):
     pass
 
+CRLF, LF = bytes([13, 10]), bytes([10])
+
+def file_digest(path):
+    """SHA-256 del contenido con los saltos de línea normalizados a LF.
+
+    Git en Windows puede entregar los archivos con CRLF; el contenido es el mismo y no debe invalidar la validación.
+    Cualquier cambio real de los datos sigue cambiando la huella.
+    """
+    return hashlib.sha256(Path(path).read_bytes().replace(CRLF, LF)).hexdigest()
+
 def validate_series(series):
     if len(series) < 120 or not series.index.is_unique:
         raise ValueError('Se requieren al menos 120 meses sin duplicados.')
@@ -30,7 +40,7 @@ class ForecastEngine:
         root = Path(data_dir)
         self.policy = json.loads((root / 'calibration.json').read_text(encoding='utf-8'))
         for name, expected in self.policy['input_sha256'].items():
-            if hashlib.sha256((root / name).read_bytes()).hexdigest() != expected:
+            if file_digest(root / name) != expected:
                 raise NeedsRevalidation('Los datos cambiaron: repetir la validación antes de reutilizar modelos y bandas.')
         self.frame = pd.read_csv(root / 'monthly_regional.csv')
         rr = pd.read_csv(root / 'roni_noaa.csv')

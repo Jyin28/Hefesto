@@ -6,7 +6,32 @@ y un período. Recibe cuatro tarjetas (qué, dónde, cuánto, qué evidencia), s
 diagnósticos y una **Ficha de detective** reproducible (Markdown/JSON/CSV).
 Es exploración histórica: **no pronostica** sequías, inundaciones ni disponibilidad de agua.
 
-## Cómo abrir el sitio (Windows, PowerShell)
+## Sitio web de AguaAlerta (lo principal)
+
+Es el sitio que se publica: inicio, mapas (NASA POWER, Copernicus CDS y datos nacionales de caudales), página de **Predicciones**
+con selector de idioma ES/EN, y el newsletter por Telegram. Se compone de una API (FastAPI) que sirve la web ya compilada.
+
+Requisitos: **Python 3.12 o posterior** y **Node.js 20 o posterior**. En PowerShell, desde la raíz del repositorio:
+
+```powershell
+.\scripts\run-web.ps1
+```
+
+El script crea `.venv`, instala las dependencias de Python y de la web, compila la web y abre **http://localhost:8000**. No necesita
+internet una vez instalado ni ninguna clave: los datos (`web/public/data/`, `hefesto_forecast/data/`) están en el repositorio.
+
+- **Newsletter por Telegram (opcional):** copia `.env.example` como `.env` y pon el token del bot (se crea con @BotFather). Sin token, el sitio
+  funciona igual y el formulario avisa que el envío aún no está activo. Guía completa en `docs/predicciones.md`.
+- **Desarrollo con recarga:** `python -m uvicorn src.web_api:app --reload` y, en otra terminal, `cd web; npm.cmd run dev` (http://localhost:5173).
+  Detalles en `web/README.md`.
+- **Regenerar datos:** `python -m src.predictions` (predicciones, normalmente cada mes) y `npm run geo` en `web/` (mallas por cantón).
+- **Pruebas:** `.\.venv\Scripts\python.exe -m pytest -q` y `cd web; npm.cmd run build`.
+
+## App Streamlit (versión anterior)
+
+La primera versión del proyecto, una app educativa en Streamlit. Es independiente del sitio web.
+
+### Cómo abrir la app Streamlit (Windows, PowerShell)
 
 Usa Python 3.12 o posterior. Abre una terminal en la raíz del repositorio.
 
