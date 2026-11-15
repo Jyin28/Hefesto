@@ -37,7 +37,7 @@ El snapshot incluye el detalle de celdas para las ventanas por defecto. La API p
 
 ## Capas del mapa, hidrografía y operadores de agua
 
-Estos pasos generan los archivos que el navegador pide en `web/public/data/` (ignorados por git; se regeneran).
+Estos pasos generan los archivos que el navegador pide en `web/public/data/` (versionados en git para que la web funcione al clonar; regeneralos con estos pasos si cambian las fuentes).
 
 - `python -m src.web_data` también escribe `snapshot.layers`: promedios anuales por celda de temperatura, lluvia, humedad (`RH2M`, 1981–2024) y radiación UV (`ALLSKY_SFC_UV_INDEX`, solo 2001–2024). La primera vez descarga RH2M y UV de NASA POWER y los guarda en `data/raw/`. El UV llega en malla de 1° y cada celda del mapa toma el punto más cercano.
 - `python scripts/prepare_waterways.py` lee `data/raw/hidrografia/hotosm_cri_waterways_osm_geojson.zip` (OpenStreetMap, ODbL) y escribe `public/data/waterways.geojson` (~4,5 MB, simplificado). Solo se pide al abrir el mapa de cuencas.
